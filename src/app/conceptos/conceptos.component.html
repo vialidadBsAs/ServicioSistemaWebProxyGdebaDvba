@@ -1,0 +1,121 @@
+<section class="master-page">
+  <header class="master-page__header">
+    <div>
+      <h1 class="master-page__title">Conceptos</h1>
+      <p class="master-page__subtitle">
+        Administración de conceptos con grilla de Infragistics y edición en diálogo.
+      </p>
+    </div>
+  </header>
+
+  <section class="master-card">
+    <div class="grid-toolbar">
+      <div class="grid-toolbar__meta">
+        Registros cargados: <strong>{{ data.length }}</strong>
+      </div>
+      <div class="grid-toolbar__meta" *ngIf="selectedId !== null">
+        Seleccionado: <strong>#{{ selectedId }}</strong>
+      </div>
+    </div>
+
+    <igx-grid
+      #grid
+      [data]="data"
+      [autoGenerate]="false"
+      [rowSelection]="'single'"
+      [cellSelection]="'none'"
+      [hideRowSelectors]="true"
+      [allowFiltering]="true"
+      primaryKey="id"
+      (rowClick)="onRowClick($event)"
+      (rowSelectionChanging)="onRowSelectionChanging($event)"
+      (doubleClick)="onGridDoubleClick($event)"
+      height="480px"
+      width="100%">
+      <igx-column field="id" header="Id" [sortable]="true" width="120px"></igx-column>
+      <igx-column field="descripcion" header="Descripción" [sortable]="true"></igx-column>
+    </igx-grid>
+
+    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+      <button igxButton="contained" igxRipple type="button" (click)="openNewDialog()">
+        <igx-icon fontSet="material">add</igx-icon>
+        <span>Nuevo</span>
+      </button>
+
+      <button
+        igxButton="outlined"
+        type="button"
+        [disabled]="selectedId === null"
+        (click)="editSelected()">
+        <igx-icon fontSet="material">edit</igx-icon>
+        <span>Modificar</span>
+      </button>
+
+      <button
+        igxButton="flat"
+        type="button"
+        [disabled]="selectedId === null"
+        (click)="deleteSelected()">
+        <igx-icon fontSet="material">delete</igx-icon>
+        <span>Eliminar</span>
+      </button>
+    </div>
+  </section>
+</section>
+
+<igx-dialog
+  #dialog
+  [title]="editingId ? 'Editar concepto' : 'Nuevo concepto'"
+  [closeOnOutsideSelect]="false"
+  leftButtonLabel="Cancelar"
+  rightButtonLabel="Guardar"
+  (leftButtonSelect)="cancel()"
+  (rightButtonSelect)="save()">
+  <form class="master-form" [formGroup]="form">
+    <igx-input-group>
+      <igx-prefix>
+        <igx-icon fontSet="material">tag</igx-icon>
+      </igx-prefix>
+      <input igxInput formControlName="id" readonly />
+      <label igxLabel>Id</label>
+    </igx-input-group>
+
+    <div>
+      <igx-input-group>
+        <igx-prefix>
+          <igx-icon fontSet="material">description</igx-icon>
+        </igx-prefix>
+        <input igxInput formControlName="descripcion" />
+        <label igxLabel>Descripción</label>
+      </igx-input-group>
+
+      <div
+        class="field-error"
+        *ngIf="form.controls.descripcion.touched && form.controls.descripcion.hasError('required')">
+        La descripción es obligatoria.
+      </div>
+
+      <div
+        class="field-error"
+        *ngIf="form.controls.descripcion.touched && form.controls.descripcion.hasError('maxlength')">
+        La descripción no puede superar los 80 caracteres.
+      </div>
+    </div>
+  </form>
+</igx-dialog>
+
+<igx-dialog
+  #deleteDialog
+  title="Confirmar eliminación"
+  [closeOnOutsideSelect]="false"
+  leftButtonLabel="Cancelar"
+  rightButtonLabel="Eliminar"
+  (leftButtonSelect)="cancelDelete()"
+  (rightButtonSelect)="confirmDelete()">
+  <div class="master-form">
+    <p style="margin: 0; color: #374151;">
+      ¿Desea eliminar el concepto
+      <strong>{{ pendingDeleteItem?.descripcion }}</strong>?
+    </p>
+  </div>
+</igx-dialog>

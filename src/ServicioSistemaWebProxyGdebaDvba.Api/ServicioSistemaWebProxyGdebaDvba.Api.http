@@ -1,0 +1,6 @@
+@ServicioSistemaWebProxyGdebaDvba.Api_HostAddress = http://localhost:5013
+
+GET {{ServicioSistemaWebProxyGdebaDvba.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
