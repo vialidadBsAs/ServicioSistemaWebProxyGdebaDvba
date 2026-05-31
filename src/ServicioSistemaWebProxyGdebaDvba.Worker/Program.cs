@@ -7,8 +7,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure();
+builder.Services.AddApplication(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);
 builder.Services.AddHostedService<Worker>();
 

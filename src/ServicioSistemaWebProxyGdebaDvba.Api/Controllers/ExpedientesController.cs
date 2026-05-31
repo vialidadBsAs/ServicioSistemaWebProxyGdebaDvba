@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
@@ -14,14 +15,14 @@ public sealed class ExpedientesController : ControllerBase
         _consultarExpedienteService = consultarExpedienteService;
     }
 
-    [HttpGet("{numeroExpediente}")]
+    [HttpGet("{numeroGdebaCompleto}")]
     public async Task<ActionResult<ConsultarExpedienteResult>> Consultar(
-        string numeroExpediente,
+        string numeroGdebaCompleto,
         [FromQuery] bool forceRefresh,
         CancellationToken cancellationToken)
     {
         var result = await _consultarExpedienteService.ConsultarAsync(
-            new ConsultarExpedienteRequest(numeroExpediente, forceRefresh),
+            new ConsultarExpedienteRequest(numeroGdebaCompleto, forceRefresh),
             cancellationToken);
 
         return result.Expediente is null ? NotFound(result) : Ok(result);

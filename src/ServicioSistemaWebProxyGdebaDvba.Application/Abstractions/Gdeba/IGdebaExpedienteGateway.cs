@@ -1,9 +1,9 @@
-using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 
 public interface IGdebaExpedienteGateway
 {
-    Task<ExpedienteGdebaDto?> BuscarExpedienteAsync(NumeroExpediente numero, CancellationToken cancellationToken);
+    Task<ExpedienteGdebaDto?> BuscarExpedienteAsync(NumeroGdebaCompleto numeroGdebaCompleto, CancellationToken cancellationToken);
 }

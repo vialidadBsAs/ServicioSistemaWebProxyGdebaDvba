@@ -3,14 +3,14 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
-public sealed class RegistroAuditoria : Entity
+public sealed class RegistroAuditoria : DomainEntity
 {
     private RegistroAuditoria()
     {
     }
 
     public RegistroAuditoria(
-        string aplicacion,
+        Guid aplicacionConsumidoraId,
         string operacion,
         string? recurso,
         AmbienteGdeba ambiente,
@@ -18,7 +18,9 @@ public sealed class RegistroAuditoria : Entity
         bool exitoso,
         DateTimeOffset fecha)
     {
-        Aplicacion = aplicacion;
+        AplicacionConsumidoraId = aplicacionConsumidoraId == Guid.Empty
+            ? throw new ArgumentException("La aplicacion consumidora es requerida.", nameof(aplicacionConsumidoraId))
+            : aplicacionConsumidoraId;
         Operacion = operacion;
         Recurso = recurso;
         Ambiente = ambiente;
@@ -27,7 +29,9 @@ public sealed class RegistroAuditoria : Entity
         Fecha = fecha;
     }
 
-    public string Aplicacion { get; private set; } = string.Empty;
+    public Guid AplicacionConsumidoraId { get; private set; }
+
+    public AplicacionConsumidora AplicacionConsumidora { get; private set; } = null!;
 
     public string Operacion { get; private set; } = string.Empty;
 

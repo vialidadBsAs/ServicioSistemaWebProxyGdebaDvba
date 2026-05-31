@@ -1,8 +1,8 @@
-using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
+using ServicioSistemaWebProxyGdebaDvba.Application.Auditoria;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Auditoria;
 
 public interface IAuditoriaService
 {
-    Task RegistrarAsync(RegistroAuditoria registro, CancellationToken cancellationToken);
+    Task RegistrarAsync(RegistrarAuditoriaRequest request, CancellationToken cancellationToken);
 }

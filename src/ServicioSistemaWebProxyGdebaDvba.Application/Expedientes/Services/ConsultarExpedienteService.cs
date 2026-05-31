@@ -1,11 +1,13 @@
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Security;
-using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
+using ServicioSistemaWebProxyGdebaDvba.Application.Auditoria;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
-namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes;
+namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
 
 public sealed class ConsultarExpedienteService : IConsultarExpedienteService
 {
@@ -28,15 +30,15 @@ public sealed class ConsultarExpedienteService : IConsultarExpedienteService
 
     public async Task<ConsultarExpedienteResult> ConsultarAsync(ConsultarExpedienteRequest request, CancellationToken cancellationToken)
     {
-        var numero = NumeroExpediente.Create(request.NumeroExpediente);
-        var expediente = await _gdebaExpedienteGateway.BuscarExpedienteAsync(numero, cancellationToken);
+        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var expediente = await _gdebaExpedienteGateway.BuscarExpedienteAsync(numeroGdebaCompleto, cancellationToken);
         var resolvedAt = DateTimeOffset.UtcNow;
 
         await _auditoriaService.RegistrarAsync(
-            new RegistroAuditoria(
+            new RegistrarAuditoriaRequest(
                 _currentApplicationAccessor.Current.ApplicationId,
                 "ConsultarExpediente",
-                numero.Value,
+                numeroGdebaCompleto.Valor,
                 _gdebaExecutionContext.Ambiente,
                 FuenteRespuesta.Gdeba,
                 expediente is not null,
