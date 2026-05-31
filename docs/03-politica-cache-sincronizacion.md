@@ -80,6 +80,10 @@ Campos recomendados en la base local:
 - `TieneDatosParciales`
 - `HashContenido`
 
+Estos campos pertenecen al control de cache, no a las entidades puras de datos GDEBA. En el modelo persistente inicial se separan en entidades como `ExpedienteCacheControl`, `HistorialExpedienteCacheControl`, `DocumentoCacheControl` y `TrataCacheControl`.
+
+Los archivos documentales no se guardan como binarios en SQL Server en esta etapa. Se guardan local o externamente, y la base conserva referencias y metadatos mediante `DocumentoArchivoLocal`.
+
 ## TTL Sugeridos Iniciales
 
 Estos valores son orientativos y deben ajustarse con uso real:

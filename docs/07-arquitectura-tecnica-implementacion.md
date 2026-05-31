@@ -1,8 +1,8 @@
 # Guia Tecnica de Arquitectura e Implementacion
 
-Version: 0.2  
-Fecha: 29/05/2026  
-Estado: Borrador tecnico inicial
+Version: 0.3  
+Fecha: 31/05/2026  
+Estado: Borrador tecnico actualizado al feature de modelo persistente
 
 ## 1. Proposito de Esta Guia
 
@@ -66,25 +66,53 @@ ServicioSistemaWebProxyGdebaDvba.sln
 
 ### 3.1 Domain
 
-`Domain` contiene conceptos propios del proxy. No debe conocer detalles de HTTP, SOAP, EF Core, SQL Server ni archivos de configuracion.
+`Domain` contiene conceptos propios del proxy. No debe conocer detalles de HTTP, SOAP, controladores, archivos `appsettings.json` ni clientes externos.
 
-El dominio debe responder a la pregunta: **que conceptos existen en el proxy y que reglas propias tienen?** Pero esos conceptos no son todos del mismo tipo. Es importante distinguir entidades, value objects, enumeraciones y clases base, porque cada una cumple una funcion distinta.
+El dominio debe responder a la pregunta: **que conceptos existen en el proxy y que reglas propias tienen?** Pero esos conceptos no son todos del mismo tipo. Es importante distinguir datos GDEBA, control de cache, auditoria, value objects, enumeraciones y clases base.
 
-#### Entidades
+#### Entidades de Datos GDEBA
 
-Las entidades representan conceptos con identidad propia dentro del sistema. Tienen un identificador y pueden tener ciclo de vida. Se las reconoce porque no alcanza con comparar sus valores: interesa saber que son una ocurrencia o registro concreto.
+Las entidades de datos GDEBA representan la informacion funcional que el proxy decide reproducir localmente para poder responder con independencia parcial de GDEBA.
 
 Ejemplos actuales:
 
-- `AplicacionConsumidora`
-- `ExpedienteCache`
-- `RegistroAuditoria`
+- `Expediente`
+- `MovimientoExpediente`
+- `DocumentoGdeba`
+- `DocumentoArchivoLocal`
+- `ExpedienteDocumento`
+- `TrataGdeba`
 
-`AplicacionConsumidora` representa una aplicacion interna que puede consumir el proxy. En el futuro podria tener estado activo/inactivo, permisos, nombre visible, responsable tecnico o politicas de consumo.
+`Expediente` representa la definicion local de un expediente GDEBA con sus datos propios. No es reemplazado por un value object: el value object solo modela el numero compuesto.
 
-`ExpedienteCache` representa una copia local administrada de informacion de un expediente. Tiene identidad propia porque puede tener fecha de cacheo, vencimiento, estado parcial y futuras reglas de refresco.
+`MovimientoExpediente` representa el historial/pase del expediente. No existe una entidad separada llamada historial para guardar los mismos datos, porque el historial esta compuesto por movimientos.
 
-`RegistroAuditoria` representa una ocurrencia concreta en el tiempo: una aplicacion hizo una operacion sobre un recurso, en un ambiente determinado y con cierto resultado. Eso no es un simple valor; es un evento auditable.
+`TrataGdeba` representa el catalogo de tratas informado por GDEBA. La descripcion de la trata no debe duplicarse innecesariamente en cada ocurrencia de expediente cuando puede relacionarse con una entidad de catalogo.
+
+`DocumentoArchivoLocal` representa la ubicacion y metadatos del archivo guardado local o externamente. La base no guarda el binario del PDF/Word; guarda referencias, tipo de archivo, hash, longitud y fechas de descarga/verificacion.
+
+#### Entidades de Control de Cache
+
+Las entidades de control de cache representan frescura, fechas de consulta, vencimiento y fuente de respuesta. Estan separadas fisicamente de las entidades de datos para no mezclar informacion funcional GDEBA con metadatos operativos del proxy.
+
+Ejemplos actuales:
+
+- `ExpedienteCacheControl`
+- `HistorialExpedienteCacheControl`
+- `DocumentoCacheControl`
+- `TrataCacheControl`
+
+`ExpedienteCacheControl` controla la frescura de los datos principales del expediente.
+
+`HistorialExpedienteCacheControl` controla la frescura del historial/movimientos. Se mantiene separado porque el expediente y sus movimientos pueden tener politicas de refresco diferentes.
+
+`DocumentoCacheControl` controla la frescura de la metadata del documento. El archivo local se modela aparte mediante `DocumentoArchivoLocal`, porque una cosa es saber si la metadata esta fresca y otra es saber donde esta almacenado el archivo descargado.
+
+#### Auditoria y Aplicaciones Consumidoras
+
+`AplicacionConsumidora` representa una aplicacion interna que puede consumir el proxy. Puede evolucionar hacia estado activo/inactivo, permisos, nombre visible, responsable tecnico o politicas de consumo.
+
+`RegistroAuditoria` representa una ocurrencia concreta en el tiempo. Debe relacionarse con `AplicacionConsumidora` mediante clave foranea, no almacenar solo un texto suelto que despues no pueda relacionarse.
 
 #### Value Objects
 
@@ -92,9 +120,20 @@ Los value objects representan valores del dominio que se comparan por su conteni
 
 Ejemplo actual:
 
-- `NumeroExpediente`
+- `NumeroGdebaCompleto`
 
-`NumeroExpediente` normaliza el texto recibido para evitar diferencias por espacios multiples. Dos instancias con el mismo valor normalizado representan el mismo numero de expediente. Por eso corresponde modelarlo como value object y no como entidad.
+`NumeroGdebaCompleto` representa el formato comun usado por GDEBA para expedientes, documentos y otros tipos documentales. No debe llamarse simplemente `Numero`, porque el numero numerico es solo una parte del identificador completo.
+
+Partes persistidas del identificador:
+
+- `GdebaNumeroCompleto`
+- `GdebaTipo`
+- `GdebaAnio`
+- `GdebaNumero`
+- `GdebaSistema`
+- `GdebaReparticion`
+
+El tipo (`EX`, `IF`, etc.) diferencia si el identificador corresponde a expediente, informe/documento u otro elemento. Por eso no corresponde tener value objects separados solo por llamarse expediente o documento si el formato base es el mismo.
 
 #### Enumeraciones
 
@@ -109,7 +148,9 @@ Ejemplos actuales:
 
 #### Clases Base
 
-`Entity` es una clase base tecnica de dominio para compartir el concepto de identidad entre entidades. No representa una regla funcional por si misma y no deberia confundirse con un concepto de negocio.
+`DomainEntity` es una clase base tecnica de dominio para compartir identidad y compatibilidad con URF Trackable. Hereda de `URF.Core.EF.Trackable.Entity` para que los repositorios trackeables de URF puedan funcionar correctamente.
+
+Se evita llamarla simplemente `Entity` para no confundirla con la clase `Entity` provista por URF ni con un concepto funcional del negocio.
 
 La intencion de `Domain` es expresar conceptos propios del proxy, pero diferenciando claramente la naturaleza de cada elemento. No debe presentarse una entidad, un value object y un enum como si fueran objetos equivalentes.
 
@@ -134,9 +175,8 @@ Eso es importante: `Application` define interfaces que representan necesidades d
 - Implementacion fake de GDEBA.
 - Implementacion futura SOAP.
 - Configuracion de GDEBA.
-- Auditoria por logging.
-- Acceso futuro a SQL Server.
-- Repositorios URF futuros.
+- Acceso a SQL Server mediante EF Core.
+- Registros URF `Repository`, `TrackableRepository` y `UnitOfWork`.
 - Cliente JWT futuro.
 
 Esta capa responde a la pregunta: **como se implementan tecnicamente las necesidades definidas por Application?**
@@ -226,7 +266,7 @@ Esta separacion es importante. El controlador no debe saber si existe SOAP, fake
 
 En terminos simples hace esto:
 
-1. Convierte el texto recibido en un `NumeroExpediente`.
+1. Convierte el texto recibido en un `NumeroGdebaCompleto`.
 2. Invoca `IGdebaExpedienteGateway`.
 3. Registra auditoria.
 4. Devuelve un resultado con informacion de fuente y fecha.
@@ -421,8 +461,8 @@ La composicion de dependencias se hace en `Program.cs`, pero los registros se ag
 En la API:
 
 ```csharp
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure();
+builder.Services.AddApplication(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);
 ```
 
@@ -430,7 +470,7 @@ Esto mantiene el `Program.cs` limpio y permite que el Worker reutilice el mismo 
 
 ### 8.1 AddApplication
 
-Registra casos de uso propios de Application.
+Registra casos de uso propios de Application y servicios transversales cuya implementacion pertenece a Application.
 
 Ejemplo:
 
@@ -438,7 +478,12 @@ Ejemplo:
 services.AddScoped<IConsultarExpedienteService, ConsultarExpedienteService>();
 ```
 
-Esta capa no registra implementaciones tecnicas de GDEBA ni acceso a datos.
+Tambien registra `IAuditoriaService` segun la configuracion `Auditoria:Mode`:
+
+- `InMemory`: implementacion simple por logging.
+- `Persisted`: implementacion persistida usando abstracciones URF.
+
+Esta capa no registra implementaciones tecnicas de GDEBA. Cuando usa persistencia, debe hacerlo mediante abstracciones de aplicacion/URF, no tomando dependencia directa de `DbContext`.
 
 ### 8.2 AddInfrastructure
 
@@ -447,7 +492,12 @@ Registra servicios tecnicos generales.
 Actualmente:
 
 - `ICurrentApplicationAccessor`
-- `IAuditoriaService`
+- `DbContext`
+- `IUnitOfWork`
+- `IRepository<>`
+- `ITrackableRepository<>`
+
+Los registros de EF Core/URF se activan cuando existe la connection string `ProxyGdeba`.
 
 No registra el gateway GDEBA. Eso se separo para que el modo de integracion sea configurable.
 
@@ -505,10 +555,10 @@ Si llega:
 X-Application-Id: obras
 ```
 
-la auditoria puede registrar:
+la auditoria puede asociar la solicitud a la aplicacion consumidora:
 
 ```text
-Aplicacion = obras
+AplicacionConsumidora.Codigo = obras
 ```
 
 ### 9.2 Que no hace todavia
@@ -535,9 +585,18 @@ Los elementos actuales son:
 
 - `RegistroAuditoria` en Domain.
 - `IAuditoriaService` en Application.
-- `InMemoryAuditoriaService` en Infrastructure.
+- `InMemoryAuditoriaService` en Application.
+- `PersistedAuditoriaService` en Application.
 
-Actualmente se registra en logs, no en base de datos.
+La implementacion se elige por configuracion:
+
+```json
+"Auditoria": {
+  "Mode": "Persisted"
+}
+```
+
+`InMemory` permite registrar en logs sin persistir. `Persisted` persiste mediante URF y relaciona cada registro con `AplicacionConsumidora`.
 
 El caso de uso `ConsultarExpedienteService` registra:
 
@@ -549,7 +608,7 @@ El caso de uso `ConsultarExpedienteService` registra:
 - Resultado.
 - Fecha.
 
-Mas adelante deberia persistirse en SQL Server.
+La persistencia ya esta modelada, pero queda pendiente generar/aplicar migraciones y ajustar detalles operativos de auditoria cuando se definan duracion, correlation id y errores normalizados.
 
 ### 10.1 Por Que Auditoria No Esta en el Controller
 
@@ -564,7 +623,6 @@ Faltan aspectos importantes:
 - Duracion de la llamada.
 - Correlation Id.
 - Error normalizado.
-- Persistencia real.
 - Enmascaramiento de datos sensibles.
 - Identificacion robusta de aplicacion.
 
@@ -632,7 +690,7 @@ Agregar una operacion a un gateway existente o crear uno nuevo:
 public interface IGdebaExpedienteGateway
 {
     Task<IReadOnlyList<PaseExpedienteDto>> BuscarHistorialPasesAsync(
-        NumeroExpediente numero,
+        NumeroGdebaCompleto numero,
         CancellationToken cancellationToken);
 }
 ```
@@ -686,8 +744,8 @@ Esta tabla sirve como regla practica:
 | Repositorio SQL Server | Infrastructure |
 | Configuracion de endpoints GDEBA | appsettings + Infrastructure |
 | Middleware HTTP | Api |
-| Auditoria persistida | Infrastructure, usando contrato de Application |
-| Cache persistida | Infrastructure, usando contratos de Application/Domain |
+| Auditoria persistida | Application, usando abstracciones URF y entidades de Domain |
+| Cache persistida | Domain + Infrastructure/Persistence, usando EF Core/URF |
 
 ## 14. Cosas Que Deben Evitarse
 
@@ -740,7 +798,10 @@ Actualmente esta implementado:
 - Selector de gateway por `GatewayMode`.
 - Gateway fake.
 - Gateway SOAP reservado.
-- Auditoria inicial por logging.
+- Auditoria configurable `InMemory`/`Persisted`.
+- Modelo persistente inicial para expedientes, movimientos, documentos, archivos locales, tratas, cache control, aplicaciones consumidoras y auditoria.
+- EF Core con `ProxyGdebaDbContext` y configuraciones explicitas.
+- URF para `Repository`, `TrackableRepository` y `UnitOfWork`.
 - `.gitignore` para Visual Studio y .NET.
 
 Pendiente:
@@ -749,10 +810,8 @@ Pendiente:
 - Cliente SOAP real.
 - Implementacion de `buscarDatosExpedientePorCodigosTrata`.
 - Implementacion de `buscarHistorialPasesExpediente`.
-- SQL Server.
-- EF Core/URF real.
-- Cache persistida.
-- Auditoria persistida.
+- Migraciones EF Core y creacion efectiva de base SQL Server.
+- Servicios de lectura/escritura de cache sobre el modelo persistente.
 - Validacion real de aplicaciones consumidoras.
 - Tests automatizados.
 

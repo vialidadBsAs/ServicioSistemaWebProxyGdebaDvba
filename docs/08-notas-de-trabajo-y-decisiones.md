@@ -1,7 +1,7 @@
 # Notas de Trabajo y Decisiones Operativas
 
-Version: 0.2  
-Fecha: 29/05/2026  
+Version: 0.3  
+Fecha: 31/05/2026  
 Estado: Documento de continuidad
 
 ## 1. Proposito de este documento
@@ -18,26 +18,13 @@ La solucion todavia esta en una etapa temprana. El objetivo de lo construido has
 
 ## 3. Repositorio, rutas y continuidad de Codex
 
-La ruta real del proyecto es:
+La ruta real actual del proyecto es:
 
 ```text
-C:\Users\Admin\Documents\ServicioSistemaWebProxyGdebaDvba
+C:\Users\admin\source\repos\ServicioSistemaWebProxyGdebaDvba
 ```
 
-Durante el trabajo inicial, el chat de Codex habia quedado asociado a una carpeta anterior:
-
-```text
-C:\Users\Admin\Documents\New project
-```
-
-Para no perder continuidad dentro de este chat se creo un junction de Windows:
-
-```text
-C:\Users\Admin\Documents\New project
-  -> C:\Users\Admin\Documents\ServicioSistemaWebProxyGdebaDvba
-```
-
-Esto permite que una herramienta que todavia apunte a `New project` trabaje realmente sobre la carpeta renombrada. Si se abre el proyecto desde cero en otra maquina, lo mas claro es abrir directamente la ruta real del repositorio.
+Durante el trabajo inicial existieron rutas anteriores bajo `Documents`. Si se retoma el desarrollo desde Visual Studio o Codex, conviene verificar primero `git status` dentro de la ruta actual y no asumir que otra carpeta es el repositorio activo.
 
 ## 4. Identidad Git y GitHub
 
@@ -203,6 +190,15 @@ La politica de cache no debe ser unica para todos los datos. Un PDF o documento 
 
 El Worker sera importante si se decide ejecutar refrescos programados, sincronizaciones por trata, precargas o procesos incrementales. Sin Worker, la cache solo se actualizaria como consecuencia de requests HTTP, lo cual simplifica el despliegue pero limita la estrategia de actualizacion.
 
+Decision posterior del feature `modelo-cache-persistente`:
+
+- Separar fisicamente datos GDEBA y control de cache dentro del dominio.
+- Persistir datos funcionales en entidades como `Expediente`, `MovimientoExpediente`, `DocumentoGdeba`, `DocumentoArchivoLocal` y `TrataGdeba`.
+- Persistir frescura/control operativo en entidades como `ExpedienteCacheControl`, `HistorialExpedienteCacheControl`, `DocumentoCacheControl` y `TrataCacheControl`.
+- Mantener `MovimientoExpediente` como el dato real del historial; no duplicarlo con otra entidad de historial.
+- Guardar archivos documentales fuera de la base de datos, local o externamente, dejando en SQL Server solo referencias y metadatos de archivo.
+- Considerar que la mayoria de los documentos seran PDF, pero permitir otros archivos de trabajo como Word.
+
 ## 16. Auditoria y trazabilidad
 
 La auditoria debe permitir responder, como minimo:
@@ -215,7 +211,12 @@ La auditoria debe permitir responder, como minimo:
 - Si la operacion fue exitosa.
 - Fecha y hora de resolucion.
 
-En el estado actual la auditoria es inicial. Mas adelante debe persistirse en SQL Server y evitar registrar credenciales, tokens, XML sensible o contenido documental innecesario.
+En el estado actual la auditoria ya tiene implementacion configurable:
+
+- `InMemory`, para logging simple.
+- `Persisted`, para persistir mediante URF.
+
+`RegistroAuditoria` debe relacionarse con `AplicacionConsumidora`; no debe quedar como un texto aislado sin relacion al consumidor registrado. En todos los modos se debe evitar registrar credenciales, tokens, XML sensible o contenido documental innecesario.
 
 ## 17. Seguridad interna
 
@@ -233,7 +234,32 @@ El equipo suele trabajar con una abstraccion sobre Entity Framework mediante Uni
 
 Esto aplica a datos propios del proxy, por ejemplo cache, auditoria, aplicaciones consumidoras o configuracion persistida. No debe confundirse Repository con clientes de servicios externos: para GDEBA corresponde hablar de gateways o clients, no de repositorios.
 
-## 19. Criterio para agregar un nuevo metodo GDEBA
+Decision posterior del feature `modelo-cache-persistente`:
+
+- Las entidades del dominio heredan de `DomainEntity`.
+- `DomainEntity` hereda de `URF.Core.EF.Trackable.Entity` para ser compatible con repositorios trackeables de URF.
+- Se evita llamar `Entity` a la clase base propia para no chocar conceptualmente ni nominalmente con URF.
+- Infrastructure registra `DbContext`, `IUnitOfWork`, `IRepository<>` y `ITrackableRepository<>` cuando existe connection string `ProxyGdeba`.
+- Para persistencia local se usa URF; para GDEBA se mantienen gateways/adapters.
+- Existen configuraciones EF explicitas en `Infrastructure/Persistence/Configurations`. Las migraciones no reemplazan esas configuraciones; generan archivos de migracion y snapshot a partir del modelo configurado.
+- Todavia queda pendiente generar/aplicar migraciones contra SQL Server.
+
+## 19. Modelo Persistente Inicial
+
+El modelo persistente inicial busca reproducir datos relevantes de GDEBA sin que el consumidor tenga que saber si la respuesta vino en ese momento de GDEBA o de la base local.
+
+El identificador comun de GDEBA se modela con `NumeroGdebaCompleto`, no con nombres especificos como `NumeroExpediente` o `NumeroDocumento`. El formato completo se compone de partes: tipo, anio, numero, sistema y reparticion. El tipo (`EX`, `IF`, etc.) indica la naturaleza del elemento.
+
+Las tratas se modelan con `TrataGdeba` como catalogo propio, porque GDEBA provee un servicio especifico para consultarlas. No corresponde duplicar sin necesidad codigo y descripcion de trata en cada ocurrencia de expediente si se puede relacionar con el catalogo.
+
+La separacion conceptual queda asi:
+
+- Datos GDEBA: expediente, movimientos, documentos, archivos locales, relaciones expediente-documento y tratas.
+- Control de cache: fechas de deteccion, consulta, actualizacion, vencimiento, fuente y estado de frescura.
+- Auditoria: registros de operaciones internas y aplicacion consumidora asociada.
+- Infraestructura de persistencia: `DbContext`, configuraciones EF, URF y futura migracion SQL Server.
+
+## 20. Criterio para agregar un nuevo metodo GDEBA
 
 Para sumar un metodo nuevo conviene seguir este orden:
 
@@ -249,7 +275,7 @@ Para sumar un metodo nuevo conviene seguir este orden:
 
 Este orden permite avanzar de forma incremental sin esperar a tener resuelta toda la infraestructura externa.
 
-## 20. Cosas a evitar
+## 21. Cosas a evitar
 
 No construir XML SOAP en controladores.
 
@@ -265,16 +291,20 @@ No registrar credenciales, tokens, XML sensible o documentos completos en logs.
 
 No trasladar reglas de negocio de Obras, Licitaciones o Certificaciones al proxy.
 
-## 21. Pendientes tecnicos
+No mezclar en una misma entidad los datos funcionales GDEBA con el control operativo de cache cuando tengan responsabilidades diferentes.
+
+No duplicar entidades de historial y movimiento si representan el mismo hecho.
+
+No guardar binarios documentales en la base salvo que exista una decision explicita posterior que justifique ese cambio.
+
+## 22. Pendientes tecnicos
 
 Quedan pendientes para siguientes iteraciones:
 
 - Implementar cliente JWT real.
 - Implementar cliente SOAP real.
-- Modelar SQL Server.
-- Incorporar URF en persistencia.
-- Definir tablas de auditoria.
-- Definir tablas de cache.
+- Generar/aplicar migraciones EF Core sobre SQL Server.
+- Implementar servicios de cache sobre el modelo persistente.
 - Definir tabla o mecanismo para aplicaciones consumidoras habilitadas.
 - Implementar cache con politica de frescura.
 - Implementar `buscarDatosExpedientePorCodigosTrata`.
