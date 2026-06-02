@@ -18,11 +18,15 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<DocumentoArchivoLocal> DocumentoArchivosLocales => Set<DocumentoArchivoLocal>();
 
+    public DbSet<ArchivoAdjuntoExpediente> ArchivosAdjuntosExpediente => Set<ArchivoAdjuntoExpediente>();
+
     public DbSet<Expediente> Expedientes => Set<Expediente>();
 
     public DbSet<ExpedienteCacheControl> ExpedienteCacheControls => Set<ExpedienteCacheControl>();
 
     public DbSet<ExpedienteDocumento> ExpedienteDocumentos => Set<ExpedienteDocumento>();
+
+    public DbSet<ExpedienteRelacion> ExpedienteRelaciones => Set<ExpedienteRelacion>();
 
     public DbSet<HistorialExpedienteCacheControl> HistorialExpedienteCacheControls => Set<HistorialExpedienteCacheControl>();
 

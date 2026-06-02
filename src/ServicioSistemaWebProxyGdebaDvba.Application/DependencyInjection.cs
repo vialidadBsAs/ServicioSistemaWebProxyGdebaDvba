@@ -11,14 +11,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IConsultarExpedienteService, ConsultarExpedienteService>();
+        services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
 
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IConsultarExpedienteService, ConsultarExpedienteService>();
+        services.AddScoped<IExpedienteService, ExpedienteService>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

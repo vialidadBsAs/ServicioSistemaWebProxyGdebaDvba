@@ -8,11 +8,11 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 [Route("api/gdeba/expedientes")]
 public sealed class ExpedientesController : ControllerBase
 {
-    private readonly IConsultarExpedienteService _consultarExpedienteService;
+    private readonly IExpedienteService _expedienteService;
 
-    public ExpedientesController(IConsultarExpedienteService consultarExpedienteService)
+    public ExpedientesController(IExpedienteService expedienteService)
     {
-        _consultarExpedienteService = consultarExpedienteService;
+        _expedienteService = expedienteService;
     }
 
     [HttpGet("{numeroGdebaCompleto}")]
@@ -21,8 +21,21 @@ public sealed class ExpedientesController : ControllerBase
         [FromQuery] bool forceRefresh,
         CancellationToken cancellationToken)
     {
-        var result = await _consultarExpedienteService.ConsultarAsync(
+        var result = await _expedienteService.ConsultarAsync(
             new ConsultarExpedienteRequest(numeroGdebaCompleto, forceRefresh),
+            cancellationToken);
+
+        return result.Expediente is null ? NotFound(result) : Ok(result);
+    }
+
+    [HttpGet("{numeroGdebaCompleto}/detalle")]
+    public async Task<ActionResult<ConsultarExpedienteDetalladoResult>> ConsultarDetalle(
+        string numeroGdebaCompleto,
+        [FromQuery] bool forceRefresh,
+        CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.ConsultarDetalleAsync(
+            new ConsultarExpedienteDetalladoRequest(numeroGdebaCompleto, forceRefresh),
             cancellationToken);
 
         return result.Expediente is null ? NotFound(result) : Ok(result);

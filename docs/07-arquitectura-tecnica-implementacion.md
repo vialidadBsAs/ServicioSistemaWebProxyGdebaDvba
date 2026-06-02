@@ -299,6 +299,90 @@ La implementacion actual puede ser:
 
 La eleccion no se hace editando el controlador ni el servicio de aplicacion. Se hace por configuracion mediante `GatewayMode`.
 
+### 4.5 Morfologia de ConsultarDetalle
+
+El metodo `ConsultarDetalleAsync`, implementado en `ExpedienteService`, representa la primera forma concreta de consulta con cache bajo demanda. Su objetivo no es solamente llamar a GDEBA, sino decidir si la respuesta puede resolverse desde la base local, si debe consultarse el servicio externo o si corresponde usar cache como fallback ante una falta de respuesta.
+
+Esta lectura en tres niveles permite entender el metodo sin entrar directamente al codigo fuente. El primer nivel muestra la forma general, el segundo explica el flujo funcional y el tercero expresa el pseudocodigo operativo que deberia mantenerse como referencia al evolucionar la implementacion.
+
+#### Nivel 1 - Morfologia General
+
+```text
+ConsultarDetalle
+    Preparar
+    Evaluar cache
+    Consultar GDEBA si hace falta
+    Consolidar o aplicar fallback
+    Auditar
+    Persistir
+    Responder
+```
+
+#### Nivel 2 - Flujo Funcional
+
+```text
+ConsultarDetalle
+
+    Preparar consulta
+        - normalizar numero de expediente
+        - buscar expediente local
+        - preparar contexto de respuesta
+
+    Evaluar cache
+        - si el cache local esta completo y vigente, responder desde cache
+        - si se solicita refresco forzado, no responder desde cache aunque este vigente
+
+    Consultar GDEBA
+        - consultar solo cuando no se puede responder desde cache
+
+    Consolidar o aplicar fallback
+        - si GDEBA devuelve detalle, consolidar datos en el expediente local
+        - si GDEBA no devuelve detalle pero existe expediente local, responder con fallback cache
+        - si GDEBA no devuelve detalle y no existe expediente local, responder sin datos
+
+    Auditar
+        - registrar aplicacion consumidora, operacion, recurso, ambiente, fuente y resultado
+
+    Persistir
+        - guardar cambios de dominio y auditoria en una unica unidad de trabajo
+
+    Responder
+        - devolver datos del expediente cuando existan
+        - informar fuente de respuesta
+        - informar fecha de resolucion
+        - informar fecha de cache cuando corresponda
+```
+
+#### Nivel 3 - Pseudocodigo
+
+```text
+ConsultarDetalle(request)
+
+    PrepararConsulta()
+
+    if PuedeResponderDesdeCache()
+        ResolverDesdeCache()
+    else
+        detalle = ConsultarGdeba()
+
+        if detalle existe
+            ConsolidarDetalle()
+            ActualizarEstadoCache()
+            ResolverDesdeGdeba()
+        else
+            if ExisteExpedienteLocal()
+                MarcarErrorActualizacion()
+                ResolverDesdeFallbackCache()
+            else
+                ResolverSinDatos()
+
+    RegistrarAuditoria()
+    GuardarCambios()
+    DevolverResultado()
+```
+
+La regla importante es que la decision de respuesta se resuelve antes de cerrar la operacion. La auditoria y la persistencia quedan centralizadas al final del metodo, evitando que cada rama del flujo tenga su propio registro, su propio `SaveChangesAsync` y su propio retorno.
+
 ## 5. Regla Principal de Diseño
 
 La regla principal es:
@@ -818,6 +902,24 @@ Actualmente esta implementado:
 - EF Core con `ProxyGdebaDbContext` y configuraciones explicitas.
 - URF para `Repository`, `TrackableRepository` y `UnitOfWork`.
 - `.gitignore` para Visual Studio y .NET.
+- Primera version de comportamiento de aggregate roots mediante clases parciales, sin mover las entidades existentes.
+
+### 15.1 Aggregate Roots Mediante Partials
+
+Para mantener la estructura actual de entidades y conservar simple la persistencia con EF Core/URF, el comportamiento inicial de los aggregate roots se implementa con clases parciales.
+
+La entidad principal permanece en su ubicacion actual. Por ejemplo, `Expediente` sigue en `Domain/Entities/Gdeba/Expediente.cs`. El comportamiento del aggregate root se agrega en `Domain/AggregateRoots/Expediente.AggregateRoot.cs`, usando el mismo namespace y la misma clase parcial.
+
+Esto permite que repositorios, `DbContext` y configuraciones EF sigan trabajando con `Expediente` y `DocumentoGdeba`, mientras la logica propia del agregado queda separada visualmente del estado persistente.
+
+En esta primera version se consideran aggregate roots:
+
+- `Expediente`, para la vista local/cacheada del expediente GDEBA, deteccion de documentos, relaciones, adjuntos y control de cache.
+- `DocumentoGdeba`, para metadata documental, enriquecimiento y futura descarga/cache documental.
+
+No se crean clases independientes llamadas `ExpedienteAggregateRoot` ni se reorganiza el directorio `Entities`. El aggregate root es la propia entidad principal.
+
+En Application, las operaciones de expediente se exponen mediante un unico `IExpedienteService`. Esto evita replicar la granularidad de los metodos SOAP en clases de caso de uso separadas y mantiene un unico punto de entrada funcional para consultas de expediente, detalle, historial y futuras sincronizaciones por trata.
 
 Pendiente:
 

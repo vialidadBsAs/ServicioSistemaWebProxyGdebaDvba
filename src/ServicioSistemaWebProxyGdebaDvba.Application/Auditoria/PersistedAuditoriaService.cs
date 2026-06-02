@@ -8,19 +8,16 @@ public sealed class PersistedAuditoriaService : IAuditoriaService
 {
     private readonly IRepository<AplicacionConsumidora> _aplicacionConsumidoraRepository;
     private readonly IRepository<RegistroAuditoria> _auditoriaRepository;
-    private readonly IUnitOfWork _unitOfWork;
 
     public PersistedAuditoriaService(
         IRepository<AplicacionConsumidora> aplicacionConsumidoraRepository,
-        IRepository<RegistroAuditoria> auditoriaRepository,
-        IUnitOfWork unitOfWork)
+        IRepository<RegistroAuditoria> auditoriaRepository)
     {
         _aplicacionConsumidoraRepository = aplicacionConsumidoraRepository;
         _auditoriaRepository = auditoriaRepository;
-        _unitOfWork = unitOfWork;
     }
 
-    public async Task RegistrarAsync(RegistrarAuditoriaRequest request, CancellationToken cancellationToken)
+    public Task RegistrarAsync(RegistrarAuditoriaRequest request, CancellationToken cancellationToken)
     {
         var aplicacion = ResolverAplicacionConsumidora(request.AplicacionConsumidoraCodigo);
         var registro = new RegistroAuditoria(
@@ -33,7 +30,7 @@ public sealed class PersistedAuditoriaService : IAuditoriaService
             request.Fecha);
 
         _auditoriaRepository.Insert(registro);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Task.CompletedTask;
     }
 
     private AplicacionConsumidora ResolverAplicacionConsumidora(string codigo)
