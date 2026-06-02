@@ -1,4 +1,6 @@
-namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+
+namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 
 public interface IConsultarExpedienteService
 {

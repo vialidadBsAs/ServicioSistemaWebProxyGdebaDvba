@@ -126,3 +126,40 @@ Consecuencias:
 - Internamente se registrara la aplicacion solicitante.
 - Queda pendiente definir mecanismo tecnico: API key interna, certificado, header firmado, token interno o integracion futura con servicio troncal de seguridad.
 
+## ADR-008: Separar datos GDEBA y control de cache
+
+Fecha: 2026-05-31
+
+Decision:
+
+Separar fisicamente las entidades que reproducen datos GDEBA de las entidades que controlan frescura, fuente, vencimiento y estado operativo de cache.
+
+Contexto:
+
+El proxy necesita poder responder desde base local sin que el usuario consumidor dependa de saber si la consulta fue resuelta contra GDEBA o contra cache. Aun asi, los datos funcionales del expediente, sus movimientos, documentos y tratas no deben mezclarse con metadatos operativos como fechas de consulta, vencimiento o fuente de respuesta.
+
+Consecuencias:
+
+- `Expediente`, `MovimientoExpediente`, `DocumentoGdeba`, `DocumentoArchivoLocal` y `TrataGdeba` representan datos funcionales.
+- `ExpedienteCacheControl`, `HistorialExpedienteCacheControl`, `DocumentoCacheControl` y `TrataCacheControl` representan control de cache.
+- El historial no se duplica como entidad separada: el historial esta compuesto por movimientos.
+- Los archivos documentales se guardan local o externamente; SQL Server conserva referencias y metadatos, no el binario.
+
+## ADR-009: Usar NumeroGdebaCompleto como value object comun
+
+Fecha: 2026-05-31
+
+Decision:
+
+Modelar el identificador compuesto de GDEBA con `NumeroGdebaCompleto`.
+
+Contexto:
+
+Expedientes, documentos e informes usan un formato comun de identificador. El numero numerico es solo una parte del identificador completo; tambien importan tipo, anio, sistema y reparticion.
+
+Consecuencias:
+
+- No se usa `NumeroExpediente` como value object general.
+- No se crean identificadores separados para documento si el formato base es el mismo.
+- Las entidades persisten las partes relevantes para busqueda, indices y reglas futuras.
+

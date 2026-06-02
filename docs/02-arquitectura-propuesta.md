@@ -52,6 +52,7 @@ Implementa detalles tecnicos:
 - Unit of Work.
 - SQL Server.
 - Cache persistida.
+- Control de cache separado de datos GDEBA.
 - Logging tecnico.
 - Configuracion segura.
 - Serializacion XML UTF-8.
@@ -82,11 +83,11 @@ Ejemplo:
 public interface IGdebaExpedienteGateway
 {
     Task<ExpedienteGdeba?> BuscarExpedienteAsync(
-        NumeroExpediente numero,
+        NumeroGdebaCompleto numero,
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<PaseExpedienteGdeba>> BuscarHistorialPasesAsync(
-        NumeroExpediente numero,
+        NumeroGdebaCompleto numero,
         CancellationToken cancellationToken);
 }
 ```
@@ -131,9 +132,11 @@ La base local sera SQL Server.
 
 Usos principales:
 
-- Cache de expedientes.
-- Cache de documentos y metadatos.
-- Cache de PDF cuando corresponda.
+- Datos reproducidos de expedientes.
+- Datos reproducidos de movimientos/historial.
+- Datos reproducidos de documentos y metadatos.
+- Referencias a archivos documentales guardados local o externamente.
+- Control de cache de expedientes, historial, documentos y catalogos.
 - Catalogos de tratas y tipos documentales.
 - Auditoria de solicitudes.
 - Registro de sincronizaciones.

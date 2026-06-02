@@ -1,6 +1,6 @@
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
-namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes;
+namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
 public sealed record ConsultarExpedienteResult(
     ExpedienteGdebaDto? Expediente,

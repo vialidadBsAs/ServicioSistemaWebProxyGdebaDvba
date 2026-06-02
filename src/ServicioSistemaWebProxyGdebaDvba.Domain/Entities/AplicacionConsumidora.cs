@@ -2,8 +2,10 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Common;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
-public sealed class AplicacionConsumidora : Entity
+public sealed class AplicacionConsumidora : DomainEntity
 {
+    private readonly List<RegistroAuditoria> _registrosAuditoria = new();
+
     private AplicacionConsumidora()
     {
     }
@@ -20,4 +22,6 @@ public sealed class AplicacionConsumidora : Entity
     public string Nombre { get; private set; } = string.Empty;
 
     public bool Activa { get; private set; }
+
+    public IReadOnlyCollection<RegistroAuditoria> RegistrosAuditoria => _registrosAuditoria;
 }
