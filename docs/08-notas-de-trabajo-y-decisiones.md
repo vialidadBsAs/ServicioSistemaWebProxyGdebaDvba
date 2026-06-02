@@ -193,11 +193,17 @@ El Worker sera importante si se decide ejecutar refrescos programados, sincroniz
 Decision posterior del feature `modelo-cache-persistente`:
 
 - Separar fisicamente datos GDEBA y control de cache dentro del dominio.
-- Persistir datos funcionales en entidades como `Expediente`, `MovimientoExpediente`, `DocumentoGdeba`, `DocumentoArchivoLocal` y `TrataGdeba`.
+- Persistir datos funcionales en entidades como `Expediente`, `MovimientoExpediente`, `DocumentoGdeba`, `DocumentoArchivoLocal`, `TipoDocumentoGdeba` y `TrataGdeba`.
 - Persistir frescura/control operativo en entidades como `ExpedienteCacheControl`, `HistorialExpedienteCacheControl`, `DocumentoCacheControl` y `TrataCacheControl`.
 - Mantener `MovimientoExpediente` como el dato real del historial; no duplicarlo con otra entidad de historial.
 - Guardar archivos documentales fuera de la base de datos, local o externamente, dejando en SQL Server solo referencias y metadatos de archivo.
 - Considerar que la mayoria de los documentos seran PDF, pero permitir otros archivos de trabajo como Word.
+
+Respecto de documentos, se decidio distinguir `NumeroActuacionCompleto` y `NumeroEspecialCompleto`. El primero aparece en los listados del expediente, por ejemplo `RS-2023-33144875-GDEBA-DVMIYSPGP`; el segundo aparece al consultar el detalle documental, por ejemplo `RESO-2023-1743-GDEBA-DVMIYSPGP`. Son identificadores del mismo documento en contextos distintos, por lo que se guardan en la misma entidad `DocumentoGdeba`.
+
+Tambien se agrego `TipoDocumentoGdeba` como catalogo para reglas futuras. Esto permite detectar resoluciones por configuracion y no solo por un acronimo puntual. El catalogo guarda codigo, codigo GDEBA, nombre, descripcion, familia, estado, tipo de produccion y atributos booleanos informados por GDEBA. En esta etapa no se fuerza clave foranea desde `DocumentoGdeba` hacia el catalogo, para no bloquear documentos parcialmente enriquecidos si el catalogo todavia no fue sincronizado.
+
+Una respuesta real de `consultarTipoDocumento` para `RESO` confirmo que `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo los tags booleanos `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
 
 ## 16. Auditoria y trazabilidad
 

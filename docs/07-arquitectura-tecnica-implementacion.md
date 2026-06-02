@@ -81,6 +81,7 @@ Ejemplos actuales:
 - `DocumentoGdeba`
 - `DocumentoArchivoLocal`
 - `ExpedienteDocumento`
+- `TipoDocumentoGdeba`
 - `TrataGdeba`
 
 `Expediente` representa la definicion local de un expediente GDEBA con sus datos propios. No es reemplazado por un value object: el value object solo modela el numero compuesto.
@@ -132,6 +133,20 @@ Partes persistidas del identificador:
 - `GdebaNumero`
 - `GdebaSistema`
 - `GdebaReparticion`
+
+#### DocumentoGdeba y Enriquecimiento Documental
+
+`DocumentoGdeba` distingue entre el numero de actuacion que aparece en el expediente y el numero especial que aparece al consultar el detalle del documento.
+
+El numero de actuacion es el identificador detectado en listados de documentos del expediente, por ejemplo `RS-2023-33144875-GDEBA-DVMIYSPGP`. Con ese dato ya se puede registrar la existencia del documento y relacionarlo con el expediente, aunque todavia no se conozca su metadata completa.
+
+El numero especial es el identificador propio del modulo documental, por ejemplo `RESO-2023-1743-GDEBA-DVMIYSPGP`. Este dato no viene en `buscarExpediente` ni en `consultarExpedienteDetallado`; se obtiene al consultar el detalle documental. Por eso `DocumentoGdeba` permite nacer con metadata incompleta y enriquecerse posteriormente.
+
+El tipo documental se separa en codigo, codigo GDEBA, nombre, descripcion, familia, estado y tipo de produccion. Esto evita asumir que toda resolucion se identifica solo con `RESO`, ya que el catalogo GDEBA puede contener varios acronimos relacionados con resoluciones, como `RESO`, `RESCO`, `RESFC` u otros. Para soportar reglas futuras se agrega `TipoDocumentoGdeba`, con banderas como `EsResolucion`.
+
+Una respuesta real de `consultarTipoDocumento` para `RESO` mostro que `acronimo` y `codigoTipoDocumentoGDEBA` no significan lo mismo: `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo atributos booleanos como `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
+
+En esta primera etapa `TipoDocumentoGdeba` se mantiene como catalogo consultable por codigo, pero no se fuerza una clave foranea desde `DocumentoGdeba`. La razon es permitir cache progresiva: un documento puede enriquecerse con `TipoDocumentoCodigo` antes de que el catalogo haya sido sincronizado.
 
 El tipo (`EX`, `IF`, etc.) diferencia si el identificador corresponde a expediente, informe/documento u otro elemento. Por eso no corresponde tener value objects separados solo por llamarse expediente o documento si el formato base es el mismo.
 

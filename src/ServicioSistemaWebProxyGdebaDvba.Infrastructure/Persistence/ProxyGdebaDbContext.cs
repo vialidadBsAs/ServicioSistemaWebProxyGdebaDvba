@@ -30,6 +30,8 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<RegistroAuditoria> RegistrosAuditoria => Set<RegistroAuditoria>();
 
+    public DbSet<TipoDocumentoGdeba> TiposDocumento => Set<TipoDocumentoGdeba>();
+
     public DbSet<TrataGdeba> Tratas => Set<TrataGdeba>();
 
     public DbSet<TrataCacheControl> TrataCacheControls => Set<TrataCacheControl>();

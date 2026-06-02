@@ -12,32 +12,50 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.GdebaNumeroCompleto)
+        builder.Property(x => x.NumeroActuacionCompleto)
             .HasMaxLength(100)
             .IsRequired();
 
-        builder.Property(x => x.GdebaTipo)
+        builder.Property(x => x.ActuacionTipoCodigo)
             .HasMaxLength(20)
             .IsRequired();
 
-        builder.Property(x => x.GdebaSistema)
+        builder.Property(x => x.ActuacionSistema)
             .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(x => x.GdebaReparticion)
+        builder.Property(x => x.ActuacionReparticion)
             .HasMaxLength(100)
             .IsRequired();
 
-        builder.Property(x => x.NumeroEspecial).HasMaxLength(100);
-        builder.Property(x => x.TipoDocumento).HasMaxLength(50);
+        builder.Property(x => x.NumeroEspecialCompleto).HasMaxLength(100);
+        builder.Property(x => x.EspecialTipoCodigo).HasMaxLength(20);
+        builder.Property(x => x.EspecialSistema).HasMaxLength(50);
+        builder.Property(x => x.EspecialReparticion).HasMaxLength(100);
+        builder.Property(x => x.TipoDocumentoCodigo).HasMaxLength(50);
+        builder.Property(x => x.TipoDocumentoNombre).HasMaxLength(200);
+        builder.Property(x => x.TipoDocumentoDescripcion).HasMaxLength(500);
         builder.Property(x => x.Referencia).HasMaxLength(1000);
         builder.Property(x => x.UrlArchivo).HasMaxLength(1000);
 
-        builder.HasIndex(x => x.GdebaNumeroCompleto)
+        builder.HasIndex(x => x.NumeroActuacionCompleto)
             .IsUnique();
 
-        builder.HasIndex(x => new { x.GdebaTipo, x.GdebaAnio, x.GdebaNumero, x.GdebaSistema, x.GdebaReparticion })
+        builder.HasIndex(x => new
+            {
+                x.ActuacionTipoCodigo,
+                x.ActuacionAnio,
+                x.ActuacionNumero,
+                x.ActuacionSistema,
+                x.ActuacionReparticion
+            })
             .IsUnique();
+
+        builder.HasIndex(x => x.NumeroEspecialCompleto)
+            .IsUnique()
+            .HasFilter("[NumeroEspecialCompleto] IS NOT NULL");
+
+        builder.HasIndex(x => new { x.TipoDocumentoCodigo, x.ActuacionReparticion });
 
         builder.HasMany(x => x.Expedientes)
             .WithOne(x => x.Documento)
