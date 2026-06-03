@@ -17,4 +17,11 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
     {
         throw new NotImplementedException("La integracion SOAP real de GDEBA todavia no fue implementada.");
     }
+
+    public Task<IReadOnlyCollection<GdebaMovimientoExpedienteDto>?> BuscarHistorialPasesExpedienteAsync(
+        NumeroGdebaCompleto numeroGdebaCompleto,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException("La integracion SOAP real de GDEBA todavia no fue implementada.");
+    }
 }

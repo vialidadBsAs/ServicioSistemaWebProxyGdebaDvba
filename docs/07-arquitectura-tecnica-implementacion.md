@@ -226,6 +226,40 @@ En este tipo de proyecto es importante porque la cache y la sincronizacion no si
 
 El Worker debe reutilizar Application e Infrastructure. No debe tener una arquitectura paralela.
 
+### 3.6 Mensajeria con MassTransit y RabbitMQ
+
+Para desacoplar la respuesta inmediata de la API del procesamiento pesado de cache, se incorpora mensajeria mediante MassTransit sobre RabbitMQ.
+
+La API no debe ejecutar trabajo pesado con `Task.Run` ni procesar colecciones grandes antes de responder cuando el endpoint solo necesita devolver cabecera. En su lugar, publica un mensaje durable. El Worker consume ese mensaje y ejecuta la consolidacion de cache.
+
+El flujo definido para el detalle de expediente es:
+
+```text
+API
+    consulta GDEBA
+    arma respuesta liviana
+    publica CachearDetalleExpedienteV1
+    responde al cliente
+
+RabbitMQ
+    recibe y entrega el mensaje
+
+Worker
+    consume CachearDetalleExpedienteV1
+    consolida cabecera, documentos, relaciones y adjuntos
+    actualiza estado de cache
+```
+
+La abstraccion de Application es `IExpedienteDetalleCacheDispatcher`. La implementacion concreta con MassTransit esta en Infrastructure. El consumer `CachearDetalleExpedienteConsumer` tambien pertenece a Infrastructure, pero delega la regla de consolidacion a `IExpedienteDetalleCacheProcessor`, que pertenece a Application.
+
+La cola inicial configurada es:
+
+```text
+gdeba.cachear-detalle-expediente
+```
+
+Esta decision evita desperdiciar respuestas grandes de GDEBA sin poner al usuario a esperar la hidratacion completa de cache.
+
 ## 4. Camino de una Request
 
 El endpoint inicial implementado es:
@@ -301,7 +335,11 @@ La eleccion no se hace editando el controlador ni el servicio de aplicacion. Se 
 
 ### 4.5 Morfologia de ConsultarDetalle
 
-El metodo `ConsultarDetalleAsync`, implementado en `ExpedienteService`, representa la primera forma concreta de consulta con cache bajo demanda. Su objetivo no es solamente llamar a GDEBA, sino decidir si la respuesta puede resolverse desde la base local, si debe consultarse el servicio externo o si corresponde usar cache como fallback ante una falta de respuesta.
+El metodo `ConsultarDetalleAsync`, implementado en `ExpedienteService`, representa la consulta bajo demanda de datos detallados del expediente. En esta operacion se invoca `consultarExpedienteDetallado`, que puede devolver cabecera, documentos, relaciones y adjuntos.
+
+Como esa respuesta puede contener colecciones grandes, el endpoint no debe bloquear la respuesta al usuario esperando que toda la informacion sea consolidada en cache. La regla definida es: responder con la cabecera liviana y publicar un mensaje para que el Worker procese la cache completa del detalle.
+
+Esta operacion no consulta movimientos. La decision es intencional: si el endpoint no va a devolver historial de pases, no debe demorar la respuesta esperando una llamada adicional a GDEBA. Los movimientos se resuelven mediante un endpoint propio, apoyado tambien por cache.
 
 Esta lectura en tres niveles permite entender el metodo sin entrar directamente al codigo fuente. El primer nivel muestra la forma general, el segundo explica el flujo funcional y el tercero expresa el pseudocodigo operativo que deberia mantenerse como referencia al evolucionar la implementacion.
 
@@ -312,7 +350,7 @@ ConsultarDetalle
     Preparar
     Evaluar cache
     Consultar GDEBA si hace falta
-    Consolidar o aplicar fallback
+    Publicar cache pesada o aplicar fallback
     Auditar
     Persistir
     Responder
@@ -335,8 +373,9 @@ ConsultarDetalle
     Consultar GDEBA
         - consultar solo cuando no se puede responder desde cache
 
-    Consolidar o aplicar fallback
-        - si GDEBA devuelve detalle, consolidar datos en el expediente local
+    Publicar cache pesada o aplicar fallback
+        - si GDEBA devuelve detalle, publicar mensaje para cachear documentos, relaciones y adjuntos
+        - la respuesta inmediata se arma con cabecera liviana
         - si GDEBA no devuelve detalle pero existe expediente local, responder con fallback cache
         - si GDEBA no devuelve detalle y no existe expediente local, responder sin datos
 
@@ -344,10 +383,11 @@ ConsultarDetalle
         - registrar aplicacion consumidora, operacion, recurso, ambiente, fuente y resultado
 
     Persistir
-        - guardar cambios de dominio y auditoria en una unica unidad de trabajo
+        - guardar auditoria de la consulta inmediata
+        - la consolidacion pesada de cache queda a cargo del Worker
 
     Responder
-        - devolver datos del expediente cuando existan
+        - devolver cabecera del expediente cuando exista
         - informar fuente de respuesta
         - informar fecha de resolucion
         - informar fecha de cache cuando corresponda
@@ -366,9 +406,8 @@ ConsultarDetalle(request)
         detalle = ConsultarGdeba()
 
         if detalle existe
-            ConsolidarDetalle()
-            ActualizarEstadoCache()
-            ResolverDesdeGdeba()
+            PublicarCacheDetalle()
+            ResolverCabeceraDesdeGdeba()
         else
             if ExisteExpedienteLocal()
                 MarcarErrorActualizacion()
@@ -381,7 +420,91 @@ ConsultarDetalle(request)
     DevolverResultado()
 ```
 
-La regla importante es que la decision de respuesta se resuelve antes de cerrar la operacion. La auditoria y la persistencia quedan centralizadas al final del metodo, evitando que cada rama del flujo tenga su propio registro, su propio `SaveChangesAsync` y su propio retorno.
+La regla importante es que la respuesta HTTP no queda a la cola del procesamiento pesado de colecciones. La API publica el mensaje `CachearDetalleExpedienteV1` mediante MassTransit/RabbitMQ y el Worker consume ese mensaje para consolidar la cache completa.
+
+### 4.6 Morfologia de ConsultarMovimientos
+
+El metodo `ConsultarMovimientosAsync`, implementado tambien en `ExpedienteService`, resuelve el historial de pases o movimientos del expediente. Esta informacion proviene del metodo GDEBA `buscarHistorialPasesExpediente` y tiene una importancia operativa central para el seguimiento del tramite.
+
+La politica inicial definida para movimientos es diaria. Si los movimientos fueron sincronizados correctamente dentro de la vigencia configurada, el proxy puede responder desde cache. Si no existe cache vigente, o si la solicitud usa `forceRefresh=true`, se consulta GDEBA y se consolida nuevamente el historial local.
+
+#### Nivel 1 - Morfologia General
+
+```text
+ConsultarMovimientos
+    Preparar
+    Evaluar cache de movimientos
+    Consultar GDEBA si hace falta
+    Consolidar movimientos o aplicar fallback
+    Auditar
+    Persistir
+    Responder
+```
+
+#### Nivel 2 - Flujo Funcional
+
+```text
+ConsultarMovimientos
+
+    Preparar consulta
+        - normalizar numero de expediente
+        - buscar expediente local
+        - preparar contexto de respuesta
+
+    Evaluar cache de movimientos
+        - si el historial local esta completo y vigente, responder desde cache
+        - si se solicita refresco forzado, no responder desde cache aunque este vigente
+
+    Consultar GDEBA
+        - consultar buscarHistorialPasesExpediente solo cuando no se puede responder desde cache
+
+    Consolidar o aplicar fallback
+        - si GDEBA devuelve historial, consolidar movimientos en el expediente local
+        - si GDEBA no devuelve historial pero existe expediente local, responder con fallback cache
+        - si GDEBA no devuelve historial y no existe expediente local, responder sin datos
+
+    Auditar
+        - registrar aplicacion consumidora, operacion, recurso, ambiente, fuente y resultado
+
+    Persistir
+        - guardar movimientos, estado de cache y auditoria en una unica unidad de trabajo
+
+    Responder
+        - devolver movimientos cuando existan
+        - informar fuente de respuesta
+        - informar fecha de resolucion
+        - informar fecha de cache cuando corresponda
+```
+
+#### Nivel 3 - Pseudocodigo
+
+```text
+ConsultarMovimientos(request)
+
+    PrepararConsulta()
+
+    if PuedeResponderMovimientosDesdeCache()
+        ResolverMovimientosDesdeCache()
+    else
+        historial = ConsultarHistorialGdeba()
+
+        if historial existe
+            ConsolidarMovimientos()
+            ActualizarEstadoCacheHistorial()
+            ResolverDesdeGdeba()
+        else
+            if ExisteExpedienteLocal()
+                MarcarErrorActualizacionHistorial()
+                ResolverDesdeFallbackCache()
+            else
+                ResolverSinDatos()
+
+    RegistrarAuditoria()
+    GuardarCambios()
+    DevolverResultado()
+```
+
+La separacion entre `ConsultarDetalle` y `ConsultarMovimientos` no significa que existan dos expedientes distintos. El aggregate root sigue siendo `Expediente`. Lo que se separa es la estrategia de abastecimiento y frescura de datos, porque GDEBA expone la informacion detallada/documental y el historial de pases mediante operaciones diferentes.
 
 ## 5. Regla Principal de Diseño
 

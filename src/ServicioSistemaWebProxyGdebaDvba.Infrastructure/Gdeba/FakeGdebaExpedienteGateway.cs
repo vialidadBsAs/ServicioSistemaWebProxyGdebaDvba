@@ -68,4 +68,45 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
 
         return Task.FromResult<GdebaExpedienteDetalladoDto?>(expediente);
     }
+
+    public Task<IReadOnlyCollection<GdebaMovimientoExpedienteDto>?> BuscarHistorialPasesExpedienteAsync(
+        NumeroGdebaCompleto numeroGdebaCompleto,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyCollection<GdebaMovimientoExpedienteDto> movimientos = new[]
+        {
+            new GdebaMovimientoExpedienteDto(
+                Orden: 1,
+                FechaOperacion: new DateTimeOffset(2020, 7, 3, 18, 50, 43, TimeSpan.FromHours(-3)),
+                EstadoOrigen: null,
+                EstadoDestino: "Iniciacion",
+                UsuarioOrigen: null,
+                UsuarioDestino: "RCOLABIANCHI",
+                Motivo: "Caratulacion del expediente.",
+                ReparticionOrigen: null,
+                ReparticionDestino: "DVMIYSPGP"),
+            new GdebaMovimientoExpedienteDto(
+                Orden: 2,
+                FechaOperacion: new DateTimeOffset(2024, 11, 14, 10, 18, 38, TimeSpan.FromHours(-3)),
+                EstadoOrigen: "Tramitacion",
+                EstadoDestino: "Tramitacion",
+                UsuarioOrigen: "GGAVALDA",
+                UsuarioDestino: "VVERA",
+                Motivo: "Pase a conocimiento.",
+                ReparticionOrigen: "DVMIYSPGP",
+                ReparticionDestino: "DVMIYSPGP"),
+            new GdebaMovimientoExpedienteDto(
+                Orden: 3,
+                FechaOperacion: new DateTimeOffset(2025, 12, 15, 8, 54, 16, TimeSpan.FromHours(-3)),
+                EstadoOrigen: "Tramitacion",
+                EstadoDestino: "Tramitacion",
+                UsuarioOrigen: "VVERA",
+                UsuarioDestino: "DVMIYSPGP",
+                Motivo: "Vinculacion de providencia de pase.",
+                ReparticionOrigen: "DVMIYSPGP",
+                ReparticionDestino: "DVMIYSPGP")
+        };
+
+        return Task.FromResult<IReadOnlyCollection<GdebaMovimientoExpedienteDto>?>(movimientos);
+    }
 }

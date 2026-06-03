@@ -28,6 +28,16 @@ public sealed partial class Expediente : IAggregateRoot
             reparticionActual);
     }
 
+    public bool PuedeResponderDetalleDesdeCache(DateTimeOffset fechaActual)
+    {
+        return CacheControl?.PuedeResponder(fechaActual) == true;
+    }
+
+    public bool PuedeResponderMovimientosDesdeCache(DateTimeOffset fechaActual)
+    {
+        return HistorialCacheControl?.PuedeResponder(fechaActual) == true;
+    }
+
     public ExpedienteDocumento RegistrarDocumentoDetectado(
         DocumentoGdeba documentoGdeba,
         DateTimeOffset? fechaVinculacion,
@@ -121,6 +131,56 @@ public sealed partial class Expediente : IAggregateRoot
         return relacion;
     }
 
+    public MovimientoExpediente RegistrarMovimientoDetectado(
+        int orden,
+        DateTimeOffset? fechaOperacion,
+        string? estadoOrigen,
+        string? estadoDestino,
+        string? usuarioOrigen,
+        string? usuarioDestino,
+        string? motivo,
+        string? reparticionOrigen,
+        string? reparticionDestino,
+        bool esUltimoConocido)
+    {
+        var movimiento = _movimientos.FirstOrDefault(x => x.Orden == orden);
+        if (movimiento is null)
+        {
+            movimiento = new MovimientoExpediente(Id, orden);
+            _movimientos.Add(movimiento);
+        }
+
+        if (esUltimoConocido)
+        {
+            foreach (var movimientoExistente in _movimientos.Where(x => x.Orden != orden))
+            {
+                movimientoExistente.ActualizarDatos(
+                    movimientoExistente.FechaOperacion,
+                    movimientoExistente.EstadoOrigen,
+                    movimientoExistente.EstadoDestino,
+                    movimientoExistente.UsuarioOrigen,
+                    movimientoExistente.UsuarioDestino,
+                    movimientoExistente.Motivo,
+                    movimientoExistente.ReparticionOrigen,
+                    movimientoExistente.ReparticionDestino,
+                    esUltimoConocido: false);
+            }
+        }
+
+        movimiento.ActualizarDatos(
+            fechaOperacion,
+            estadoOrigen,
+            estadoDestino,
+            usuarioOrigen,
+            usuarioDestino,
+            motivo,
+            reparticionOrigen,
+            reparticionDestino,
+            esUltimoConocido);
+
+        return movimiento;
+    }
+
     public void MarcarDetalleConsultadoCorrectamente(
         DateTimeOffset fechaConsulta,
         DateTimeOffset fechaActualizacionLocal,
@@ -173,6 +233,23 @@ public sealed partial class Expediente : IAggregateRoot
             estaCompleto,
             tieneDatosParciales,
             ultimoErrorConsulta: null);
+    }
+
+    public void MarcarHistorialConsultadoConError(
+        DateTimeOffset fechaConsulta,
+        DateTimeOffset fechaActualizacionLocal,
+        string? error)
+    {
+        HistorialCacheControl ??= new HistorialExpedienteCacheControl(Id, fechaActualizacionLocal);
+        HistorialCacheControl.RegistrarConsulta(
+            fechaConsulta,
+            fechaActualizacionLocal,
+            HistorialCacheControl.FechaVencimiento,
+            FuenteRespuesta.FallbackCache,
+            HistorialCacheControl.UltimoMovimientoDetectadoId,
+            HistorialCacheControl.EstaCompleto,
+            tieneDatosParciales: true,
+            error);
     }
 
     private static string NormalizarRequerido(string value, string parameterName)

@@ -2,6 +2,7 @@ using ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
 using ServicioSistemaWebProxyGdebaDvba.Application;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
+using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);
+builder.Services.AddRabbitMqMessaging(builder.Configuration, includeConsumers: false);
 
 var app = builder.Build();
 

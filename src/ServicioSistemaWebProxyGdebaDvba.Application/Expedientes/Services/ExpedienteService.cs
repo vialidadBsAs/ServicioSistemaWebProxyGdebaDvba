@@ -1,5 +1,7 @@
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Messaging;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Security;
 using ServicioSistemaWebProxyGdebaDvba.Application.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
@@ -14,10 +16,13 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
 public sealed class ExpedienteService : IExpedienteService
 {
     private static readonly TimeSpan DefaultDetalleTtl = TimeSpan.FromMinutes(60);
+    private static readonly TimeSpan DefaultHistorialTtl = TimeSpan.FromDays(1);
 
+    private readonly IExpedienteCacheReadStore _expedienteCacheReadStore;
     private readonly IGdebaExpedienteGateway _gdebaExpedienteGateway;
     private readonly IGdebaExecutionContext _gdebaExecutionContext;
     private readonly IAuditoriaService _auditoriaService;
+    private readonly IExpedienteDetalleCacheDispatcher _expedienteDetalleCacheDispatcher;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
@@ -25,18 +30,22 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IUnitOfWork _unitOfWork;
 
     public ExpedienteService(
+        IExpedienteCacheReadStore expedienteCacheReadStore,
         IGdebaExpedienteGateway gdebaExpedienteGateway,
         IGdebaExecutionContext gdebaExecutionContext,
         IAuditoriaService auditoriaService,
+        IExpedienteDetalleCacheDispatcher expedienteDetalleCacheDispatcher,
         ICurrentApplicationAccessor currentApplicationAccessor,
         IRepository<Expediente> expedienteRepository,
         IRepository<DocumentoGdeba> documentoRepository,
         IRepository<TrataGdeba> trataRepository,
         IUnitOfWork unitOfWork)
     {
+        _expedienteCacheReadStore = expedienteCacheReadStore;
         _gdebaExpedienteGateway = gdebaExpedienteGateway;
         _gdebaExecutionContext = gdebaExecutionContext;
         _auditoriaService = auditoriaService;
+        _expedienteDetalleCacheDispatcher = expedienteDetalleCacheDispatcher;
         _currentApplicationAccessor = currentApplicationAccessor;
         _expedienteRepository = expedienteRepository;
         _documentoRepository = documentoRepository;
@@ -97,7 +106,7 @@ public sealed class ExpedienteService : IExpedienteService
         bool exitoso;
         DateTimeOffset? cachedAt = null;
 
-        if (!request.ForceRefresh && PuedeResponderDesdeCache(expediente, resolvedAt))
+        if (!request.ForceRefresh && expediente?.PuedeResponderDetalleDesdeCache(resolvedAt) == true)
         {
             // Responde desde cache cuando el expediente esta completo y dentro de su vigencia.
             expedienteDto = Mapear(expediente!);
@@ -133,19 +142,13 @@ public sealed class ExpedienteService : IExpedienteService
             }
             else
             {
-                // Crea o actualiza el agregado local con la informacion detallada recibida desde GDEBA.
-                expediente ??= CrearExpediente(numero);
-                ConsolidarDetalle(expediente, detalle, resolvedAt);
-
-                // Actualiza el estado de cache para futuras consultas bajo demanda.
-                expediente.MarcarDetalleConsultadoCorrectamente(
+                // Publica el procesamiento pesado de cache para no bloquear la respuesta del endpoint.
+                await _expedienteDetalleCacheDispatcher.PublicarCacheDetalleAsync(
+                    detalle,
                     resolvedAt,
-                    resolvedAt,
-                    resolvedAt.Add(DefaultDetalleTtl),
-                    estaCompleto: true,
-                    tieneDatosParciales: false);
+                    cancellationToken);
 
-                expedienteDto = Mapear(expediente);
+                expedienteDto = MapearRespuestaLiviana(detalle);
                 fuente = FuenteRespuesta.Gdeba;
                 exitoso = true;
             }
@@ -168,6 +171,137 @@ public sealed class ExpedienteService : IExpedienteService
             fuente,
             resolvedAt,
             cachedAt);
+    }
+
+    /// <summary>
+    /// Consulta los movimientos o pases de un expediente aplicando cache local bajo demanda.
+    /// </summary>
+    /// <param name="request">Datos de la solicitud, incluyendo numero de expediente y opcion de refresco forzado.</param>
+    /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
+    /// <returns>Resultado con movimientos del expediente, fuente utilizada y fecha de cache cuando corresponda.</returns>
+    public async Task<ConsultarMovimientosExpedienteResult> ConsultarMovimientosAsync(
+        ConsultarMovimientosExpedienteRequest request,
+        CancellationToken cancellationToken)
+    {
+        // Normaliza el numero completo y busca la copia local para evaluar la cache de movimientos.
+        var numero = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var resolvedAt = DateTimeOffset.UtcNow;
+        var expediente = BuscarExpedienteLocal(numero.Valor);
+        IReadOnlyCollection<MovimientoExpedienteDto> movimientos;
+        FuenteRespuesta fuente;
+        bool exitoso;
+        DateTimeOffset? cachedAt = null;
+
+        if (!request.ForceRefresh && expediente?.PuedeResponderMovimientosDesdeCache(resolvedAt) == true)
+        {
+            // Responde desde cache cuando el historial fue sincronizado y sigue vigente.
+            movimientos = MapearMovimientos(expediente);
+            fuente = FuenteRespuesta.Cache;
+            exitoso = true;
+            cachedAt = expediente.HistorialCacheControl?.FechaUltimaActualizacionLocal;
+        }
+        else
+        {
+            // Consulta GDEBA solo cuando no hay movimientos vigentes o cuando se fuerza el refresco.
+            var historial = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
+                numero,
+                cancellationToken);
+
+            if (historial is null)
+            {
+                if (expediente is not null)
+                {
+                    // Conserva los movimientos locales como fallback ante una falta de respuesta externa.
+                    expediente.MarcarHistorialConsultadoConError(
+                        resolvedAt,
+                        resolvedAt,
+                        "GDEBA no devolvio historial de pases del expediente.");
+
+                    movimientos = MapearMovimientos(expediente);
+                    fuente = FuenteRespuesta.FallbackCache;
+                    exitoso = true;
+                    cachedAt = expediente.HistorialCacheControl?.FechaUltimaActualizacionLocal;
+                }
+                else
+                {
+                    movimientos = Array.Empty<MovimientoExpedienteDto>();
+                    fuente = FuenteRespuesta.Gdeba;
+                    exitoso = false;
+                }
+            }
+            else
+            {
+                // Crea o actualiza el expediente y consolida los movimientos recibidos.
+                expediente ??= CrearExpediente(numero);
+                var ultimoMovimientoId = ConsolidarMovimientos(expediente, historial);
+
+                // Marca la cache de historial con vigencia diaria para la consulta bajo demanda.
+                expediente.MarcarHistorialConsultadoCorrectamente(
+                    resolvedAt,
+                    resolvedAt,
+                    resolvedAt.Add(DefaultHistorialTtl),
+                    ultimoMovimientoId,
+                    estaCompleto: true,
+                    tieneDatosParciales: false);
+
+                movimientos = MapearMovimientos(expediente);
+                fuente = FuenteRespuesta.Gdeba;
+                exitoso = true;
+            }
+        }
+
+        // Registra auditoria funcional una sola vez, independientemente de la fuente de respuesta.
+        await RegistrarAuditoriaAsync(
+            "ConsultarMovimientosExpediente",
+            numero.Valor,
+            fuente,
+            exitoso,
+            resolvedAt,
+            cancellationToken);
+
+        // Persiste movimientos/cache y auditoria en una unica unidad de trabajo.
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new ConsultarMovimientosExpedienteResult(
+            numero.Valor,
+            movimientos,
+            fuente,
+            exitoso,
+            resolvedAt,
+            cachedAt);
+    }
+
+    /// <summary>
+    /// Procesa la cache completa del detalle de expediente recibido por mensajeria.
+    /// </summary>
+    /// <param name="detalle">Respuesta detallada normalizada recibida desde GDEBA.</param>
+    /// <param name="fechaConsulta">Fecha en que se obtuvo la respuesta desde GDEBA.</param>
+    /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
+    /// <returns>Tarea asincronica de procesamiento de cache.</returns>
+    public Task ProcesarCacheDetalleAsync(
+        GdebaExpedienteDetalladoDto detalle,
+        DateTimeOffset fechaConsulta,
+        CancellationToken cancellationToken)
+    {
+        var numero = NumeroGdebaCompleto.Create(detalle.NumeroGdebaCompleto);
+        var expediente = _expedienteCacheReadStore.BuscarExpedienteParaDetalle(numero.Valor) ??
+            CrearExpediente(numero);
+        var trata = ResolverTrata(detalle.CodigoTrata, detalle.DescripcionTrata);
+        var documentos = ResolverDocumentos(detalle.Documentos);
+
+        ConsolidarCabecera(expediente, detalle, trata?.Id);
+        ConsolidarDocumentos(expediente, detalle.Documentos, documentos, fechaConsulta);
+        ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
+        ConsolidarRelaciones(expediente, detalle.Relaciones, fechaConsulta);
+
+        expediente.MarcarDetalleConsultadoCorrectamente(
+            fechaConsulta,
+            fechaConsulta,
+            fechaConsulta.Add(DefaultDetalleTtl),
+            estaCompleto: true,
+            tieneDatosParciales: false);
+
+        return _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     #endregion
@@ -199,34 +333,52 @@ public sealed class ExpedienteService : IExpedienteService
     }
 
     /// <summary>
-    /// Determina si un expediente local puede responderse desde cache segun completitud y fecha de vencimiento.
+    /// Consolida en el expediente los movimientos recibidos desde el historial de pases GDEBA.
     /// </summary>
-    /// <param name="expediente">Expediente local a evaluar.</param>
-    /// <param name="ahora">Fecha actual utilizada para comparar la vigencia de cache.</param>
-    /// <returns>True cuando el cache esta completo y vigente; en caso contrario, false.</returns>
-    private static bool PuedeResponderDesdeCache(Expediente? expediente, DateTimeOffset ahora)
+    /// <param name="expediente">Expediente local que sera actualizado.</param>
+    /// <param name="historial">Movimientos devueltos por GDEBA.</param>
+    /// <returns>Identificador del ultimo movimiento conocido cuando existe.</returns>
+    private static Guid? ConsolidarMovimientos(
+        Expediente expediente,
+        IReadOnlyCollection<GdebaMovimientoExpedienteDto> historial)
     {
-        return expediente?.CacheControl is not null &&
-            expediente.CacheControl.EstaCompleto &&
-            expediente.CacheControl.FechaVencimiento is not null &&
-            expediente.CacheControl.FechaVencimiento > ahora;
+        MovimientoExpediente? ultimoMovimiento = null;
+        var ultimoOrden = historial.Count == 0 ? 0 : historial.Max(x => x.Orden);
+
+        foreach (var movimientoDto in historial.OrderBy(x => x.Orden))
+        {
+            var movimiento = expediente.RegistrarMovimientoDetectado(
+                movimientoDto.Orden,
+                movimientoDto.FechaOperacion,
+                movimientoDto.EstadoOrigen,
+                movimientoDto.EstadoDestino,
+                movimientoDto.UsuarioOrigen,
+                movimientoDto.UsuarioDestino,
+                movimientoDto.Motivo,
+                movimientoDto.ReparticionOrigen,
+                movimientoDto.ReparticionDestino,
+                esUltimoConocido: movimientoDto.Orden == ultimoOrden);
+
+            if (movimiento.EsUltimoConocido)
+            {
+                ultimoMovimiento = movimiento;
+            }
+        }
+
+        return ultimoMovimiento?.Id;
     }
 
     /// <summary>
-    /// Consolida la respuesta detallada de GDEBA dentro del agregado local de expediente.
+    /// Consolida los datos de cabecera recibidos desde consultarExpedienteDetallado.
     /// </summary>
     /// <param name="expediente">Expediente local que sera actualizado.</param>
-    /// <param name="detalle">Datos detallados devueltos por GDEBA.</param>
-    /// <param name="fechaDeteccion">Fecha en la que el proxy detecto los datos recibidos.</param>
-    private void ConsolidarDetalle(
+    /// <param name="detalle">Detalle recibido desde GDEBA.</param>
+    /// <param name="trataId">Identificador local de la trata resuelta.</param>
+    private static void ConsolidarCabecera(
         Expediente expediente,
         GdebaExpedienteDetalladoDto detalle,
-        DateTimeOffset fechaDeteccion)
+        Guid? trataId)
     {
-        // Resuelve o crea la trata antes de aplicar la cabecera del expediente.
-        var trataId = ResolverTrata(detalle.CodigoTrata, detalle.DescripcionTrata)?.Id;
-
-        // Aplica datos generales del expediente manteniendo la regla dentro del agregado.
         expediente.AplicarCabeceraDetallada(
             trataId,
             detalle.Estado,
@@ -237,11 +389,26 @@ public sealed class ExpedienteService : IExpedienteService
             detalle.UsuarioDestino,
             sectorDestino: null,
             reparticionActual: null);
+    }
 
-        foreach (var documentoDto in detalle.Documentos)
+    /// <summary>
+    /// Consolida los documentos vinculados al expediente.
+    /// </summary>
+    /// <param name="expediente">Expediente local que sera actualizado.</param>
+    /// <param name="documentosDto">Documentos recibidos desde GDEBA.</param>
+    /// <param name="documentos">Documentos locales resueltos por numero de actuacion.</param>
+    /// <param name="fechaDeteccion">Fecha de deteccion de la respuesta.</param>
+    private static void ConsolidarDocumentos(
+        Expediente expediente,
+        IReadOnlyCollection<GdebaDocumentoExpedienteDto> documentosDto,
+        IReadOnlyDictionary<string, DocumentoGdeba> documentos,
+        DateTimeOffset fechaDeteccion)
+    {
+        foreach (var documentoDto in documentosDto)
         {
-            // Resuelve el documento global y registra su vinculacion al expediente.
-            var documento = ResolverDocumento(documentoDto);
+            var numeroDocumento = NumeroGdebaCompleto.Create(documentoDto.NumeroActuacionCompleto);
+            var documento = documentos[numeroDocumento.Valor];
+
             expediente.RegistrarDocumentoDetectado(
                 documento,
                 documentoDto.FechaVinculacion,
@@ -251,19 +418,41 @@ public sealed class ExpedienteService : IExpedienteService
                 FuenteDeteccionGdeba.ConsultarExpedienteDetallado,
                 fechaDeteccion);
         }
+    }
 
-        foreach (var archivo in detalle.ArchivosAdjuntos)
+    /// <summary>
+    /// Consolida los archivos adjuntos informados por GDEBA.
+    /// </summary>
+    /// <param name="expediente">Expediente local que sera actualizado.</param>
+    /// <param name="archivosAdjuntos">Archivos adjuntos recibidos.</param>
+    /// <param name="fechaDeteccion">Fecha de deteccion de la respuesta.</param>
+    private static void ConsolidarAdjuntos(
+        Expediente expediente,
+        IReadOnlyCollection<string> archivosAdjuntos,
+        DateTimeOffset fechaDeteccion)
+    {
+        foreach (var archivo in archivosAdjuntos)
         {
-            // Registra archivos adjuntos informados por la consulta detallada.
             expediente.RegistrarArchivoAdjuntoDetectado(
                 archivo,
                 FuenteDeteccionGdeba.ConsultarExpedienteDetallado,
                 fechaDeteccion);
         }
+    }
 
-        foreach (var relacion in detalle.Relaciones)
+    /// <summary>
+    /// Consolida las relaciones entre expedientes recibidas desde GDEBA.
+    /// </summary>
+    /// <param name="expediente">Expediente local que sera actualizado.</param>
+    /// <param name="relaciones">Relaciones recibidas.</param>
+    /// <param name="fechaDeteccion">Fecha de deteccion de la respuesta.</param>
+    private static void ConsolidarRelaciones(
+        Expediente expediente,
+        IReadOnlyCollection<GdebaRelacionExpedienteDto> relaciones,
+        DateTimeOffset fechaDeteccion)
+    {
+        foreach (var relacion in relaciones)
         {
-            // Registra relaciones con otros expedientes sin resolver todavia el expediente relacionado.
             expediente.RegistrarRelacionDetectada(
                 relacion.NumeroExpedienteRelacionado,
                 ParsearTipoRelacion(relacion.TipoRelacion),
@@ -292,15 +481,13 @@ public sealed class ExpedienteService : IExpedienteService
         }
 
         var codigo = codigoTrata.Trim();
-        var trata = _trataRepository.Queryable().FirstOrDefault(x => x.Codigo == codigo);
+        var trata = _expedienteCacheReadStore.BuscarTrataPorCodigo(codigo);
         if (trata is null)
         {
-            // Incorpora la trata al catalogo local cuando aparece por primera vez en GDEBA.
             trata = new TrataGdeba(codigo);
             _trataRepository.Insert(trata);
         }
 
-        // Actualiza solo los datos conocidos por esta respuesta, sin suponer informacion no recibida.
         trata.ActualizarDatos(
             descripcionTrata,
             acronimoGedo: null,
@@ -316,32 +503,44 @@ public sealed class ExpedienteService : IExpedienteService
     }
 
     /// <summary>
-    /// Resuelve un documento GDEBA por numero de actuacion y actualiza su metadata parcial.
+    /// Resuelve en bloque los documentos recibidos por numero de actuacion.
     /// </summary>
-    /// <param name="documentoDto">Documento informado dentro del detalle de expediente.</param>
-    /// <returns>Documento local existente o creado para la actuacion indicada.</returns>
-    private DocumentoGdeba ResolverDocumento(GdebaDocumentoExpedienteDto documentoDto)
+    /// <param name="documentosDto">Documentos recibidos desde GDEBA.</param>
+    /// <returns>Documentos locales existentes o creados, indexados por numero de actuacion.</returns>
+    private IReadOnlyDictionary<string, DocumentoGdeba> ResolverDocumentos(
+        IReadOnlyCollection<GdebaDocumentoExpedienteDto> documentosDto)
     {
-        // Normaliza el numero de actuacion antes de usarlo como identidad del documento.
-        var numeroDocumento = NumeroGdebaCompleto.Create(documentoDto.NumeroActuacionCompleto);
-        var documento = _documentoRepository
-            .Queryable()
-            .FirstOrDefault(x => x.NumeroActuacionCompleto == numeroDocumento.Valor);
+        var documentosNormalizados = documentosDto
+            .Select(x => new
+            {
+                Dto = x,
+                Numero = NumeroGdebaCompleto.Create(x.NumeroActuacionCompleto).Valor
+            })
+            .ToArray();
 
-        if (documento is null)
+        var documentos = _expedienteCacheReadStore.BuscarDocumentosPorNumeroActuacion(
+            documentosNormalizados.Select(x => x.Numero));
+
+        var documentosResueltos = new Dictionary<string, DocumentoGdeba>(
+            documentos,
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in documentosNormalizados)
         {
-            // Incorpora el documento global al catalogo local cuando aparece por primera vez.
-            documento = new DocumentoGdeba(numeroDocumento.Valor);
-            _documentoRepository.Insert(documento);
+            if (!documentosResueltos.TryGetValue(item.Numero, out var documento))
+            {
+                documento = new DocumentoGdeba(item.Numero);
+                _documentoRepository.Insert(documento);
+                documentosResueltos[item.Numero] = documento;
+            }
+
+            documento.RegistrarMetadataParcial(
+                item.Dto.TipoDocumentoCodigo,
+                item.Dto.Referencia,
+                item.Dto.FechaCreacion);
         }
 
-        // Conserva metadata parcial detectada desde el expediente, sin asumir que es el detalle completo del documento.
-        documento.RegistrarMetadataParcial(
-            documentoDto.TipoDocumentoCodigo,
-            documentoDto.Referencia,
-            documentoDto.FechaCreacion);
-
-        return documento;
+        return documentosResueltos;
     }
 
     /// <summary>
@@ -386,6 +585,51 @@ public sealed class ExpedienteService : IExpedienteService
                 x.NumeroExpedienteRelacionado,
                 x.TipoRelacion.ToString(),
                 x.EsCabecera)).ToArray());
+    }
+
+    /// <summary>
+    /// Proyecta una respuesta GDEBA detallada a una respuesta liviana para no bloquear por colecciones pesadas.
+    /// </summary>
+    /// <param name="detalle">Respuesta normalizada recibida desde GDEBA.</param>
+    /// <returns>DTO de expediente con cabecera inmediata y colecciones vacias.</returns>
+    private static ExpedienteDetalladoDto MapearRespuestaLiviana(GdebaExpedienteDetalladoDto detalle)
+    {
+        return new ExpedienteDetalladoDto(
+            detalle.NumeroGdebaCompleto,
+            detalle.CodigoTrata,
+            detalle.DescripcionTrata,
+            detalle.Estado,
+            detalle.SistemaOrigen,
+            detalle.DescripcionTramite,
+            detalle.FechaCaratulacion,
+            detalle.UsuarioCaratulador,
+            detalle.UsuarioDestino,
+            Array.Empty<DocumentoExpedienteDto>(),
+            Array.Empty<ArchivoAdjuntoExpedienteDto>(),
+            Array.Empty<RelacionExpedienteDto>());
+    }
+
+    /// <summary>
+    /// Proyecta los movimientos locales del expediente al contrato de salida de aplicacion.
+    /// </summary>
+    /// <param name="expediente">Expediente local que contiene los movimientos.</param>
+    /// <returns>Coleccion ordenada de movimientos del expediente.</returns>
+    private static IReadOnlyCollection<MovimientoExpedienteDto> MapearMovimientos(Expediente expediente)
+    {
+        return expediente.Movimientos
+            .OrderBy(x => x.Orden)
+            .Select(x => new MovimientoExpedienteDto(
+                x.Orden,
+                x.FechaOperacion,
+                x.EstadoOrigen,
+                x.EstadoDestino,
+                x.UsuarioOrigen,
+                x.UsuarioDestino,
+                x.Motivo,
+                x.ReparticionOrigen,
+                x.ReparticionDestino,
+                x.EsUltimoConocido))
+            .ToArray();
     }
 
     /// <summary>

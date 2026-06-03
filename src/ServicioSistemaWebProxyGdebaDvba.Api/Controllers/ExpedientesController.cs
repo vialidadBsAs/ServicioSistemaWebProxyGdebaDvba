@@ -40,4 +40,17 @@ public sealed class ExpedientesController : ControllerBase
 
         return result.Expediente is null ? NotFound(result) : Ok(result);
     }
+
+    [HttpGet("{numeroGdebaCompleto}/movimientos")]
+    public async Task<ActionResult<ConsultarMovimientosExpedienteResult>> ConsultarMovimientos(
+        string numeroGdebaCompleto,
+        [FromQuery] bool forceRefresh,
+        CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.ConsultarMovimientosAsync(
+            new ConsultarMovimientosExpedienteRequest(numeroGdebaCompleto, forceRefresh),
+            cancellationToken);
+
+        return result.Exitoso ? Ok(result) : NotFound(result);
+    }
 }
