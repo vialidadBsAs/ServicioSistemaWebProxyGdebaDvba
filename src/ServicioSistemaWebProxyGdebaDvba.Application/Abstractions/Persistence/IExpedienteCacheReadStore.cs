@@ -4,10 +4,19 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 
 public interface IExpedienteCacheReadStore
 {
-    Expediente? BuscarExpedienteParaDetalle(string numeroGdebaCompleto);
+    Task<Expediente?> BuscarExpedienteParaDetalleAsync(
+        string numeroGdebaCompleto,
+        CancellationToken cancellationToken);
 
-    TrataGdeba? BuscarTrataPorCodigo(string codigo);
+    Task<Expediente?> BuscarExpedienteParaMovimientosAsync(
+        string numeroGdebaCompleto,
+        CancellationToken cancellationToken);
 
-    IReadOnlyDictionary<string, DocumentoGdeba> BuscarDocumentosPorNumeroActuacion(
-        IEnumerable<string> numerosActuacionCompletos);
+    Task<TrataGdeba?> BuscarTrataPorCodigoAsync(
+        string codigo,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyDictionary<string, DocumentoGdeba>> BuscarDocumentosPorNumeroActuacionAsync(
+        IEnumerable<string> numerosActuacionCompletos,
+        CancellationToken cancellationToken);
 }

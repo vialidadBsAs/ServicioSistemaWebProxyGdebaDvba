@@ -131,54 +131,39 @@ public sealed partial class Expediente : IAggregateRoot
         return relacion;
     }
 
-    public MovimientoExpediente RegistrarMovimientoDetectado(
-        int orden,
-        DateTimeOffset? fechaOperacion,
-        string? estadoOrigen,
-        string? estadoDestino,
-        string? usuarioOrigen,
-        string? usuarioDestino,
-        string? motivo,
-        string? reparticionOrigen,
-        string? reparticionDestino,
-        bool esUltimoConocido)
+    public Guid? ConsolidarMovimientosDetectados(
+        IReadOnlyCollection<MovimientoExpedienteDetectado> movimientosDetectados)
     {
-        var movimiento = _movimientos.FirstOrDefault(x => x.Orden == orden);
-        if (movimiento is null)
+        ArgumentNullException.ThrowIfNull(movimientosDetectados);
+
+        if (!movimientosDetectados.Any())
         {
-            movimiento = new MovimientoExpediente(Id, orden);
-            _movimientos.Add(movimiento);
+            return null;
         }
 
-        if (esUltimoConocido)
+        var ultimoMovimientoDetectado = movimientosDetectados.MaxBy(x => x.Orden)!;
+
+        foreach (var movimientoDetectado in movimientosDetectados)
         {
-            foreach (var movimientoExistente in _movimientos.Where(x => x.Orden != orden))
+            var movimiento = _movimientos.FirstOrDefault(x => x.Orden == movimientoDetectado.Orden);
+            var esUltimoConocido = movimientoDetectado.Orden == ultimoMovimientoDetectado.Orden;
+
+            if (movimiento is null)
             {
-                movimientoExistente.ActualizarDatos(
-                    movimientoExistente.FechaOperacion,
-                    movimientoExistente.EstadoOrigen,
-                    movimientoExistente.EstadoDestino,
-                    movimientoExistente.UsuarioOrigen,
-                    movimientoExistente.UsuarioDestino,
-                    movimientoExistente.Motivo,
-                    movimientoExistente.ReparticionOrigen,
-                    movimientoExistente.ReparticionDestino,
-                    esUltimoConocido: false);
+                movimiento = new MovimientoExpediente(Id, movimientoDetectado.Orden);
+                _movimientos.Add(movimiento);
             }
+            else if (movimiento.TieneMismosDatos(movimientoDetectado, esUltimoConocido))
+            {
+                continue;
+            }
+
+            movimiento.ActualizarDesde(
+                movimientoDetectado,
+                esUltimoConocido);
         }
 
-        movimiento.ActualizarDatos(
-            fechaOperacion,
-            estadoOrigen,
-            estadoDestino,
-            usuarioOrigen,
-            usuarioDestino,
-            motivo,
-            reparticionOrigen,
-            reparticionDestino,
-            esUltimoConocido);
-
-        return movimiento;
+        return _movimientos.FirstOrDefault(x => x.Orden == ultimoMovimientoDetectado.Orden)?.Id;
     }
 
     public void MarcarDetalleConsultadoCorrectamente(

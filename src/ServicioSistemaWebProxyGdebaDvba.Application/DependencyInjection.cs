@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Auditoria;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.ReadStores;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application;
@@ -13,6 +15,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteDetalleCacheProcessor, ExpedienteDetalleCacheProcessor>();
+        services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
@@ -21,6 +24,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteDetalleCacheProcessor, ExpedienteDetalleCacheProcessor>();
+        services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

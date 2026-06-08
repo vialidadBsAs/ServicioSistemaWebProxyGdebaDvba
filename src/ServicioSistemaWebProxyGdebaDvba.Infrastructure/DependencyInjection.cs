@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Security;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Security;
@@ -30,7 +29,6 @@ public static class DependencyInjection
         {
             services.AddDbContext<ProxyGdebaDbContext>(options => options.UseSqlServer(connectionString));
             services.AddScoped<DbContext>(provider => provider.GetRequiredService<ProxyGdebaDbContext>());
-            services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             services.AddScoped(typeof(ITrackableRepository<>), typeof(TrackableRepository<>));

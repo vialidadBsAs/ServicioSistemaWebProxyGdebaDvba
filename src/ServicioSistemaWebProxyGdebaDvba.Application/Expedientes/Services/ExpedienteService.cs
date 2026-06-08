@@ -16,7 +16,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
 public sealed class ExpedienteService : IExpedienteService
 {
     private static readonly TimeSpan DefaultDetalleTtl = TimeSpan.FromMinutes(60);
-    private static readonly TimeSpan DefaultHistorialTtl = TimeSpan.FromDays(1);
+    private static readonly TimeSpan DefaultMovimientosTtl = TimeSpan.FromDays(1);
 
     private readonly IExpedienteCacheReadStore _expedienteCacheReadStore;
     private readonly IGdebaExpedienteGateway _gdebaExpedienteGateway;
@@ -70,7 +70,9 @@ public sealed class ExpedienteService : IExpedienteService
         var resolvedAt = DateTimeOffset.UtcNow;
 
         //lee datos de cache para evaluar si se puede responder desde cache o si es necesario consultar a GDEBA. Esta consulta no bloquea la respuesta y se vuelve a realizar si se necesita refrescar desde GDEBA para obtener la entidad completa y actualizada.
-        var expediente = _expedienteCacheReadStore.BuscarExpedienteParaDetalle(numero.Valor);
+        var expediente = await _expedienteCacheReadStore.BuscarExpedienteParaDetalleAsync(
+            numero.Valor,
+            cancellationToken);
         ExpedienteDetalladoDto? expedienteDto;
         FuenteRespuesta fuente;
         bool exitoso;
@@ -156,7 +158,9 @@ public sealed class ExpedienteService : IExpedienteService
         // Normaliza el numero completo y busca la copia local para evaluar la cache de movimientos.
         var numero = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
         var resolvedAt = DateTimeOffset.UtcNow;
-        var expediente = BuscarExpedienteLocal(numero.Valor);
+        var expediente = await _expedienteCacheReadStore.BuscarExpedienteParaMovimientosAsync(
+            numero.Valor,
+            cancellationToken);
         IReadOnlyCollection<MovimientoExpedienteDto> movimientos;
         FuenteRespuesta fuente;
         bool exitoso;
@@ -164,7 +168,7 @@ public sealed class ExpedienteService : IExpedienteService
 
         if (!request.ForceRefresh && expediente?.PuedeResponderMovimientosDesdeCache(resolvedAt) == true)
         {
-            // Responde desde cache cuando el historial fue sincronizado y sigue vigente.
+            // Responde desde cache cuando los movimientos fueron sincronizados y siguen vigentes.
             movimientos = MapearMovimientos(expediente);
             fuente = FuenteRespuesta.Cache;
             exitoso = true;
@@ -173,11 +177,11 @@ public sealed class ExpedienteService : IExpedienteService
         else
         {
             // Consulta GDEBA solo cuando no hay movimientos vigentes o cuando se fuerza el refresco.
-            var historial = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
+            var movimientosGdeba = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
                 numero,
                 cancellationToken);
 
-            if (historial is null)
+            if (movimientosGdeba is null)
             {
                 if (expediente is not null)
                 {
@@ -185,7 +189,7 @@ public sealed class ExpedienteService : IExpedienteService
                     expediente.MarcarHistorialConsultadoConError(
                         resolvedAt,
                         resolvedAt,
-                        "GDEBA no devolvio historial de pases del expediente.");
+                        "GDEBA no devolvio movimientos del expediente.");
 
                     movimientos = MapearMovimientos(expediente);
                     fuente = FuenteRespuesta.FallbackCache;
@@ -203,13 +207,25 @@ public sealed class ExpedienteService : IExpedienteService
             {
                 // Crea o actualiza el expediente y consolida los movimientos recibidos.
                 expediente ??= CrearExpediente(numero);
-                var ultimoMovimientoId = ConsolidarMovimientos(expediente, historial);
+                var movimientosDetectados = movimientosGdeba
+                    .Select(x => new MovimientoExpedienteDetectado(
+                        x.Orden,
+                        x.FechaOperacion,
+                        x.EstadoOrigen,
+                        x.EstadoDestino,
+                        x.UsuarioOrigen,
+                        x.UsuarioDestino,
+                        x.Motivo,
+                        x.ReparticionOrigen,
+                        x.ReparticionDestino))
+                    .ToArray();
+                var ultimoMovimientoId = expediente.ConsolidarMovimientosDetectados(movimientosDetectados);
 
-                // Marca la cache de historial con vigencia diaria para la consulta bajo demanda.
+                // Marca la cache de movimientos con vigencia diaria para la consulta bajo demanda.
                 expediente.MarcarHistorialConsultadoCorrectamente(
                     resolvedAt,
                     resolvedAt,
-                    resolvedAt.Add(DefaultHistorialTtl),
+                    resolvedAt.Add(DefaultMovimientosTtl),
                     ultimoMovimientoId,
                     estaCompleto: true,
                     tieneDatosParciales: false);
@@ -248,16 +264,21 @@ public sealed class ExpedienteService : IExpedienteService
     /// <param name="fechaConsulta">Fecha en que se obtuvo la respuesta desde GDEBA.</param>
     /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
     /// <returns>Tarea asincronica de procesamiento de cache.</returns>
-    public Task ProcesarCacheDetalleAsync(
+    public async Task ProcesarCacheDetalleAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken)
     {
         var numero = NumeroGdebaCompleto.Create(detalle.NumeroGdebaCompleto);
-        var expediente = _expedienteCacheReadStore.BuscarExpedienteParaDetalle(numero.Valor) ??
+        var expediente = await _expedienteCacheReadStore.BuscarExpedienteParaDetalleAsync(
+            numero.Valor,
+            cancellationToken) ??
             CrearExpediente(numero);
-        var trata = ResolverTrata(detalle.CodigoTrata, detalle.DescripcionTrata);
-        var documentos = ResolverDocumentos(detalle.Documentos);
+        var trata = await ResolverTrataAsync(
+            detalle.CodigoTrata,
+            detalle.DescripcionTrata,
+            cancellationToken);
+        var documentos = await ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
 
         ConsolidarCabecera(expediente, detalle, trata?.Id);
         ConsolidarDocumentos(expediente, detalle.Documentos, documentos, fechaConsulta);
@@ -271,7 +292,7 @@ public sealed class ExpedienteService : IExpedienteService
             estaCompleto: true,
             tieneDatosParciales: false);
 
-        return _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -306,18 +327,6 @@ public sealed class ExpedienteService : IExpedienteService
     #region Metodos privados del servicio
 
     /// <summary>
-    /// Busca en la base local un expediente previamente cacheado por su numero GDEBA completo.
-    /// </summary>
-    /// <param name="numeroGdebaCompleto">Numero completo del expediente en formato GDEBA.</param>
-    /// <returns>Entidad de expediente local cuando existe; en caso contrario, null.</returns>
-    private Expediente? BuscarExpedienteLocal(string numeroGdebaCompleto)
-    {
-        return _expedienteRepository
-            .Queryable()
-            .FirstOrDefault(x => x.GdebaNumeroCompleto == numeroGdebaCompleto);
-    }
-
-    /// <summary>
     /// Crea un expediente local nuevo y lo registra en el repositorio para su posterior persistencia.
     /// </summary>
     /// <param name="numero">Numero GDEBA completo validado.</param>
@@ -327,42 +336,6 @@ public sealed class ExpedienteService : IExpedienteService
         var expediente = new Expediente(numero.Valor);
         _expedienteRepository.Insert(expediente);
         return expediente;
-    }
-
-    /// <summary>
-    /// Consolida en el expediente los movimientos recibidos desde el historial de pases GDEBA.
-    /// </summary>
-    /// <param name="expediente">Expediente local que sera actualizado.</param>
-    /// <param name="historial">Movimientos devueltos por GDEBA.</param>
-    /// <returns>Identificador del ultimo movimiento conocido cuando existe.</returns>
-    private static Guid? ConsolidarMovimientos(
-        Expediente expediente,
-        IReadOnlyCollection<GdebaMovimientoExpedienteDto> historial)
-    {
-        MovimientoExpediente? ultimoMovimiento = null;
-        var ultimoOrden = historial.Count == 0 ? 0 : historial.Max(x => x.Orden);
-
-        foreach (var movimientoDto in historial.OrderBy(x => x.Orden))
-        {
-            var movimiento = expediente.RegistrarMovimientoDetectado(
-                movimientoDto.Orden,
-                movimientoDto.FechaOperacion,
-                movimientoDto.EstadoOrigen,
-                movimientoDto.EstadoDestino,
-                movimientoDto.UsuarioOrigen,
-                movimientoDto.UsuarioDestino,
-                movimientoDto.Motivo,
-                movimientoDto.ReparticionOrigen,
-                movimientoDto.ReparticionDestino,
-                esUltimoConocido: movimientoDto.Orden == ultimoOrden);
-
-            if (movimiento.EsUltimoConocido)
-            {
-                ultimoMovimiento = movimiento;
-            }
-        }
-
-        return ultimoMovimiento?.Id;
     }
 
     /// <summary>
@@ -470,7 +443,10 @@ public sealed class ExpedienteService : IExpedienteService
     /// <param name="codigoTrata">Codigo de trata informado en la respuesta externa.</param>
     /// <param name="descripcionTrata">Descripcion de la trata informada en la respuesta externa.</param>
     /// <returns>Entidad de trata local cuando el codigo esta informado; en caso contrario, null.</returns>
-    private TrataGdeba? ResolverTrata(string? codigoTrata, string? descripcionTrata)
+    private async Task<TrataGdeba?> ResolverTrataAsync(
+        string? codigoTrata,
+        string? descripcionTrata,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(codigoTrata))
         {
@@ -478,7 +454,9 @@ public sealed class ExpedienteService : IExpedienteService
         }
 
         var codigo = codigoTrata.Trim();
-        var trata = _expedienteCacheReadStore.BuscarTrataPorCodigo(codigo);
+        var trata = await _expedienteCacheReadStore.BuscarTrataPorCodigoAsync(
+            codigo,
+            cancellationToken);
         if (trata is null)
         {
             trata = new TrataGdeba(codigo);
@@ -504,8 +482,9 @@ public sealed class ExpedienteService : IExpedienteService
     /// </summary>
     /// <param name="documentosDto">Documentos recibidos desde GDEBA.</param>
     /// <returns>Documentos locales existentes o creados, indexados por numero de actuacion.</returns>
-    private IReadOnlyDictionary<string, DocumentoGdeba> ResolverDocumentos(
-        IReadOnlyCollection<GdebaDocumentoExpedienteDto> documentosDto)
+    private async Task<IReadOnlyDictionary<string, DocumentoGdeba>> ResolverDocumentosAsync(
+        IReadOnlyCollection<GdebaDocumentoExpedienteDto> documentosDto,
+        CancellationToken cancellationToken)
     {
         var documentosNormalizados = documentosDto
             .Select(x => new
@@ -515,8 +494,9 @@ public sealed class ExpedienteService : IExpedienteService
             })
             .ToArray();
 
-        var documentos = _expedienteCacheReadStore.BuscarDocumentosPorNumeroActuacion(
-            documentosNormalizados.Select(x => x.Numero));
+        var documentos = await _expedienteCacheReadStore.BuscarDocumentosPorNumeroActuacionAsync(
+            documentosNormalizados.Select(x => x.Numero),
+            cancellationToken);
 
         var documentosResueltos = new Dictionary<string, DocumentoGdeba>(
             documentos,

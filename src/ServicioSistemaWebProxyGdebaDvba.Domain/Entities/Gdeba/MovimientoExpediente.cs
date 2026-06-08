@@ -40,26 +40,43 @@ public sealed class MovimientoExpediente : DomainEntity
 
     public bool EsUltimoConocido { get; private set; }
 
-    public void ActualizarDatos(
-        DateTimeOffset? fechaOperacion,
-        string? estadoOrigen,
-        string? estadoDestino,
-        string? usuarioOrigen,
-        string? usuarioDestino,
-        string? motivo,
-        string? reparticionOrigen,
-        string? reparticionDestino,
+    public bool TieneMismosDatos(
+        MovimientoExpedienteDetectado movimientoDetectado,
         bool esUltimoConocido)
     {
-        FechaOperacion = fechaOperacion;
-        EstadoOrigen = Normalizar(estadoOrigen);
-        EstadoDestino = Normalizar(estadoDestino);
-        UsuarioOrigen = Normalizar(usuarioOrigen);
-        UsuarioDestino = Normalizar(usuarioDestino);
-        Motivo = Normalizar(motivo);
-        ReparticionOrigen = Normalizar(reparticionOrigen);
-        ReparticionDestino = Normalizar(reparticionDestino);
+        ArgumentNullException.ThrowIfNull(movimientoDetectado);
+
+        return FechaOperacion == movimientoDetectado.FechaOperacion &&
+            EstadoOrigen == Normalizar(movimientoDetectado.EstadoOrigen) &&
+            EstadoDestino == Normalizar(movimientoDetectado.EstadoDestino) &&
+            UsuarioOrigen == Normalizar(movimientoDetectado.UsuarioOrigen) &&
+            UsuarioDestino == Normalizar(movimientoDetectado.UsuarioDestino) &&
+            Motivo == Normalizar(movimientoDetectado.Motivo) &&
+            ReparticionOrigen == Normalizar(movimientoDetectado.ReparticionOrigen) &&
+            ReparticionDestino == Normalizar(movimientoDetectado.ReparticionDestino) &&
+            EsUltimoConocido == esUltimoConocido;
+    }
+
+    public void ActualizarDesde(
+        MovimientoExpedienteDetectado movimientoDetectado,
+        bool esUltimoConocido)
+    {
+        ArgumentNullException.ThrowIfNull(movimientoDetectado);
+
+        FechaOperacion = movimientoDetectado.FechaOperacion;
+        EstadoOrigen = Normalizar(movimientoDetectado.EstadoOrigen);
+        EstadoDestino = Normalizar(movimientoDetectado.EstadoDestino);
+        UsuarioOrigen = Normalizar(movimientoDetectado.UsuarioOrigen);
+        UsuarioDestino = Normalizar(movimientoDetectado.UsuarioDestino);
+        Motivo = Normalizar(movimientoDetectado.Motivo);
+        ReparticionOrigen = Normalizar(movimientoDetectado.ReparticionOrigen);
+        ReparticionDestino = Normalizar(movimientoDetectado.ReparticionDestino);
         EsUltimoConocido = esUltimoConocido;
+    }
+
+    public void MarcarComoNoUltimo()
+    {
+        EsUltimoConocido = false;
     }
 
     private static string? Normalizar(string? value)
