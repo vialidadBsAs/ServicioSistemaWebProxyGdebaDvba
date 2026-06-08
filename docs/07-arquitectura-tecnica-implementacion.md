@@ -235,22 +235,33 @@ La API no debe ejecutar trabajo pesado con `Task.Run` ni procesar colecciones gr
 El flujo definido para el detalle de expediente es:
 
 ```text
-API
+ExpedienteService
     consulta GDEBA
     arma respuesta liviana
-    publica CachearDetalleExpedienteV1
+    solicita cache asincronica mediante IExpedienteCacheAsyncPublisher
     responde al cliente
+
+MassTransitExpedienteCacheAsyncPublisher
+    publica CachearDetalleExpedienteV1
 
 RabbitMQ
     recibe y entrega el mensaje
 
-Worker
+CachearDetalleExpedienteConsumer
     consume CachearDetalleExpedienteV1
+
+IExpedienteCacheAsyncProcessor
+    ejecuta CachearDetalleAsync
+
+ExpedienteService
+    ejecuta ConsolidarDetalleEnCacheAsync
     consolida cabecera, documentos, relaciones y adjuntos
     actualiza estado de cache
 ```
 
-La abstraccion de Application es `IExpedienteDetalleCacheDispatcher`. La implementacion concreta con MassTransit esta en Infrastructure. El consumer `CachearDetalleExpedienteConsumer` tambien pertenece a Infrastructure, pero delega la regla de consolidacion a `IExpedienteDetalleCacheProcessor`, que pertenece a Application.
+La abstraccion de Application para solicitar trabajos asincronicos de cache es `IExpedienteCacheAsyncPublisher`. Su implementacion concreta con MassTransit es `MassTransitExpedienteCacheAsyncPublisher`, ubicada en Infrastructure.
+
+La abstraccion de Application para ejecutar esos trabajos es `IExpedienteCacheAsyncProcessor`. El consumer `CachearDetalleExpedienteConsumer` pertenece a Infrastructure porque depende de MassTransit, pero no contiene regla de negocio: solo adapta el mensaje `CachearDetalleExpedienteV1` y delega en `IExpedienteCacheAsyncProcessor`.
 
 La cola inicial configurada es:
 
@@ -258,7 +269,7 @@ La cola inicial configurada es:
 gdeba.cachear-detalle-expediente
 ```
 
-Esta decision evita desperdiciar respuestas grandes de GDEBA sin poner al usuario a esperar la hidratacion completa de cache.
+Esta decision evita desperdiciar respuestas grandes de GDEBA sin poner al usuario a esperar la hidratacion completa de cache. El Worker es solo el host que mantiene vivo MassTransit; la logica reutilizable de consolidacion sigue estando en Application y Domain.
 
 ## 4. Camino de una Request
 
@@ -410,7 +421,7 @@ ConsultarDetalle(request)
         detalle = ConsultarGdeba()
 
         if detalle existe
-            PublicarCacheDetalle()
+            SolicitarCacheDetalleAsync()
             ResolverCabeceraDesdeGdeba()
         else
             if ExisteExpedienteLocal()
@@ -424,7 +435,7 @@ ConsultarDetalle(request)
     DevolverResultado()
 ```
 
-La regla importante es que la respuesta HTTP no queda a la cola del procesamiento pesado de colecciones. La API publica el mensaje `CachearDetalleExpedienteV1` mediante MassTransit/RabbitMQ y el Worker consume ese mensaje para consolidar la cache completa.
+La regla importante es que la respuesta HTTP no queda a la cola del procesamiento pesado de colecciones. `ExpedienteService` solicita el trabajo asincronico mediante `IExpedienteCacheAsyncPublisher`; MassTransit publica `CachearDetalleExpedienteV1` y el consumer delega la consolidacion en `IExpedienteCacheAsyncProcessor`.
 
 ### 4.6 Morfologia de ConsultarMovimientos
 
