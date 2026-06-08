@@ -176,7 +176,7 @@ La intencion de `Domain` es expresar conceptos propios del proxy, pero diferenci
 Ejemplo actual:
 
 ```text
-ConsultarExpedienteService
+ExpedienteService
 ```
 
 Esta clase no deberia saber si GDEBA se consume por SOAP, REST, mock o una respuesta grabada. Solo sabe que necesita un `IGdebaExpedienteGateway`.
@@ -262,11 +262,15 @@ Esta decision evita desperdiciar respuestas grandes de GDEBA sin poner al usuari
 
 ## 4. Camino de una Request
 
-El endpoint inicial implementado es:
+Los endpoints principales implementados para expedientes son:
 
 ```http
-GET /api/gdeba/expedientes/{numeroExpediente}
+GET /api/gdeba/expedientes/{numeroExpediente}/detalle
+GET /api/gdeba/expedientes/{numeroExpediente}/movimientos
+GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
 ```
+
+El endpoint `/sin-cache` es una consulta directa contra GDEBA y no representa la consulta funcional normal del proxy con politica de cache.
 
 El flujo conceptual es:
 
@@ -274,8 +278,8 @@ El flujo conceptual es:
 Request HTTP
   -> ApplicationIdentificationMiddleware
   -> ExpedientesController
-  -> IConsultarExpedienteService
-  -> ConsultarExpedienteService
+  -> IExpedienteService
+  -> ExpedienteService
   -> IGdebaExpedienteGateway
   -> IAuditoriaService
   -> Response HTTP
@@ -302,8 +306,8 @@ Luego la request llega a `ExpedientesController`.
 El controlador no implementa logica de integracion. Solo traduce HTTP hacia un caso de uso:
 
 ```csharp
-var result = await _consultarExpedienteService.ConsultarAsync(
-    new ConsultarExpedienteRequest(numeroExpediente, forceRefresh),
+var result = await _expedienteService.ConsultarDetalleAsync(
+    new ConsultarExpedienteDetalladoRequest(numeroExpediente, forceRefresh),
     cancellationToken);
 ```
 
@@ -311,7 +315,7 @@ Esta separacion es importante. El controlador no debe saber si existe SOAP, fake
 
 ### 4.3 Servicio de Aplicacion
 
-`ConsultarExpedienteService` coordina el caso de uso.
+`ExpedienteService` coordina los casos de uso actuales de expediente.
 
 En terminos simples hace esto:
 
@@ -697,7 +701,7 @@ Registra casos de uso propios de Application y servicios transversales cuya impl
 Ejemplo:
 
 ```csharp
-services.AddScoped<IConsultarExpedienteService, ConsultarExpedienteService>();
+services.AddScoped<IExpedienteService, ExpedienteService>();
 ```
 
 Tambien registra `IAuditoriaService` segun la configuracion `Auditoria:Mode`:
@@ -820,7 +824,7 @@ La implementacion se elige por configuracion:
 
 `InMemory` permite registrar en logs sin persistir. `Persisted` persiste mediante URF y relaciona cada registro con `AplicacionConsumidora`.
 
-El caso de uso `ConsultarExpedienteService` registra:
+Los casos de uso de `ExpedienteService` registran:
 
 - Aplicacion consumidora.
 - Operacion.

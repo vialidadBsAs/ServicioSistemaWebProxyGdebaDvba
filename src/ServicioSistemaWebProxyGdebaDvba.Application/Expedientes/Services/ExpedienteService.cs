@@ -56,38 +56,6 @@ public sealed class ExpedienteService : IExpedienteService
     #region Metodos publicos del servicio
 
     /// <summary>
-    /// Consulta la informacion basica de un expediente directamente contra el servicio autorizado de GDEBA.
-    /// </summary>
-    /// <param name="request">Datos necesarios para identificar el expediente solicitado.</param>
-    /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
-    /// <returns>Resultado de la consulta, incluyendo fuente de respuesta y fecha de resolucion.</returns>
-    public async Task<ConsultarExpedienteResult> ConsultarAsync(
-        ConsultarExpedienteRequest request,
-        CancellationToken cancellationToken)
-    {
-        // Normaliza y valida el numero antes de enviarlo a cualquier integracion externa.
-        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
-
-        // Consulta el servicio GDEBA sin aplicar cache local para esta operacion basica.
-        var expediente = await _gdebaExpedienteGateway.BuscarExpedienteAsync(numeroGdebaCompleto, cancellationToken);
-        var resolvedAt = DateTimeOffset.UtcNow;
-
-        // Registra la auditoria funcional de la consulta realizada por la aplicacion consumidora.
-        await RegistrarAuditoriaAsync(
-            "ConsultarExpediente",
-            numeroGdebaCompleto.Valor,
-            FuenteRespuesta.Gdeba,
-            expediente is not null,
-            resolvedAt,
-            cancellationToken);
-
-        // Persiste en una unica unidad de trabajo los cambios acumulados por la operacion.
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return new ConsultarExpedienteResult(expediente, FuenteRespuesta.Gdeba, resolvedAt, CachedAt: null);
-    }
-
-    /// <summary>
     /// Consulta el detalle de un expediente aplicando politica de cache local y fallback ante falta de respuesta de GDEBA.
     /// </summary>
     /// <param name="request">Datos de la solicitud, incluyendo numero de expediente y opcion de refresco forzado.</param>
@@ -100,7 +68,9 @@ public sealed class ExpedienteService : IExpedienteService
         // Normaliza el numero completo y busca una copia local para evaluar la politica de cache.
         var numero = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
         var resolvedAt = DateTimeOffset.UtcNow;
-        var expediente = BuscarExpedienteLocal(numero.Valor);
+
+        //lee datos de cache para evaluar si se puede responder desde cache o si es necesario consultar a GDEBA. Esta consulta no bloquea la respuesta y se vuelve a realizar si se necesita refrescar desde GDEBA para obtener la entidad completa y actualizada.
+        var expediente = _expedienteCacheReadStore.BuscarExpedienteParaDetalle(numero.Valor);
         ExpedienteDetalladoDto? expedienteDto;
         FuenteRespuesta fuente;
         bool exitoso;
@@ -302,6 +272,33 @@ public sealed class ExpedienteService : IExpedienteService
             tieneDatosParciales: false);
 
         return _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Consulta un expediente directamente contra GDEBA sin leer ni actualizar cache local.
+    /// </summary>
+    /// <param name="request">Datos necesarios para identificar el expediente solicitado.</param>
+    /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
+    /// <returns>Resultado directo de GDEBA, sin fecha de cache local.</returns>
+    public async Task<ConsultarExpedienteSinCacheResult> ConsultarExpedienteSinCacheAsync(
+        ConsultarExpedienteSinCacheRequest request,
+        CancellationToken cancellationToken)
+    {
+        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var expediente = await _gdebaExpedienteGateway.BuscarExpedienteAsync(numeroGdebaCompleto, cancellationToken);
+        var resolvedAt = DateTimeOffset.UtcNow;
+
+        await RegistrarAuditoriaAsync(
+            "ConsultarExpedienteSinCache",
+            numeroGdebaCompleto.Valor,
+            FuenteRespuesta.Gdeba,
+            expediente is not null,
+            resolvedAt,
+            cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new ConsultarExpedienteSinCacheResult(expediente, FuenteRespuesta.Gdeba, resolvedAt);
     }
 
     #endregion

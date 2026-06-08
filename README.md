@@ -98,10 +98,10 @@ Health:
 GET /api/health
 ```
 
-Consulta fake de expediente:
+Consulta directa de expediente sin cache local:
 
 ```http
-GET /api/gdeba/expedientes/{numeroExpediente}
+GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
 X-Application-Id: obras
 ```
 

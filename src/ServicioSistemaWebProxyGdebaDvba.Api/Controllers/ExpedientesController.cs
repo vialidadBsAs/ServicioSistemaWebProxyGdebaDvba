@@ -15,20 +15,7 @@ public sealed class ExpedientesController : ControllerBase
         _expedienteService = expedienteService;
     }
 
-    [HttpGet("{numeroGdebaCompleto}")]
-    public async Task<ActionResult<ConsultarExpedienteResult>> Consultar(
-        string numeroGdebaCompleto,
-        [FromQuery] bool forceRefresh,
-        CancellationToken cancellationToken)
-    {
-        var result = await _expedienteService.ConsultarAsync(
-            new ConsultarExpedienteRequest(numeroGdebaCompleto, forceRefresh),
-            cancellationToken);
-
-        return result.Expediente is null ? NotFound(result) : Ok(result);
-    }
-
-    [HttpGet("{numeroGdebaCompleto}/detalle")]
+   [HttpGet("{numeroGdebaCompleto}/detalle")]
     public async Task<ActionResult<ConsultarExpedienteDetalladoResult>> ConsultarDetalle(
         string numeroGdebaCompleto,
         [FromQuery] bool forceRefresh,
@@ -52,5 +39,18 @@ public sealed class ExpedientesController : ControllerBase
             cancellationToken);
 
         return result.Exitoso ? Ok(result) : NotFound(result);
+    }
+
+
+    [HttpGet("{numeroGdebaCompleto}/sin-cache")]
+    public async Task<ActionResult<ConsultarExpedienteSinCacheResult>> ConsultarSinCache(
+       string numeroGdebaCompleto,
+       CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.ConsultarExpedienteSinCacheAsync(
+            new ConsultarExpedienteSinCacheRequest(numeroGdebaCompleto),
+            cancellationToken);
+
+        return result.Expediente is null ? NotFound(result) : Ok(result);
     }
 }

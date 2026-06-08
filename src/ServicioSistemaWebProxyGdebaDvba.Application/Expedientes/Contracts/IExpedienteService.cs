@@ -4,10 +4,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 
 public interface IExpedienteService
 {
-    Task<ConsultarExpedienteResult> ConsultarAsync(
-        ConsultarExpedienteRequest request,
-        CancellationToken cancellationToken);
-
     Task<ConsultarExpedienteDetalladoResult> ConsultarDetalleAsync(
         ConsultarExpedienteDetalladoRequest request,
         CancellationToken cancellationToken);
@@ -19,5 +15,9 @@ public interface IExpedienteService
     Task ProcesarCacheDetalleAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
+        CancellationToken cancellationToken);
+
+    Task<ConsultarExpedienteSinCacheResult> ConsultarExpedienteSinCacheAsync(
+        ConsultarExpedienteSinCacheRequest request,
         CancellationToken cancellationToken);
 }
