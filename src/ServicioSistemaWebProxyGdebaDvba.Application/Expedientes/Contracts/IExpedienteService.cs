@@ -12,7 +12,7 @@ public interface IExpedienteService
         ConsultarMovimientosExpedienteRequest request,
         CancellationToken cancellationToken);
 
-    Task ProcesarCacheDetalleAsync(
+    Task ConsolidarDetalleEnCacheAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken);

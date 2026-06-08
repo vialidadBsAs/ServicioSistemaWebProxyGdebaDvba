@@ -22,7 +22,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IGdebaExpedienteGateway _gdebaExpedienteGateway;
     private readonly IGdebaExecutionContext _gdebaExecutionContext;
     private readonly IAuditoriaService _auditoriaService;
-    private readonly IExpedienteDetalleCacheDispatcher _expedienteDetalleCacheDispatcher;
+    private readonly IExpedienteCacheAsyncPublisher _expedienteCacheAsyncPublisher;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
@@ -34,7 +34,7 @@ public sealed class ExpedienteService : IExpedienteService
         IGdebaExpedienteGateway gdebaExpedienteGateway,
         IGdebaExecutionContext gdebaExecutionContext,
         IAuditoriaService auditoriaService,
-        IExpedienteDetalleCacheDispatcher expedienteDetalleCacheDispatcher,
+        IExpedienteCacheAsyncPublisher expedienteCacheAsyncPublisher,
         ICurrentApplicationAccessor currentApplicationAccessor,
         IRepository<Expediente> expedienteRepository,
         IRepository<DocumentoGdeba> documentoRepository,
@@ -45,7 +45,7 @@ public sealed class ExpedienteService : IExpedienteService
         _gdebaExpedienteGateway = gdebaExpedienteGateway;
         _gdebaExecutionContext = gdebaExecutionContext;
         _auditoriaService = auditoriaService;
-        _expedienteDetalleCacheDispatcher = expedienteDetalleCacheDispatcher;
+        _expedienteCacheAsyncPublisher = expedienteCacheAsyncPublisher;
         _currentApplicationAccessor = currentApplicationAccessor;
         _expedienteRepository = expedienteRepository;
         _documentoRepository = documentoRepository;
@@ -115,7 +115,7 @@ public sealed class ExpedienteService : IExpedienteService
             else
             {
                 // Publica el procesamiento pesado de cache para no bloquear la respuesta del endpoint.
-                await _expedienteDetalleCacheDispatcher.PublicarCacheDetalleAsync(
+                await _expedienteCacheAsyncPublisher.SolicitarCacheDetalleAsync(
                     detalle,
                     resolvedAt,
                     cancellationToken);
@@ -264,7 +264,7 @@ public sealed class ExpedienteService : IExpedienteService
     /// <param name="fechaConsulta">Fecha en que se obtuvo la respuesta desde GDEBA.</param>
     /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
     /// <returns>Tarea asincronica de procesamiento de cache.</returns>
-    public async Task ProcesarCacheDetalleAsync(
+    public async Task ConsolidarDetalleEnCacheAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken)

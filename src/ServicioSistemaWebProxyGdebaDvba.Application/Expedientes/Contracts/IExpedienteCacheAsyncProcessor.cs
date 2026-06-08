@@ -2,9 +2,9 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 
-public interface IExpedienteDetalleCacheProcessor
+public interface IExpedienteCacheAsyncProcessor
 {
-    Task ProcesarDetalleAsync(
+    Task CachearDetalleAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken);

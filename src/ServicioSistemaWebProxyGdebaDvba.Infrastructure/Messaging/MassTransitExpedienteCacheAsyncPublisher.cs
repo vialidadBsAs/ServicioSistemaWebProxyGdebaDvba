@@ -5,16 +5,16 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Messaging.Contracts;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Messaging;
 
-public sealed class MassTransitExpedienteDetalleCacheDispatcher : IExpedienteDetalleCacheDispatcher
+public sealed class MassTransitExpedienteCacheAsyncPublisher : IExpedienteCacheAsyncPublisher
 {
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public MassTransitExpedienteDetalleCacheDispatcher(IPublishEndpoint publishEndpoint)
+    public MassTransitExpedienteCacheAsyncPublisher(IPublishEndpoint publishEndpoint)
     {
         _publishEndpoint = publishEndpoint;
     }
 
-    public Task PublicarCacheDetalleAsync(
+    public Task SolicitarCacheDetalleAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken)

@@ -18,7 +18,7 @@ public static class DependencyInjection
             .Get<RabbitMqOptions>() ?? new RabbitMqOptions();
 
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
-        services.AddScoped<IExpedienteDetalleCacheDispatcher, MassTransitExpedienteDetalleCacheDispatcher>();
+        services.AddScoped<IExpedienteCacheAsyncPublisher, MassTransitExpedienteCacheAsyncPublisher>();
 
         services.AddMassTransit(busConfigurator =>
         {

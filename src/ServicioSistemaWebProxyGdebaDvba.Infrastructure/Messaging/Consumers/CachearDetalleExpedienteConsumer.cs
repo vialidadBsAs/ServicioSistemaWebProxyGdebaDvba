@@ -6,16 +6,16 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Messaging.Consumers;
 
 public sealed class CachearDetalleExpedienteConsumer : IConsumer<CachearDetalleExpedienteV1>
 {
-    private readonly IExpedienteDetalleCacheProcessor _cacheProcessor;
+    private readonly IExpedienteCacheAsyncProcessor _processor;
 
-    public CachearDetalleExpedienteConsumer(IExpedienteDetalleCacheProcessor cacheProcessor)
+    public CachearDetalleExpedienteConsumer(IExpedienteCacheAsyncProcessor processor)
     {
-        _cacheProcessor = cacheProcessor;
+        _processor = processor;
     }
 
     public Task Consume(ConsumeContext<CachearDetalleExpedienteV1> context)
     {
-        return _cacheProcessor.ProcesarDetalleAsync(
+        return _processor.CachearDetalleAsync(
             context.Message.Detalle,
             context.Message.FechaConsulta,
             context.CancellationToken);
