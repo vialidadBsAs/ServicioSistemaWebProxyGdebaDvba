@@ -12,6 +12,13 @@ public sealed class ExpedienteDocumentoConfiguration : IEntityTypeConfiguration<
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.UsuarioAsociacion).HasMaxLength(150);
+        builder.Property(x => x.UsuarioGenerador).HasMaxLength(150);
+
+        builder.Property(x => x.FuenteDeteccion)
+            .HasConversion<string>()
+            .HasMaxLength(100);
+
         builder.HasIndex(x => new { x.ExpedienteId, x.DocumentoId })
             .IsUnique();
     }

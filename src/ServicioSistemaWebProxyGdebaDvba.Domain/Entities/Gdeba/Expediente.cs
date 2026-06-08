@@ -3,10 +3,12 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
-public sealed class Expediente : DomainEntity
+public sealed partial class Expediente : DomainEntity
 {
     private readonly List<MovimientoExpediente> _movimientos = new();
     private readonly List<ExpedienteDocumento> _documentos = new();
+    private readonly List<ExpedienteRelacion> _relaciones = new();
+    private readonly List<ArchivoAdjuntoExpediente> _archivosAdjuntos = new();
 
     private Expediente()
     {
@@ -57,6 +59,10 @@ public sealed class Expediente : DomainEntity
     public IReadOnlyCollection<MovimientoExpediente> Movimientos => _movimientos;
 
     public IReadOnlyCollection<ExpedienteDocumento> Documentos => _documentos;
+
+    public IReadOnlyCollection<ExpedienteRelacion> Relaciones => _relaciones;
+
+    public IReadOnlyCollection<ArchivoAdjuntoExpediente> ArchivosAdjuntos => _archivosAdjuntos;
 
     public void ActualizarNumeroCompleto(NumeroGdebaCompleto numeroGdebaCompleto)
     {

@@ -1,0 +1,3 @@
+namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+
+public sealed record ConsultarExpedienteSinCacheRequest(string NumeroGdebaCompleto);

@@ -3,7 +3,7 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
-public sealed class DocumentoGdeba : DomainEntity
+public sealed partial class DocumentoGdeba : DomainEntity
 {
     private readonly List<ExpedienteDocumento> _expedientes = new();
 

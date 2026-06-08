@@ -37,6 +37,13 @@ public sealed class ExpedienteCacheControl : DomainEntity
 
     public string? UltimoErrorConsulta { get; private set; }
 
+    public bool PuedeResponder(DateTimeOffset fechaActual)
+    {
+        return EstaCompleto &&
+            FechaVencimiento is not null &&
+            FechaVencimiento > fechaActual;
+    }
+
     public void RegistrarConsulta(
         DateTimeOffset fechaConsulta,
         DateTimeOffset fechaActualizacionLocal,

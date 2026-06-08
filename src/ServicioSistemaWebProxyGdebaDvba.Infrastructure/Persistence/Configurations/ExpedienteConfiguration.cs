@@ -73,5 +73,10 @@ public sealed class ExpedienteConfiguration : IEntityTypeConfiguration<Expedient
             .WithOne(x => x.Expediente)
             .HasForeignKey(x => x.ExpedienteId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.ArchivosAdjuntos)
+            .WithOne(x => x.Expediente)
+            .HasForeignKey(x => x.ExpedienteId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

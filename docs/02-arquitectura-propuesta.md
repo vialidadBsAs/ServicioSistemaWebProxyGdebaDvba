@@ -63,9 +63,9 @@ Expone endpoints internos para aplicaciones institucionales.
 
 La API no debe exponer contratos SOAP crudos. Debe exponer operaciones internas estables, por ejemplo:
 
-- `GET /api/gdeba/expedientes/{numero}`
 - `GET /api/gdeba/expedientes/{numero}/detalle`
-- `GET /api/gdeba/expedientes/{numero}/historial-pases`
+- `GET /api/gdeba/expedientes/{numero}/movimientos`
+- `GET /api/gdeba/expedientes/{numero}/sin-cache`
 - `GET /api/gdeba/documentos/{numero}/detalle`
 - `GET /api/gdeba/documentos/{numero}/pdf`
 - `GET /api/gdeba/tratas/{codigo}`

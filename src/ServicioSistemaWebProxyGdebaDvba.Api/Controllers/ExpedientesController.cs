@@ -8,21 +8,47 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 [Route("api/gdeba/expedientes")]
 public sealed class ExpedientesController : ControllerBase
 {
-    private readonly IConsultarExpedienteService _consultarExpedienteService;
+    private readonly IExpedienteService _expedienteService;
 
-    public ExpedientesController(IConsultarExpedienteService consultarExpedienteService)
+    public ExpedientesController(IExpedienteService expedienteService)
     {
-        _consultarExpedienteService = consultarExpedienteService;
+        _expedienteService = expedienteService;
     }
 
-    [HttpGet("{numeroGdebaCompleto}")]
-    public async Task<ActionResult<ConsultarExpedienteResult>> Consultar(
+   [HttpGet("{numeroGdebaCompleto}/detalle")]
+    public async Task<ActionResult<ConsultarExpedienteDetalladoResult>> ConsultarDetalle(
         string numeroGdebaCompleto,
         [FromQuery] bool forceRefresh,
         CancellationToken cancellationToken)
     {
-        var result = await _consultarExpedienteService.ConsultarAsync(
-            new ConsultarExpedienteRequest(numeroGdebaCompleto, forceRefresh),
+        var result = await _expedienteService.ConsultarDetalleAsync(
+            new ConsultarExpedienteDetalladoRequest(numeroGdebaCompleto, forceRefresh),
+            cancellationToken);
+
+        return result.Expediente is null ? NotFound(result) : Ok(result);
+    }
+
+    [HttpGet("{numeroGdebaCompleto}/movimientos")]
+    public async Task<ActionResult<ConsultarMovimientosExpedienteResult>> ConsultarMovimientos(
+        string numeroGdebaCompleto,
+        [FromQuery] bool forceRefresh,
+        CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.ConsultarMovimientosAsync(
+            new ConsultarMovimientosExpedienteRequest(numeroGdebaCompleto, forceRefresh),
+            cancellationToken);
+
+        return result.Exitoso ? Ok(result) : NotFound(result);
+    }
+
+
+    [HttpGet("{numeroGdebaCompleto}/sin-cache")]
+    public async Task<ActionResult<ConsultarExpedienteSinCacheResult>> ConsultarSinCache(
+       string numeroGdebaCompleto,
+       CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.ConsultarExpedienteSinCacheAsync(
+            new ConsultarExpedienteSinCacheRequest(numeroGdebaCompleto),
             cancellationToken);
 
         return result.Expediente is null ? NotFound(result) : Ok(result);
