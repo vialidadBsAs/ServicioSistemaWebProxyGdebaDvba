@@ -16,6 +16,7 @@ public sealed partial class Expediente : DomainEntity
 
     public Expediente(string numeroGdebaCompleto)
     {
+        MarcarComoAgregada();
         ActualizarNumeroCompleto(
             NumeroGdebaCompleto.Create(numeroGdebaCompleto));
     }
@@ -85,6 +86,7 @@ public sealed partial class Expediente : DomainEntity
         string? sectorDestino,
         string? reparticionActual)
     {
+        MarcarComoModificada();
         TrataId = trataId;
         EstadoActual = Normalizar(estadoActual);
         SistemaOrigen = Normalizar(sistemaOrigen);

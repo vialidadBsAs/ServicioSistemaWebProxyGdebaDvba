@@ -10,6 +10,7 @@ public sealed class MovimientoExpediente : DomainEntity
 
     public MovimientoExpediente(Guid expedienteId, int orden)
     {
+        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;
@@ -40,42 +41,49 @@ public sealed class MovimientoExpediente : DomainEntity
 
     public bool EsUltimoConocido { get; private set; }
 
-    public bool TieneMismosDatos(
-        MovimientoExpedienteDetectado movimientoDetectado,
-        bool esUltimoConocido)
+    public bool CoincideCon(MovimientoExpedienteDetectado movimientoDetectado)
     {
         ArgumentNullException.ThrowIfNull(movimientoDetectado);
 
-        return FechaOperacion == movimientoDetectado.FechaOperacion &&
-            EstadoOrigen == Normalizar(movimientoDetectado.EstadoOrigen) &&
-            EstadoDestino == Normalizar(movimientoDetectado.EstadoDestino) &&
+        if (FechaOperacion.HasValue && movimientoDetectado.FechaOperacion.HasValue)
+        {
+            return FechaOperacion == movimientoDetectado.FechaOperacion;
+        }
+
+        return !FechaOperacion.HasValue &&
+            !movimientoDetectado.FechaOperacion.HasValue &&
             UsuarioOrigen == Normalizar(movimientoDetectado.UsuarioOrigen) &&
             UsuarioDestino == Normalizar(movimientoDetectado.UsuarioDestino) &&
             Motivo == Normalizar(movimientoDetectado.Motivo) &&
             ReparticionOrigen == Normalizar(movimientoDetectado.ReparticionOrigen) &&
-            ReparticionDestino == Normalizar(movimientoDetectado.ReparticionDestino) &&
-            EsUltimoConocido == esUltimoConocido;
+            ReparticionDestino == Normalizar(movimientoDetectado.ReparticionDestino);
     }
 
-    public void ActualizarDesde(
-        MovimientoExpedienteDetectado movimientoDetectado,
-        bool esUltimoConocido)
+    public void ActualizarDesde(MovimientoExpedienteDetectado movimientoDetectado)
     {
         ArgumentNullException.ThrowIfNull(movimientoDetectado);
 
-        FechaOperacion = movimientoDetectado.FechaOperacion;
-        EstadoOrigen = Normalizar(movimientoDetectado.EstadoOrigen);
-        EstadoDestino = Normalizar(movimientoDetectado.EstadoDestino);
-        UsuarioOrigen = Normalizar(movimientoDetectado.UsuarioOrigen);
-        UsuarioDestino = Normalizar(movimientoDetectado.UsuarioDestino);
-        Motivo = Normalizar(movimientoDetectado.Motivo);
-        ReparticionOrigen = Normalizar(movimientoDetectado.ReparticionOrigen);
-        ReparticionDestino = Normalizar(movimientoDetectado.ReparticionDestino);
-        EsUltimoConocido = esUltimoConocido;
+        MarcarComoModificada();
+        Orden = movimientoDetectado.Orden;
+        FechaOperacion = movimientoDetectado.FechaOperacion ?? FechaOperacion;
+        EstadoOrigen = Normalizar(movimientoDetectado.EstadoOrigen) ?? EstadoOrigen;
+        EstadoDestino = Normalizar(movimientoDetectado.EstadoDestino) ?? EstadoDestino;
+        UsuarioOrigen = Normalizar(movimientoDetectado.UsuarioOrigen) ?? UsuarioOrigen;
+        UsuarioDestino = Normalizar(movimientoDetectado.UsuarioDestino) ?? UsuarioDestino;
+        Motivo = Normalizar(movimientoDetectado.Motivo) ?? Motivo;
+        ReparticionOrigen = Normalizar(movimientoDetectado.ReparticionOrigen) ?? ReparticionOrigen;
+        ReparticionDestino = Normalizar(movimientoDetectado.ReparticionDestino) ?? ReparticionDestino;
+    }
+
+    public void MarcarComoUltimo()
+    {
+        MarcarComoModificada();
+        EsUltimoConocido = true;
     }
 
     public void MarcarComoNoUltimo()
     {
+        MarcarComoModificada();
         EsUltimoConocido = false;
     }
 

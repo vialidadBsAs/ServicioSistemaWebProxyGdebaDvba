@@ -15,6 +15,7 @@ public sealed class ArchivoAdjuntoExpediente : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
+        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;
@@ -40,6 +41,7 @@ public sealed class ArchivoAdjuntoExpediente : DomainEntity
 
     public void RegistrarDeteccion(FuenteDeteccionGdeba fuenteDeteccion, DateTimeOffset fechaDeteccion)
     {
+        MarcarComoModificada();
         FuenteDeteccion = fuenteDeteccion;
         FechaUltimaDeteccion = fechaDeteccion;
     }

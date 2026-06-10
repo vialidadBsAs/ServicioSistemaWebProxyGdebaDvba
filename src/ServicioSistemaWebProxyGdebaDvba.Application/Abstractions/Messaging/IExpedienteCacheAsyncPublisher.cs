@@ -4,7 +4,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Messaging;
 
 public interface IExpedienteCacheAsyncPublisher
 {
-    Task SolicitarCacheDetalleAsync(
+    Task<bool> SolicitarCacheDetalleAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken);

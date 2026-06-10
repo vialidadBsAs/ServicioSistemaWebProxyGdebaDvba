@@ -20,8 +20,7 @@ public sealed class MovimientoExpedienteConfiguration : IEntityTypeConfiguration
         builder.Property(x => x.ReparticionOrigen).HasMaxLength(100);
         builder.Property(x => x.ReparticionDestino).HasMaxLength(100);
 
-        builder.HasIndex(x => new { x.ExpedienteId, x.Orden })
-            .IsUnique();
+        builder.HasIndex(x => new { x.ExpedienteId, x.Orden });
 
         builder.HasIndex(x => new { x.ExpedienteId, x.EsUltimoConocido });
     }

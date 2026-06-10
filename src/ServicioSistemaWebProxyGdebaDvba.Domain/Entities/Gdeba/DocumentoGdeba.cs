@@ -13,6 +13,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
 
     public DocumentoGdeba(string numeroActuacionCompleto)
     {
+        MarcarComoAgregada();
         ActualizarNumeroActuacion(NumeroGdebaCompleto.Create(numeroActuacionCompleto));
     }
 
@@ -66,6 +67,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
 
     public void ActualizarNumeroActuacion(NumeroGdebaCompleto numeroActuacion)
     {
+        MarcarComoModificada();
         NumeroActuacionCompleto = numeroActuacion.Valor;
         ActuacionTipoCodigo = numeroActuacion.Tipo;
         ActuacionAnio = numeroActuacion.Anio;
@@ -107,6 +109,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
         DateTimeOffset? fechaEnriquecimiento,
         bool metadataCompleta)
     {
+        MarcarComoModificada();
         ActualizarNumeroEspecial(numeroEspecial);
         TipoDocumentoCodigo = Normalizar(tipoDocumentoCodigo);
         TipoDocumentoNombre = Normalizar(tipoDocumentoNombre);

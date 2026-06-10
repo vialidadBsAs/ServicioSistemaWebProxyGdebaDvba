@@ -11,6 +11,7 @@ public sealed class ExpedienteDocumento : DomainEntity
 
     public ExpedienteDocumento(Guid expedienteId, Guid documentoId)
     {
+        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;
@@ -21,6 +22,7 @@ public sealed class ExpedienteDocumento : DomainEntity
 
     public ExpedienteDocumento(Guid expedienteId, DocumentoGdeba documento)
     {
+        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;
@@ -58,10 +60,11 @@ public sealed class ExpedienteDocumento : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
-        FechaVinculacion = fechaVinculacion;
-        OrdenRespuesta = ordenRespuesta;
-        UsuarioAsociacion = Normalizar(usuarioAsociacion);
-        UsuarioGenerador = Normalizar(usuarioGenerador);
+        MarcarComoModificada();
+        FechaVinculacion = fechaVinculacion ?? FechaVinculacion;
+        OrdenRespuesta = ordenRespuesta ?? OrdenRespuesta;
+        UsuarioAsociacion = Normalizar(usuarioAsociacion) ?? UsuarioAsociacion;
+        UsuarioGenerador = Normalizar(usuarioGenerador) ?? UsuarioGenerador;
         FuenteDeteccion = fuenteDeteccion;
 
         if (FechaPrimeraDeteccion == default)

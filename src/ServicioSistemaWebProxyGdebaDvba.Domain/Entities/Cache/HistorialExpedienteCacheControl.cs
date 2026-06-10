@@ -11,6 +11,7 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
 
     public HistorialExpedienteCacheControl(Guid expedienteId, DateTimeOffset fechaPrimeraDeteccion)
     {
+        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;
@@ -53,11 +54,35 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
         DateTimeOffset fechaActualizacionLocal,
         DateTimeOffset? fechaVencimiento,
         FuenteRespuesta fuente,
+        MovimientoExpediente? ultimoMovimientoDetectado,
+        bool estaCompleto,
+        bool tieneDatosParciales,
+        string? ultimoErrorConsulta)
+    {
+        MarcarComoModificada();
+        UltimoMovimientoDetectado = ultimoMovimientoDetectado;
+        RegistrarConsulta(
+            fechaConsulta,
+            fechaActualizacionLocal,
+            fechaVencimiento,
+            fuente,
+            ultimoMovimientoDetectado?.Id,
+            estaCompleto,
+            tieneDatosParciales,
+            ultimoErrorConsulta);
+    }
+
+    public void RegistrarConsulta(
+        DateTimeOffset fechaConsulta,
+        DateTimeOffset fechaActualizacionLocal,
+        DateTimeOffset? fechaVencimiento,
+        FuenteRespuesta fuente,
         Guid? ultimoMovimientoDetectadoId,
         bool estaCompleto,
         bool tieneDatosParciales,
         string? ultimoErrorConsulta)
     {
+        MarcarComoModificada();
         FechaUltimaConsultaGdeba = fechaConsulta;
         FechaUltimaActualizacionLocal = fechaActualizacionLocal;
         FechaVencimiento = fechaVencimiento;

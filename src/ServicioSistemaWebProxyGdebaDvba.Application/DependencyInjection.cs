@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
+        services.AddSingleton<IExpedienteRefreshCoordinator, ExpedienteRefreshCoordinator>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
@@ -25,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
+        services.AddSingleton<IExpedienteRefreshCoordinator, ExpedienteRefreshCoordinator>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

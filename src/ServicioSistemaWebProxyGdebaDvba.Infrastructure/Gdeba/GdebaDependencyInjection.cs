@@ -13,6 +13,7 @@ public static class GdebaDependencyInjection
 
         services.Configure<GdebaOptions>(section);
         services.AddScoped<IGdebaExecutionContext, GdebaExecutionContext>();
+        services.AddHttpClient<IGdebaJwtTokenProvider, GdebaJwtTokenProvider>();
         ValidateEnvironment(options);
 
         switch (options.GatewayMode.Trim())
@@ -22,7 +23,7 @@ public static class GdebaDependencyInjection
                 break;
 
             case GdebaGatewayModes.Soap:
-                services.AddScoped<IGdebaExpedienteGateway, SoapGdebaExpedienteGateway>();
+                services.AddHttpClient<IGdebaExpedienteGateway, SoapGdebaExpedienteGateway>();
                 break;
 
             case GdebaGatewayModes.Rest:

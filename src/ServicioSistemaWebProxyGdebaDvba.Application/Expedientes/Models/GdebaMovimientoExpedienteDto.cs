@@ -9,4 +9,5 @@ public sealed record GdebaMovimientoExpedienteDto(
     string? UsuarioDestino,
     string? Motivo,
     string? ReparticionOrigen,
-    string? ReparticionDestino);
+    string? ReparticionDestino,
+    string? SectorDestino);

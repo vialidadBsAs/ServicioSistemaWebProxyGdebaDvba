@@ -37,8 +37,10 @@ public sealed record NumeroGdebaCompleto
             throw new ArgumentException("El numero GDEBA completo es requerido.", nameof(valor));
         }
 
-        var normalized = Normalize(valor);
-        var parts = normalized.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var rawParts = valor.Trim().Split('-', StringSplitOptions.TrimEntries);
+        var parts = rawParts
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToArray();
 
         if (parts.Length != 5)
         {
@@ -57,21 +59,31 @@ public sealed record NumeroGdebaCompleto
             throw new ArgumentException("El numero del expediente no tiene un formato valido.", nameof(valor));
         }
 
+        var tipo = parts[0].ToUpperInvariant();
+        var sistema = parts[3].ToUpperInvariant();
+        var reparticion = parts[4].ToUpperInvariant();
+        var normalized = Normalize(tipo, expAnio, expNumero, sistema, reparticion);
+
         return new NumeroGdebaCompleto(
             normalized,
-            parts[0].ToUpperInvariant(),
+            tipo,
             expAnio,
             expNumero,
-            parts[3].ToUpperInvariant(),
-            parts[4].ToUpperInvariant());
+            sistema,
+            reparticion);
     }
 
     public override string ToString() => Valor;
 
-    private static string Normalize(string valor)
+    private static string Normalize(
+        string tipo,
+        int anio,
+        long numero,
+        string sistema,
+        string reparticion)
     {
-        return string.Join(
-            '-',
-            valor.Trim().Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return string.Equals(tipo, "EX", StringComparison.OrdinalIgnoreCase)
+            ? $"{tipo}-{anio}-{numero}- -{sistema}-{reparticion}"
+            : $"{tipo}-{anio}-{numero}-{sistema}-{reparticion}";
     }
 }

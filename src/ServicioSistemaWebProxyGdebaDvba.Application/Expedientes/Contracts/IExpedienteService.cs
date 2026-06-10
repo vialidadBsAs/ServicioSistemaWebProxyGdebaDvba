@@ -12,6 +12,30 @@ public interface IExpedienteService
         ConsultarMovimientosExpedienteRequest request,
         CancellationToken cancellationToken);
 
+    Task<ObtenerExpedienteRecursoResult<CabeceraExpedienteDto>> ObtenerCabeceraAsync(
+        ObtenerExpedienteRecursoRequest request,
+        CancellationToken cancellationToken);
+
+    Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<DocumentoExpedienteDto>>> ObtenerDocumentosAsync(
+        ObtenerExpedienteRecursoRequest request,
+        CancellationToken cancellationToken);
+
+    Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<ArchivoAdjuntoExpedienteDto>>> ObtenerAdjuntosAsync(
+        ObtenerExpedienteRecursoRequest request,
+        CancellationToken cancellationToken);
+
+    Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<MovimientoExpedienteDto>>> ObtenerPasesAsync(
+        ObtenerExpedienteRecursoRequest request,
+        CancellationToken cancellationToken);
+
+    Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<RelacionExpedienteDto>>> ObtenerRelacionesAsync(
+        ObtenerExpedienteRecursoRequest request,
+        CancellationToken cancellationToken);
+
+    Task<ObtenerExpedienteRecursoResult<ExpedienteCompletoDto>> ObtenerCompletoAsync(
+        ObtenerExpedienteRecursoRequest request,
+        CancellationToken cancellationToken);
+
     Task ConsolidarDetalleEnCacheAsync(
         GdebaExpedienteDetalladoDto detalle,
         DateTimeOffset fechaConsulta,

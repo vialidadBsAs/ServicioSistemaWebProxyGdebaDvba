@@ -12,6 +12,10 @@ public interface IExpedienteCacheReadStore
         string numeroGdebaCompleto,
         CancellationToken cancellationToken);
 
+    Task<Expediente?> BuscarExpedienteCompletoAsync(
+        string numeroGdebaCompleto,
+        CancellationToken cancellationToken);
+
     Task<TrataGdeba?> BuscarTrataPorCodigoAsync(
         string codigo,
         CancellationToken cancellationToken);

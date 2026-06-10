@@ -15,4 +15,6 @@ public sealed class RabbitMqOptions
     public string Password { get; set; } = "guest";
 
     public string CachearDetalleExpedienteQueue { get; set; } = "gdeba.cachear-detalle-expediente";
+
+    public int PublishTimeoutSeconds { get; set; } = 3;
 }

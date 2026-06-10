@@ -21,9 +21,14 @@ public sealed record GdebaDocumentoExpedienteDto(
     DateTimeOffset? FechaCreacion,
     DateTimeOffset? FechaVinculacion,
     string? UsuarioAsociacion,
-    string? UsuarioGenerador);
+    string? UsuarioGenerador,
+    int? OrdenRespuesta = null);
 
 public sealed record GdebaRelacionExpedienteDto(
     string NumeroExpedienteRelacionado,
     string TipoRelacion,
-    bool? EsCabecera);
+    bool? EsCabecera,
+    string? CodigoTrata = null,
+    string? DescripcionTrata = null,
+    DateTimeOffset? FechaRelacion = null,
+    string? UsuarioRelacion = null);

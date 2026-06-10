@@ -131,7 +131,7 @@ public sealed partial class Expediente : IAggregateRoot
         return relacion;
     }
 
-    public Guid? ConsolidarMovimientosDetectados(
+    public MovimientoExpediente? ConsolidarMovimientosDetectados(
         IReadOnlyCollection<MovimientoExpedienteDetectado> movimientosDetectados)
     {
         ArgumentNullException.ThrowIfNull(movimientosDetectados);
@@ -141,29 +141,51 @@ public sealed partial class Expediente : IAggregateRoot
             return null;
         }
 
-        var ultimoMovimientoDetectado = movimientosDetectados.MaxBy(x => x.Orden)!;
-
         foreach (var movimientoDetectado in movimientosDetectados)
         {
-            var movimiento = _movimientos.FirstOrDefault(x => x.Orden == movimientoDetectado.Orden);
-            var esUltimoConocido = movimientoDetectado.Orden == ultimoMovimientoDetectado.Orden;
+            var movimiento = _movimientos.FirstOrDefault(x => x.CoincideCon(movimientoDetectado));
 
             if (movimiento is null)
             {
                 movimiento = new MovimientoExpediente(Id, movimientoDetectado.Orden);
                 _movimientos.Add(movimiento);
             }
-            else if (movimiento.TieneMismosDatos(movimientoDetectado, esUltimoConocido))
-            {
-                continue;
-            }
 
-            movimiento.ActualizarDesde(
-                movimientoDetectado,
-                esUltimoConocido);
+            movimiento.ActualizarDesde(movimientoDetectado);
         }
 
-        return _movimientos.FirstOrDefault(x => x.Orden == ultimoMovimientoDetectado.Orden)?.Id;
+        var ultimoMovimiento = ResolverUltimoMovimientoConocido();
+        foreach (var movimiento in _movimientos)
+        {
+            if (movimiento.Id == ultimoMovimiento.Id)
+            {
+                movimiento.MarcarComoUltimo();
+            }
+            else
+            {
+                movimiento.MarcarComoNoUltimo();
+            }
+        }
+
+        return ultimoMovimiento;
+    }
+
+    public void ActualizarDestinoActualDesdeHistorial(
+        string? reparticionActual,
+        string? sectorDestino)
+    {
+        MarcarComoModificada();
+        ReparticionActual = Normalizar(reparticionActual) ?? ReparticionActual;
+        SectorDestino = Normalizar(sectorDestino) ?? SectorDestino;
+    }
+
+    private MovimientoExpediente ResolverUltimoMovimientoConocido()
+    {
+        return _movimientos.Any(x => x.FechaOperacion.HasValue)
+            ? _movimientos
+                .Where(x => x.FechaOperacion.HasValue)
+                .MaxBy(x => x.FechaOperacion)!
+            : _movimientos.MinBy(x => x.Orden)!;
     }
 
     public void MarcarDetalleConsultadoCorrectamente(
@@ -204,7 +226,7 @@ public sealed partial class Expediente : IAggregateRoot
         DateTimeOffset fechaConsulta,
         DateTimeOffset fechaActualizacionLocal,
         DateTimeOffset? fechaVencimiento,
-        Guid? ultimoMovimientoDetectadoId,
+        MovimientoExpediente? ultimoMovimientoDetectado,
         bool estaCompleto,
         bool tieneDatosParciales)
     {
@@ -214,7 +236,7 @@ public sealed partial class Expediente : IAggregateRoot
             fechaActualizacionLocal,
             fechaVencimiento,
             FuenteRespuesta.Gdeba,
-            ultimoMovimientoDetectadoId,
+            ultimoMovimientoDetectado,
             estaCompleto,
             tieneDatosParciales,
             ultimoErrorConsulta: null);

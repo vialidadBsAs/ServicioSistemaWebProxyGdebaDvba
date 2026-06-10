@@ -24,7 +24,7 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
         var expediente = new GdebaExpedienteDetalladoDto(
             numeroGdebaCompleto.Valor,
             CodigoTrata: "COMP0003",
-            DescripcionTrata: "Licitacion de Obra",
+            DescripcionTrata: "Licitacion de Obra Fake",
             Estado: "Ejecucion",
             SistemaOrigen: "EE",
             DescripcionTramite: "Rehabilitacion y Conservacion de Rutas Provinciales.",
@@ -69,7 +69,7 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
         return Task.FromResult<GdebaExpedienteDetalladoDto?>(expediente);
     }
 
-    public Task<IReadOnlyCollection<GdebaMovimientoExpedienteDto>?> BuscarHistorialPasesExpedienteAsync(
+    public Task<GdebaHistorialExpedienteDto?> BuscarHistorialPasesExpedienteAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {
@@ -84,7 +84,8 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
                 UsuarioDestino: "RCOLABIANCHI",
                 Motivo: "Caratulacion del expediente.",
                 ReparticionOrigen: null,
-                ReparticionDestino: "DVMIYSPGP"),
+                ReparticionDestino: "DVMIYSPGP",
+                SectorDestino: "MGEDV"),
             new GdebaMovimientoExpedienteDto(
                 Orden: 2,
                 FechaOperacion: new DateTimeOffset(2024, 11, 14, 10, 18, 38, TimeSpan.FromHours(-3)),
@@ -94,7 +95,8 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
                 UsuarioDestino: "VVERA",
                 Motivo: "Pase a conocimiento.",
                 ReparticionOrigen: "DVMIYSPGP",
-                ReparticionDestino: "DVMIYSPGP"),
+                ReparticionDestino: "DVMIYSPGP",
+                SectorDestino: "PVD"),
             new GdebaMovimientoExpedienteDto(
                 Orden: 3,
                 FechaOperacion: new DateTimeOffset(2025, 12, 15, 8, 54, 16, TimeSpan.FromHours(-3)),
@@ -104,9 +106,37 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
                 UsuarioDestino: "DVMIYSPGP",
                 Motivo: "Vinculacion de providencia de pase.",
                 ReparticionOrigen: "DVMIYSPGP",
-                ReparticionDestino: "DVMIYSPGP")
+                ReparticionDestino: "DVMIYSPGP",
+                SectorDestino: "PVD")
         };
 
-        return Task.FromResult<IReadOnlyCollection<GdebaMovimientoExpedienteDto>?>(movimientos);
+        IReadOnlyCollection<GdebaDocumentoExpedienteDto> documentosVinculados = new[]
+        {
+            new GdebaDocumentoExpedienteDto(
+                "PV-2022-39560475-GDEBA-DVMIYSPGP",
+                TipoDocumentoCodigo: "PV",
+                Referencia: "Caratula",
+                FechaCreacion: new DateTimeOffset(2022, 11, 17, 10, 24, 5, TimeSpan.FromHours(-3)),
+                FechaVinculacion: new DateTimeOffset(2022, 11, 17, 10, 24, 7, TimeSpan.FromHours(-3)),
+                UsuarioAsociacion: "RCOLABIANCHI",
+                UsuarioGenerador: "RCOLABIANCHI",
+                OrdenRespuesta: 1),
+            new GdebaDocumentoExpedienteDto(
+                "PV-2022-40832917-GDEBA-GEDV",
+                TipoDocumentoCodigo: "PV",
+                Referencia: "Pase",
+                FechaCreacion: new DateTimeOffset(2022, 11, 28, 14, 24, 29, TimeSpan.FromHours(-3)),
+                FechaVinculacion: new DateTimeOffset(2022, 11, 28, 14, 24, 29, TimeSpan.FromHours(-3)),
+                UsuarioAsociacion: "PPETTIROSSI",
+                UsuarioGenerador: "PPETTIROSSI",
+                OrdenRespuesta: 2)
+        };
+
+        var historial = new GdebaHistorialExpedienteDto(
+            documentosVinculados,
+            movimientos,
+            Array.Empty<GdebaRelacionExpedienteDto>());
+
+        return Task.FromResult<GdebaHistorialExpedienteDto?>(historial);
     }
 }

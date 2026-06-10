@@ -16,6 +16,7 @@ public sealed class ExpedienteRelacion : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
+        MarcarComoAgregada();
         ExpedienteOrigenId = expedienteOrigenId == Guid.Empty
             ? throw new ArgumentException("El expediente origen es requerido.", nameof(expedienteOrigenId))
             : expedienteOrigenId;
@@ -66,12 +67,13 @@ public sealed class ExpedienteRelacion : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
-        ExpedienteRelacionadoId = expedienteRelacionadoId;
-        CodigoTrataRelacionado = Normalizar(codigoTrataRelacionado);
-        DescripcionTrataRelacionado = Normalizar(descripcionTrataRelacionado);
-        FechaRelacion = fechaRelacion;
-        UsuarioRelacion = Normalizar(usuarioRelacion);
-        EsCabecera = esCabecera;
+        MarcarComoModificada();
+        ExpedienteRelacionadoId = expedienteRelacionadoId ?? ExpedienteRelacionadoId;
+        CodigoTrataRelacionado = Normalizar(codigoTrataRelacionado) ?? CodigoTrataRelacionado;
+        DescripcionTrataRelacionado = Normalizar(descripcionTrataRelacionado) ?? DescripcionTrataRelacionado;
+        FechaRelacion = fechaRelacion ?? FechaRelacion;
+        UsuarioRelacion = Normalizar(usuarioRelacion) ?? UsuarioRelacion;
+        EsCabecera = esCabecera ?? EsCabecera;
         FuenteDeteccion = fuenteDeteccion;
         FechaUltimaDeteccion = fechaDeteccion;
     }

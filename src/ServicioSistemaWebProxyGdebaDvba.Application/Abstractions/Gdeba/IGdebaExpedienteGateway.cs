@@ -11,7 +11,7 @@ public interface IGdebaExpedienteGateway
         NumeroGdebaCompleto numeroGdebaCompleto,
         CancellationToken cancellationToken);
 
-    Task<IReadOnlyCollection<GdebaMovimientoExpedienteDto>?> BuscarHistorialPasesExpedienteAsync(
+    Task<GdebaHistorialExpedienteDto?> BuscarHistorialPasesExpedienteAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
         CancellationToken cancellationToken);
 }

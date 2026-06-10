@@ -8,6 +8,8 @@ public sealed class GdebaOptions
 
     public string GatewayMode { get; set; } = GdebaGatewayModes.Fake;
 
+    public GdebaSoapContractsOptions SoapContracts { get; set; } = new();
+
     public Dictionary<string, GdebaEnvironmentOptions> Environments { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
@@ -42,13 +44,42 @@ public sealed class JwtOptions
 
 public sealed class SoapOptions
 {
-    public string ConsultaExpedienteWsdl { get; set; } = string.Empty;
+    public Dictionary<string, SoapServiceOptions> Services { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
 
-    public string ConsultaDocumentoWsdl { get; set; } = string.Empty;
+public sealed class SoapServiceOptions
+{
+    public string Wsdl { get; set; } = string.Empty;
+}
 
-    public string TratasWsdl { get; set; } = string.Empty;
+public sealed class GdebaSoapContractsOptions
+{
+    public string EnvelopeNamespace { get; set; } = "http://schemas.xmlsoap.org/soap/envelope/";
 
-    public string ConsultaTipoDocumentoWsdl { get; set; } = string.Empty;
+    public Dictionary<string, GdebaSoapServiceContractOptions> Services { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
 
-    public string ConsultaEstadoPaseExpedienteWsdl { get; set; } = string.Empty;
+public sealed class GdebaSoapServiceContractOptions
+{
+    public string Namespace { get; set; } = string.Empty;
+
+    public Dictionary<string, GdebaSoapOperationContractOptions> Operations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class GdebaSoapOperationContractOptions
+{
+    public string SoapAction { get; set; } = string.Empty;
+}
+
+public static class GdebaSoapServiceNames
+{
+    public const string ConsultaExpediente = "ConsultaExpediente";
+
+    public const string ConsultaDocumento = "ConsultaDocumento";
+
+    public const string Tratas = "Tratas";
+
+    public const string ConsultaTipoDocumento = "ConsultaTipoDocumento";
+
+    public const string ConsultaEstadoPaseExpediente = "ConsultaEstadoPaseExpediente";
 }
