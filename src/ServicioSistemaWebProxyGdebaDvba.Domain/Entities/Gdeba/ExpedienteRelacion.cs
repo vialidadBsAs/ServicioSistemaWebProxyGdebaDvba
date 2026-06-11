@@ -16,7 +16,6 @@ public sealed class ExpedienteRelacion : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
-        MarcarComoAgregada();
         ExpedienteOrigenId = expedienteOrigenId == Guid.Empty
             ? throw new ArgumentException("El expediente origen es requerido.", nameof(expedienteOrigenId))
             : expedienteOrigenId;

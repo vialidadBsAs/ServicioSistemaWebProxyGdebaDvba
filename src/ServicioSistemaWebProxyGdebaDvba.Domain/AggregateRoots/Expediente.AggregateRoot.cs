@@ -1,5 +1,6 @@
 using ServicioSistemaWebProxyGdebaDvba.Domain.Common;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
+using TrackableEntities.Common.Core;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
@@ -53,6 +54,7 @@ public sealed partial class Expediente : IAggregateRoot
         if (expedienteDocumento is null)
         {
             expedienteDocumento = new ExpedienteDocumento(Id, documentoGdeba);
+            expedienteDocumento.TrackingState = TrackingState.Added;
             _documentos.Add(expedienteDocumento);
         }
 
@@ -79,6 +81,7 @@ public sealed partial class Expediente : IAggregateRoot
         if (archivo is null)
         {
             archivo = new ArchivoAdjuntoExpediente(Id, nombreNormalizado, fuenteDeteccion, fechaDeteccion);
+            archivo.TrackingState = TrackingState.Added;
             _archivosAdjuntos.Add(archivo);
             return archivo;
         }
@@ -115,6 +118,7 @@ public sealed partial class Expediente : IAggregateRoot
                 tipoRelacion,
                 fuenteDeteccion,
                 fechaDeteccion);
+            relacion.TrackingState = TrackingState.Added;
             _relaciones.Add(relacion);
         }
 
@@ -148,6 +152,7 @@ public sealed partial class Expediente : IAggregateRoot
             if (movimiento is null)
             {
                 movimiento = new MovimientoExpediente(Id, movimientoDetectado.Orden);
+                movimiento.TrackingState = TrackingState.Added;
                 _movimientos.Add(movimiento);
             }
 
@@ -195,7 +200,14 @@ public sealed partial class Expediente : IAggregateRoot
         bool estaCompleto,
         bool tieneDatosParciales)
     {
-        CacheControl ??= new ExpedienteCacheControl(Id, fechaActualizacionLocal);
+        if (CacheControl is null)
+        {
+            CacheControl = new ExpedienteCacheControl(Id, fechaActualizacionLocal)
+            {
+                TrackingState = TrackingState.Added
+            };
+        }
+
         CacheControl.RegistrarConsulta(
             fechaConsulta,
             fechaActualizacionLocal,
@@ -211,7 +223,14 @@ public sealed partial class Expediente : IAggregateRoot
         DateTimeOffset fechaActualizacionLocal,
         string? error)
     {
-        CacheControl ??= new ExpedienteCacheControl(Id, fechaActualizacionLocal);
+        if (CacheControl is null)
+        {
+            CacheControl = new ExpedienteCacheControl(Id, fechaActualizacionLocal)
+            {
+                TrackingState = TrackingState.Added
+            };
+        }
+
         CacheControl.RegistrarConsulta(
             fechaConsulta,
             fechaActualizacionLocal,
@@ -230,7 +249,14 @@ public sealed partial class Expediente : IAggregateRoot
         bool estaCompleto,
         bool tieneDatosParciales)
     {
-        HistorialCacheControl ??= new HistorialExpedienteCacheControl(Id, fechaActualizacionLocal);
+        if (HistorialCacheControl is null)
+        {
+            HistorialCacheControl = new HistorialExpedienteCacheControl(Id, fechaActualizacionLocal)
+            {
+                TrackingState = TrackingState.Added
+            };
+        }
+
         HistorialCacheControl.RegistrarConsulta(
             fechaConsulta,
             fechaActualizacionLocal,
@@ -247,7 +273,14 @@ public sealed partial class Expediente : IAggregateRoot
         DateTimeOffset fechaActualizacionLocal,
         string? error)
     {
-        HistorialCacheControl ??= new HistorialExpedienteCacheControl(Id, fechaActualizacionLocal);
+        if (HistorialCacheControl is null)
+        {
+            HistorialCacheControl = new HistorialExpedienteCacheControl(Id, fechaActualizacionLocal)
+            {
+                TrackingState = TrackingState.Added
+            };
+        }
+
         HistorialCacheControl.RegistrarConsulta(
             fechaConsulta,
             fechaActualizacionLocal,

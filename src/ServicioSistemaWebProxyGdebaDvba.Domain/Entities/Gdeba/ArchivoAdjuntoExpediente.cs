@@ -15,7 +15,6 @@ public sealed class ArchivoAdjuntoExpediente : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
-        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;

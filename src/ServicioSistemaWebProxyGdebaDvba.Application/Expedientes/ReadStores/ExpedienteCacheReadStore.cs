@@ -9,65 +9,141 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
     private readonly IRepository<TrataGdeba> _trataRepository;
+    private readonly IRepository<MovimientoExpediente> _movimientoRepository;
+    private readonly IRepository<ExpedienteDocumento> _expedienteDocumentoRepository;
+    private readonly IRepository<ExpedienteRelacion> _expedienteRelacionRepository;
+    private readonly IRepository<ArchivoAdjuntoExpediente> _archivoAdjuntoRepository;
 
     public ExpedienteCacheReadStore(
         IRepository<Expediente> expedienteRepository,
         IRepository<DocumentoGdeba> documentoRepository,
-        IRepository<TrataGdeba> trataRepository)
+        IRepository<TrataGdeba> trataRepository,
+        IRepository<MovimientoExpediente> movimientoRepository,
+        IRepository<ExpedienteDocumento> expedienteDocumentoRepository,
+        IRepository<ExpedienteRelacion> expedienteRelacionRepository,
+        IRepository<ArchivoAdjuntoExpediente> archivoAdjuntoRepository)
     {
         _expedienteRepository = expedienteRepository;
         _documentoRepository = documentoRepository;
         _trataRepository = trataRepository;
+        _movimientoRepository = movimientoRepository;
+        _expedienteDocumentoRepository = expedienteDocumentoRepository;
+        _expedienteRelacionRepository = expedienteRelacionRepository;
+        _archivoAdjuntoRepository = archivoAdjuntoRepository;
     }
 
     public async Task<Expediente?> BuscarExpedienteParaDetalleAsync(
         string numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {
-        return await _expedienteRepository
+        var expediente = await _expedienteRepository
             .Query()
             .Include(x => x.CacheControl)
             .Include(x => x.Trata)
-            .Include($"{nameof(Expediente.Documentos)}.{nameof(ExpedienteDocumento.Documento)}")
-            .Include(x => x.ArchivosAdjuntos)
-            .Include(x => x.Relaciones)
             .FirstOrDefaultAsync(
                 x => x.GdebaNumeroCompleto == numeroGdebaCompleto,
                 cancellationToken);
+
+        if (expediente is null)
+        {
+            return null;
+        }
+
+        await _expedienteDocumentoRepository
+            .Query()
+            .Include(x => x.Documento)
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _archivoAdjuntoRepository
+            .Query()
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _expedienteRelacionRepository
+            .Query()
+            .Where(x => x.ExpedienteOrigenId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        return expediente;
     }
 
     public async Task<Expediente?> BuscarExpedienteParaMovimientosAsync(
         string numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {
-        return await _expedienteRepository
+        var expediente = await _expedienteRepository
             .Query()
             .Include(x => x.CacheControl)
             .Include(x => x.HistorialCacheControl)
-            .Include(x => x.Movimientos)
-            .Include($"{nameof(Expediente.Documentos)}.{nameof(ExpedienteDocumento.Documento)}")
-            .Include(x => x.Relaciones)
             .FirstOrDefaultAsync(
                 x => x.GdebaNumeroCompleto == numeroGdebaCompleto,
                 cancellationToken);
+
+        if (expediente is null)
+        {
+            return null;
+        }
+
+        await _movimientoRepository
+            .Query()
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _expedienteDocumentoRepository
+            .Query()
+            .Include(x => x.Documento)
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _expedienteRelacionRepository
+            .Query()
+            .Where(x => x.ExpedienteOrigenId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        return expediente;
     }
 
     public async Task<Expediente?> BuscarExpedienteCompletoAsync(
         string numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {
-        return await _expedienteRepository
+        var expediente = await _expedienteRepository
             .Query()
             .Include(x => x.CacheControl)
             .Include(x => x.HistorialCacheControl)
             .Include(x => x.Trata)
-            .Include(x => x.Movimientos)
-            .Include($"{nameof(Expediente.Documentos)}.{nameof(ExpedienteDocumento.Documento)}")
-            .Include(x => x.ArchivosAdjuntos)
-            .Include(x => x.Relaciones)
             .FirstOrDefaultAsync(
                 x => x.GdebaNumeroCompleto == numeroGdebaCompleto,
                 cancellationToken);
+
+        if (expediente is null)
+        {
+            return null;
+        }
+
+        await _movimientoRepository
+            .Query()
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _expedienteDocumentoRepository
+            .Query()
+            .Include(x => x.Documento)
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _archivoAdjuntoRepository
+            .Query()
+            .Where(x => x.ExpedienteId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        await _expedienteRelacionRepository
+            .Query()
+            .Where(x => x.ExpedienteOrigenId == expediente.Id)
+            .SelectAsync(cancellationToken);
+
+        return expediente;
     }
 
     public async Task<TrataGdeba?> BuscarTrataPorCodigoAsync(

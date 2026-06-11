@@ -11,7 +11,6 @@ public sealed class ExpedienteCacheControl : DomainEntity
 
     public ExpedienteCacheControl(Guid expedienteId, DateTimeOffset fechaPrimeraDeteccion)
     {
-        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;

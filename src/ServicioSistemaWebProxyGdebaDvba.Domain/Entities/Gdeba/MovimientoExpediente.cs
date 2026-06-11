@@ -10,7 +10,6 @@ public sealed class MovimientoExpediente : DomainEntity
 
     public MovimientoExpediente(Guid expedienteId, int orden)
     {
-        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;

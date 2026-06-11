@@ -11,7 +11,6 @@ public sealed class ExpedienteDocumento : DomainEntity
 
     public ExpedienteDocumento(Guid expedienteId, Guid documentoId)
     {
-        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;
@@ -22,7 +21,6 @@ public sealed class ExpedienteDocumento : DomainEntity
 
     public ExpedienteDocumento(Guid expedienteId, DocumentoGdeba documento)
     {
-        MarcarComoAgregada();
         ExpedienteId = expedienteId == Guid.Empty
             ? throw new ArgumentException("El expediente es requerido.", nameof(expedienteId))
             : expedienteId;

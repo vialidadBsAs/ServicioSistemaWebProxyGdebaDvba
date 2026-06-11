@@ -13,7 +13,6 @@ public sealed partial class DocumentoGdeba : DomainEntity
 
     public DocumentoGdeba(string numeroActuacionCompleto)
     {
-        MarcarComoAgregada();
         ActualizarNumeroActuacion(NumeroGdebaCompleto.Create(numeroActuacionCompleto));
     }
 

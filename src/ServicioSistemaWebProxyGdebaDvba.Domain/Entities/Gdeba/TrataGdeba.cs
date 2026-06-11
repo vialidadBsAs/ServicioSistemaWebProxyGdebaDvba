@@ -12,7 +12,6 @@ public sealed class TrataGdeba : DomainEntity
 
     public TrataGdeba(string codigo)
     {
-        MarcarComoAgregada();
         Codigo = string.IsNullOrWhiteSpace(codigo)
             ? throw new ArgumentException("El codigo de trata es requerido.", nameof(codigo))
             : codigo.Trim();

@@ -16,7 +16,6 @@ public sealed partial class Expediente : DomainEntity
 
     public Expediente(string numeroGdebaCompleto)
     {
-        MarcarComoAgregada();
         ActualizarNumeroCompleto(
             NumeroGdebaCompleto.Create(numeroGdebaCompleto));
     }
