@@ -12,19 +12,24 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 
 public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 {
+    private const string ServicioConsultaExpediente = "ws_gdeba_consultaExpediente";
+
     private readonly HttpClient _httpClient;
     private readonly IGdebaJwtTokenProvider _tokenProvider;
+    private readonly IGdebaInvocacionRecorder _invocacionRecorder;
     private readonly IOptions<GdebaOptions> _options;
     private readonly ILogger<SoapGdebaExpedienteGateway> _logger;
 
     public SoapGdebaExpedienteGateway(
         HttpClient httpClient,
         IGdebaJwtTokenProvider tokenProvider,
+        IGdebaInvocacionRecorder invocacionRecorder,
         IOptions<GdebaOptions> options,
         ILogger<SoapGdebaExpedienteGateway> logger)
     {
         _httpClient = httpClient;
         _tokenProvider = tokenProvider;
+        _invocacionRecorder = invocacionRecorder;
         _options = options;
         _logger = logger;
     }
@@ -161,49 +166,51 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
         request.Content = new StringContent(envelope, Encoding.UTF8);
         request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/xml;charset='UTF-8'");
 
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        XDocument? document = null;
-        if (!string.IsNullOrWhiteSpace(content))
+        HttpResponseMessage? response = null;
+        try
         {
-            try
+            response = await _httpClient.SendAsync(request, cancellationToken);
+            using (response)
             {
-                document = XDocument.Parse(content, LoadOptions.PreserveWhitespace);
-            }
-            catch (Exception ex) when (ex is System.Xml.XmlException or ArgumentException)
-            {
-                if (response.IsSuccessStatusCode)
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                XDocument? document = null;
+                if (!string.IsNullOrWhiteSpace(content))
                 {
-                    throw new GdebaOperationException(
-                        operationName,
-                        "GDEBA devolvio una respuesta XML invalida.",
-                        (int)response.StatusCode,
-                        innerException: ex);
+                    try
+                    {
+                        document = XDocument.Parse(content, LoadOptions.PreserveWhitespace);
+                    }
+                    catch (Exception ex) when (ex is System.Xml.XmlException or ArgumentException)
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            throw new GdebaOperationException(operationName, "GDEBA devolvio una respuesta XML invalida.", (int)response.StatusCode, innerException: ex);
+                        }
+                    }
                 }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var fault = document is null ? null : FindSoapFault(document);
+                    throw new GdebaOperationException(operationName, fault?.Message ?? $"GDEBA devolvio el error HTTP {(int)response.StatusCode}.", (int)response.StatusCode, fault?.Code);
+                }
+
+                if (document is null)
+                {
+                    throw new GdebaOperationException(operationName, "GDEBA devolvio una respuesta vacia.", (int)response.StatusCode);
+                }
+
+                ThrowIfSoapFault(document, operationName);
+                await _invocacionRecorder.RegistrarAsync(ServicioConsultaExpediente, operationName, exitosa: true, (int)response.StatusCode, CancellationToken.None);
+                return document;
             }
         }
-
-        if (!response.IsSuccessStatusCode)
+        catch
         {
-            var fault = document is null ? null : FindSoapFault(document);
-            throw new GdebaOperationException(
-                operationName,
-                fault?.Message ?? $"GDEBA devolvio el error HTTP {(int)response.StatusCode}.",
-                (int)response.StatusCode,
-                fault?.Code);
+            await _invocacionRecorder.RegistrarAsync(ServicioConsultaExpediente, operationName, exitosa: false, response is null ? null : (int)response.StatusCode, CancellationToken.None);
+            throw;
         }
-
-        if (document is null)
-        {
-            throw new GdebaOperationException(
-                operationName,
-                "GDEBA devolvio una respuesta vacia.",
-                (int)response.StatusCode);
-        }
-
-        ThrowIfSoapFault(document, operationName);
-        return document;
     }
 
     private GdebaSoapContractsOptions ResolveSoapContractOptions()

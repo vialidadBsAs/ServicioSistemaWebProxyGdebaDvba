@@ -14,13 +14,8 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
     private readonly IRepository<ExpedienteRelacion> _expedienteRelacionRepository;
     private readonly IRepository<ArchivoAdjuntoExpediente> _archivoAdjuntoRepository;
 
-    public ExpedienteCacheReadStore(
-        IRepository<Expediente> expedienteRepository,
-        IRepository<DocumentoGdeba> documentoRepository,
-        IRepository<TrataGdeba> trataRepository,
-        IRepository<MovimientoExpediente> movimientoRepository,
-        IRepository<ExpedienteDocumento> expedienteDocumentoRepository,
-        IRepository<ExpedienteRelacion> expedienteRelacionRepository,
+    public ExpedienteCacheReadStore( IRepository<Expediente> expedienteRepository, IRepository<DocumentoGdeba> documentoRepository, IRepository<TrataGdeba> trataRepository,
+        IRepository<MovimientoExpediente> movimientoRepository, IRepository<ExpedienteDocumento> expedienteDocumentoRepository, IRepository<ExpedienteRelacion> expedienteRelacionRepository,
         IRepository<ArchivoAdjuntoExpediente> archivoAdjuntoRepository)
     {
         _expedienteRepository = expedienteRepository;
@@ -32,79 +27,7 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
         _archivoAdjuntoRepository = archivoAdjuntoRepository;
     }
 
-    public async Task<Expediente?> BuscarExpedienteParaDetalleAsync(
-        string numeroGdebaCompleto,
-        CancellationToken cancellationToken)
-    {
-        var expediente = await _expedienteRepository
-            .Query()
-            .Include(x => x.CacheControl)
-            .Include(x => x.Trata)
-            .FirstOrDefaultAsync(
-                x => x.GdebaNumeroCompleto == numeroGdebaCompleto,
-                cancellationToken);
-
-        if (expediente is null)
-        {
-            return null;
-        }
-
-        await _expedienteDocumentoRepository
-            .Query()
-            .Include(x => x.Documento)
-            .Where(x => x.ExpedienteId == expediente.Id)
-            .SelectAsync(cancellationToken);
-
-        await _archivoAdjuntoRepository
-            .Query()
-            .Where(x => x.ExpedienteId == expediente.Id)
-            .SelectAsync(cancellationToken);
-
-        await _expedienteRelacionRepository
-            .Query()
-            .Where(x => x.ExpedienteOrigenId == expediente.Id)
-            .SelectAsync(cancellationToken);
-
-        return expediente;
-    }
-
-    public async Task<Expediente?> BuscarExpedienteParaMovimientosAsync(
-        string numeroGdebaCompleto,
-        CancellationToken cancellationToken)
-    {
-        var expediente = await _expedienteRepository
-            .Query()
-            .Include(x => x.CacheControl)
-            .Include(x => x.HistorialCacheControl)
-            .FirstOrDefaultAsync(
-                x => x.GdebaNumeroCompleto == numeroGdebaCompleto,
-                cancellationToken);
-
-        if (expediente is null)
-        {
-            return null;
-        }
-
-        await _movimientoRepository
-            .Query()
-            .Where(x => x.ExpedienteId == expediente.Id)
-            .SelectAsync(cancellationToken);
-
-        await _expedienteDocumentoRepository
-            .Query()
-            .Include(x => x.Documento)
-            .Where(x => x.ExpedienteId == expediente.Id)
-            .SelectAsync(cancellationToken);
-
-        await _expedienteRelacionRepository
-            .Query()
-            .Where(x => x.ExpedienteOrigenId == expediente.Id)
-            .SelectAsync(cancellationToken);
-
-        return expediente;
-    }
-
-    public async Task<Expediente?> BuscarExpedienteCompletoAsync(
+    public async Task<Expediente?> CargarExpedienteAsync(
         string numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {

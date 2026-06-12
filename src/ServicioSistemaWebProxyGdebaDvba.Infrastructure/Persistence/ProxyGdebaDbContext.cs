@@ -30,7 +30,13 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<HistorialExpedienteCacheControl> HistorialExpedienteCacheControls => Set<HistorialExpedienteCacheControl>();
 
+    public DbSet<HistorialDocumentoGdeba> HistorialDocumentosGdeba => Set<HistorialDocumentoGdeba>();
+
+    public DbSet<InvocacionGdeba> InvocacionesGdeba => Set<InvocacionGdeba>();
+
     public DbSet<MovimientoExpediente> MovimientosExpediente => Set<MovimientoExpediente>();
+
+    public DbSet<OperacionGdeba> OperacionesGdeba => Set<OperacionGdeba>();
 
     public DbSet<RegistroAuditoria> RegistrosAuditoria => Set<RegistroAuditoria>();
 

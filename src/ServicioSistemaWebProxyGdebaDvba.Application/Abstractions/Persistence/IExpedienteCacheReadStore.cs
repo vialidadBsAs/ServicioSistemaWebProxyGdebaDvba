@@ -4,15 +4,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 
 public interface IExpedienteCacheReadStore
 {
-    Task<Expediente?> BuscarExpedienteParaDetalleAsync(
-        string numeroGdebaCompleto,
-        CancellationToken cancellationToken);
-
-    Task<Expediente?> BuscarExpedienteParaMovimientosAsync(
-        string numeroGdebaCompleto,
-        CancellationToken cancellationToken);
-
-    Task<Expediente?> BuscarExpedienteCompletoAsync(
+    Task<Expediente?> CargarExpedienteAsync(
         string numeroGdebaCompleto,
         CancellationToken cancellationToken);
 

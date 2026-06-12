@@ -16,6 +16,7 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
             TipoDocumentoDescripcion,
             referencia ?? Referencia,
             fechaCreacion ?? FechaCreacion,
+            ListaFirmantes,
             UrlArchivo,
             PuedeVerDocumento,
             FechaUltimoEnriquecimiento,
@@ -29,6 +30,7 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
         string? tipoDocumentoDescripcion,
         string? referencia,
         DateTimeOffset? fechaCreacion,
+        string? listaFirmantes,
         string? urlArchivo,
         bool? puedeVerDocumento,
         DateTimeOffset fechaEnriquecimiento)
@@ -40,10 +42,20 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
             tipoDocumentoDescripcion,
             referencia,
             fechaCreacion,
+            listaFirmantes,
             urlArchivo,
             puedeVerDocumento,
             fechaEnriquecimiento,
             metadataCompleta: true);
+    }
+
+    public void AsignarTipoDocumento(TipoDocumentoGdeba tipoDocumento)
+    {
+        ArgumentNullException.ThrowIfNull(tipoDocumento);
+
+        MarcarComoModificada();
+        TipoDocumento = tipoDocumento;
+        TipoDocumentoId = tipoDocumento.Id;
     }
 
     public bool EsPotencialResolucion()

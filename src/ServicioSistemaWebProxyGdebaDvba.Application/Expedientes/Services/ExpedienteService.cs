@@ -67,7 +67,7 @@ public sealed class ExpedienteService : IExpedienteService
         var resolvedAt = DateTimeOffset.Now;
 
         //lee datos de cache para evaluar si se puede responder desde cache o si es necesario consultar a GDEBA. Esta consulta no bloquea la respuesta y se vuelve a realizar si se necesita refrescar desde GDEBA para obtener la entidad completa y actualizada.
-        var expediente = await _expedienteCacheReadStore.BuscarExpedienteParaDetalleAsync(numero.Valor, cancellationToken);
+        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
         ExpedienteDetalladoDto? expedienteDto;
         FuenteRespuesta fuente;
         bool exitoso;
@@ -127,7 +127,7 @@ public sealed class ExpedienteService : IExpedienteService
             {
                 // Consolida la cache en forma local. La mensajeria queda reservada para una etapa posterior
                 // con worker, monitoreo y politica de reintentos operativa.
-                await ConsolidarDetalleEnCacheAsync(detalle, resolvedAt, cancellationToken);
+                await this.ConsolidarDetalleEnCacheAsync(detalle, resolvedAt, cancellationToken);
 
                 expedienteDto = MapearRespuestaLiviana(detalle);
                 fuente = FuenteRespuesta.Gdeba;
@@ -157,20 +157,20 @@ public sealed class ExpedienteService : IExpedienteService
         // Normaliza el numero completo y busca la copia local para evaluar la cache de movimientos.
         var numero = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
         var resolvedAt = DateTimeOffset.Now;
-        var expediente = await _expedienteCacheReadStore.BuscarExpedienteParaMovimientosAsync(numero.Valor, cancellationToken);
+        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
         var expedienteEsNuevo = false;
         var expedienteModificado = false;
 
         if (expediente?.CacheControl is null)
         {
-            var detalle = await ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(numero.Valor), cancellationToken);
+            var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(numero.Valor), cancellationToken);
 
             if (detalle.Expediente is null)
             {
                 return new ConsultarMovimientosExpedienteResult(numero.Valor, Array.Empty<MovimientoExpedienteDto>(), detalle.Fuente, Exitoso: false, resolvedAt, detalle.CachedAt);
             }
 
-            expediente = await _expedienteCacheReadStore.BuscarExpedienteParaMovimientosAsync(numero.Valor, cancellationToken);
+            expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
         }
 
         IReadOnlyCollection<MovimientoExpedienteDto> movimientos;
@@ -283,7 +283,7 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var result = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
 
         var cabecera = result.Expediente is null ? null : MapearCabecera(result.Expediente);
         return CrearResultadoRecurso(request.NumeroGdebaCompleto, cabecera, result.Fuente, cabecera is not null, result.ResolvedAt, result.CachedAt);
@@ -293,8 +293,8 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var historial = await ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await BuscarExpedienteCompletoAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var documentos = expediente is null
             ? null
             : Mapear(expediente).Documentos;
@@ -306,8 +306,8 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var detalle = await ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await BuscarExpedienteCompletoAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var adjuntos = expediente is null
             ? null
             : Mapear(expediente).ArchivosAdjuntos;
@@ -319,7 +319,7 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var historial = await ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
 
         return CrearResultadoRecurso(request.NumeroGdebaCompleto, historial.Movimientos, historial.Source, historial.Exitoso, historial.ResolvedAt, historial.CachedAt);
     }
@@ -328,8 +328,8 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var historial = await ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await BuscarExpedienteCompletoAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var relaciones = expediente is null
             ? null
             : Mapear(expediente).Relaciones;
@@ -341,9 +341,9 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var detalle = await ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var historial = await ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await BuscarExpedienteCompletoAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
 
         ExpedienteCompletoDto? completo = null;
         if (expediente is not null)
@@ -370,7 +370,7 @@ public sealed class ExpedienteService : IExpedienteService
         CancellationToken cancellationToken)
     {
         var numero = NumeroGdebaCompleto.Create(detalle.NumeroGdebaCompleto);
-        var expediente = await _expedienteCacheReadStore.BuscarExpedienteParaDetalleAsync(numero.Valor, cancellationToken);
+        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
         var expedienteEsNuevo = expediente is null;
         expediente ??= CrearExpediente(numero);
         var trata = await ResolverTrataAsync(detalle.CodigoTrata, detalle.DescripcionTrata, cancellationToken);
@@ -687,12 +687,12 @@ public sealed class ExpedienteService : IExpedienteService
             .ToArray();
     }
 
-    private async Task<Expediente?> BuscarExpedienteCompletoAsync(
+    private async Task<Expediente?> CargarExpedienteAsync(
         string numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {
         var numero = NumeroGdebaCompleto.Create(numeroGdebaCompleto);
-        return await _expedienteCacheReadStore.BuscarExpedienteCompletoAsync(numero.Valor, cancellationToken);
+        return await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
     }
 
     private static CabeceraExpedienteDto MapearCabecera(ExpedienteDetalladoDto expediente)

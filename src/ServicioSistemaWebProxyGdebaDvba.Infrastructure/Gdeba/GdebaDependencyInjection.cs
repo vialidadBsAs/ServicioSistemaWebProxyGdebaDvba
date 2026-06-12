@@ -13,6 +13,7 @@ public static class GdebaDependencyInjection
 
         services.Configure<GdebaOptions>(section);
         services.AddScoped<IGdebaExecutionContext, GdebaExecutionContext>();
+        services.AddScoped<IGdebaInvocacionRecorder, GdebaInvocacionRecorder>();
         services.AddHttpClient<IGdebaJwtTokenProvider, GdebaJwtTokenProvider>();
         ValidateEnvironment(options);
 

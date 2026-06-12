@@ -36,6 +36,7 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
         builder.Property(x => x.TipoDocumentoNombre).HasMaxLength(200);
         builder.Property(x => x.TipoDocumentoDescripcion).HasMaxLength(500);
         builder.Property(x => x.Referencia).HasMaxLength(1000);
+        builder.Property(x => x.ListaFirmantes).HasMaxLength(4000);
         builder.Property(x => x.UrlArchivo).HasMaxLength(1000);
 
         builder.HasIndex(x => x.NumeroActuacionCompleto)
@@ -57,7 +58,19 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
 
         builder.HasIndex(x => new { x.TipoDocumentoCodigo, x.ActuacionReparticion });
 
+        builder.HasIndex(x => x.TipoDocumentoId);
+
+        builder.HasOne(x => x.TipoDocumento)
+            .WithMany()
+            .HasForeignKey(x => x.TipoDocumentoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(x => x.Expedientes)
+            .WithOne(x => x.Documento)
+            .HasForeignKey(x => x.DocumentoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Historial)
             .WithOne(x => x.Documento)
             .HasForeignKey(x => x.DocumentoId)
             .OnDelete(DeleteBehavior.Cascade);

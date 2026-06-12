@@ -6,6 +6,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 public sealed partial class DocumentoGdeba : DomainEntity
 {
     private readonly List<ExpedienteDocumento> _expedientes = new();
+    private readonly List<HistorialDocumentoGdeba> _historial = new();
 
     private DocumentoGdeba()
     {
@@ -46,9 +47,15 @@ public sealed partial class DocumentoGdeba : DomainEntity
 
     public string? TipoDocumentoDescripcion { get; private set; }
 
+    public Guid? TipoDocumentoId { get; private set; }
+
+    public TipoDocumentoGdeba? TipoDocumento { get; private set; }
+
     public string? Referencia { get; private set; }
 
     public DateTimeOffset? FechaCreacion { get; private set; }
+
+    public string? ListaFirmantes { get; private set; }
 
     public bool MetadataCompleta { get; private set; }
 
@@ -63,6 +70,8 @@ public sealed partial class DocumentoGdeba : DomainEntity
     public DocumentoArchivoLocal? ArchivoLocal { get; private set; }
 
     public IReadOnlyCollection<ExpedienteDocumento> Expedientes => _expedientes;
+
+    public IReadOnlyCollection<HistorialDocumentoGdeba> Historial => _historial;
 
     public void ActualizarNumeroActuacion(NumeroGdebaCompleto numeroActuacion)
     {
@@ -90,6 +99,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
             tipoDocumentoDescripcion: null,
             referencia,
             fechaCreacion,
+            ListaFirmantes,
             urlArchivo,
             puedeVerDocumento,
             fechaEnriquecimiento: null,
@@ -103,6 +113,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
         string? tipoDocumentoDescripcion,
         string? referencia,
         DateTimeOffset? fechaCreacion,
+        string? listaFirmantes,
         string? urlArchivo,
         bool? puedeVerDocumento,
         DateTimeOffset? fechaEnriquecimiento,
@@ -115,6 +126,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
         TipoDocumentoDescripcion = Normalizar(tipoDocumentoDescripcion);
         Referencia = Normalizar(referencia);
         FechaCreacion = fechaCreacion;
+        ListaFirmantes = Normalizar(listaFirmantes);
         UrlArchivo = Normalizar(urlArchivo);
         PuedeVerDocumento = puedeVerDocumento;
         MetadataCompleta = metadataCompleta;
