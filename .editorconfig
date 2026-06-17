@@ -1,0 +1,28 @@
+root = true
+
+[*.cs]
+charset = utf-8-bom
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 160
+
+# Hace visible si una llamada pertenece a la instancia actual.
+dotnet_style_qualification_for_method = true:warning
+
+# Conserva firmas y llamadas compactas cuando no exceden una longitud razonable.
+csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_blocks = true
+
+# Los colaboradores y el estado interno se reconocen por el prefijo "_".
+dotnet_naming_rule.private_fields_use_underscore.severity = warning
+dotnet_naming_rule.private_fields_use_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_use_underscore.style = underscore_prefix
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_fields.required_modifiers =
+
+dotnet_naming_style.underscore_prefix.required_prefix = _
+dotnet_naming_style.underscore_prefix.capitalization = camel_case
