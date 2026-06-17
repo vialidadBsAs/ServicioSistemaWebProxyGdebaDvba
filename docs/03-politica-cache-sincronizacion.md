@@ -84,6 +84,19 @@ Estos campos pertenecen al control de cache, no a las entidades puras de datos G
 
 Los archivos documentales no se guardan como binarios en SQL Server en esta etapa. Se guardan local o externamente, y la base conserva referencias y metadatos mediante `DocumentoArchivoLocal`.
 
+## Enriquecimiento Documental
+
+`DocumentoGdeba` puede nacer con informacion parcial cuando aparece en un expediente. En ese momento se conoce el numero de actuacion, pero no necesariamente el numero especial, firmantes, referencia completa, URL del archivo o historial documental.
+
+La metadata faltante se enriquece consultando `buscarDetallePorNumero` del servicio `ws_gdeba_consultaDocumento`. Esta operacion puede ejecutarse de dos formas:
+
+- Manualmente, para un documento puntual identificado localmente.
+- En segundo plano, mediante el worker, para un lote de documentos con `MetadataCompleta = false`.
+
+La operacion unitaria de enriquecimiento pertenece a Application y reutiliza el aggregate `DocumentoGdeba` para aplicar cambios de metadata e historial. El procesamiento por lote no duplica esa logica: solo selecciona pendientes y reutiliza la operacion unitaria.
+
+El worker decide cuando ejecutar, que operacion controlar y que lote autorizar. Antes de procesar consulta el consumo diario disponible mediante `IConsultaCuotasGdeba`, respeta la ventana no pico configurada y registra las invocaciones con origen `WorkerProgramado` cuando el gateway SOAP responde.
+
 ## TTL Sugeridos Iniciales
 
 Estos valores son orientativos y deben ajustarse con uso real:

@@ -12,18 +12,19 @@ El proxy no reemplaza la logica de negocio de los sistemas consumidores. Por eje
 
 ## Alcance actual
 
-La primera version del proyecto define la base de arquitectura, configuracion y extensibilidad. Todavia no implementa el cliente SOAP real ni la persistencia definitiva en SQL Server.
+La primera version del proyecto define la base de arquitectura, configuracion y extensibilidad. Ya existe modelo persistente inicial, control de cuotas, mensajeria para cache de expedientes y un primer proceso worker para enriquecer metadata documental. La integracion SOAP real todavia se completa por capacidad y depende de la configuracion de ambiente.
 
 Actualmente la solucion incluye:
 
 - API interna con controladores clasicos.
-- Worker inicial para futuros procesos de sincronizacion.
+- Worker para procesos en segundo plano.
 - Separacion por capas segun arquitectura limpia.
 - Middleware para identificar la aplicacion consumidora mediante `X-Application-Id`.
 - Configuracion GDEBA por ambiente (`HML` y `PROD`).
 - Selector de implementacion de gateway mediante `GatewayMode`.
-- Gateway fake para desarrollo y pruebas iniciales.
-- Auditoria inicial en memoria/logging.
+- Gateways fake y SOAP para expedientes/documentos segun capacidad implementada.
+- Auditoria configurable y control de cuotas por invocacion GDEBA.
+- Enriquecimiento asincronico de metadata documental mediante `buscarDetallePorNumero`.
 - Documentacion tecnica y funcional en `docs/`.
 
 ## Estructura de la solucion
@@ -63,7 +64,9 @@ La API no deberia construir XML SOAP, leer credenciales GDEBA ni conocer detalle
 
 ### Worker
 
-Queda reservado para procesos en segundo plano: refrescos programados de cache, sincronizaciones incrementales, precarga de expedientes por trata/reparticion, mantenimiento de datos locales y otras tareas que no conviene ejecutar dentro del request HTTP.
+Ejecuta procesos en segundo plano: consumo de mensajes de cache, refrescos programados y enriquecimiento asincronico de documentos. Es un host separado de la API, con su propio `appsettings.json` y su propio contenedor de dependencias.
+
+El worker de enriquecimiento documental decide cuando correr, que operacion controlar y que lote procesar. La logica reutilizable de enriquecimiento vive en Application y aplica reglas del aggregate `DocumentoGdeba`.
 
 ## Configuracion GDEBA
 
@@ -157,7 +160,7 @@ Quedan como proximos pasos tecnicos:
 - Aplicar y revisar migraciones EF Core sobre SQL Server.
 - Definir autorizacion real de aplicaciones consumidoras.
 - Persistir auditoria.
-- Implementar cache por tipo de dato y politica de frescura.
+- Completar cache por tipo de dato y politica de frescura.
 - Implementar los metodos GDEBA prioritarios.
 - Agregar pruebas automatizadas.
 

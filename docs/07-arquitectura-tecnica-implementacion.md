@@ -142,6 +142,8 @@ El numero de actuacion es el identificador detectado en listados de documentos d
 
 El numero especial es el identificador propio del modulo documental, por ejemplo `RESO-2023-1743-GDEBA-DVMIYSPGP`. Este dato no viene en `buscarExpediente` ni en `consultarExpedienteDetallado`; se obtiene al consultar el detalle documental. Por eso `DocumentoGdeba` permite nacer con metadata incompleta y enriquecerse posteriormente.
 
+El enriquecimiento se implementa sobre `buscarDetallePorNumero` del gateway documental. La operacion unitaria permite enriquecer manualmente un documento especifico, y el proceso por lote reutiliza esa misma operacion para documentos pendientes. Esto evita duplicar reglas cuando una consulta interactiva futura necesite completar metadata al mostrar historicos de documentos oficiales o vinculados.
+
 El tipo documental se separa en codigo, codigo GDEBA, nombre, descripcion, familia, estado y tipo de produccion. Esto evita asumir que toda resolucion se identifica solo con `RESO`, ya que el catalogo GDEBA puede contener varios acronimos relacionados con resoluciones, como `RESO`, `RESCO`, `RESFC` u otros. Para soportar reglas futuras se agrega `TipoDocumentoGdeba`, con banderas como `EsResolucion`.
 
 Una respuesta real de `consultarTipoDocumento` para `RESO` mostro que `acronimo` y `codigoTipoDocumentoGDEBA` no significan lo mismo: `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo atributos booleanos como `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
@@ -225,6 +227,17 @@ En este tipo de proyecto es importante porque la cache y la sincronizacion no si
 - Limpiar registros tecnicos.
 
 El Worker debe reutilizar Application e Infrastructure. No debe tener una arquitectura paralela.
+
+El Worker es un host separado de la API. Por eso tiene su propio contenedor de dependencias, su propio ciclo de vida y su propio `appsettings.json`. Cuando registra `AddApplication`, `AddInfrastructure` y `AddGdebaIntegration`, esas capas leen el `IConfiguration` del proceso Worker, no el de la API.
+
+Actualmente el Worker ejecuta dos responsabilidades de fondo:
+
+- Mantener vivos los consumers de MassTransit para trabajos asincronicos de cache.
+- Ejecutar enriquecimiento documental programado para documentos con metadata incompleta.
+
+Para enriquecimiento documental, el Worker conserva las decisiones operativas: si el proceso esta habilitado, si la hora local cae dentro de la ventana no pico, que operacion GDEBA se controla para cuota y cuantos documentos se autorizan en el lote. La consulta del consumo se realiza mediante `IConsultaCuotasGdeba`, pero la decision de ejecutar o no ejecutar el lote queda en el Worker.
+
+La logica reutilizable de enriquecer un documento no vive en el Worker. Esta en Application mediante `IDocumentoMetadataEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.
 
 ### 3.6 Mensajeria con MassTransit y RabbitMQ
 
@@ -1038,18 +1051,20 @@ Actualmente esta implementado:
 - Solucion .NET 8.
 - Proyectos separados.
 - API con controladores clasicos.
-- Worker inicial.
+- Worker con consumers de mensajeria y enriquecimiento documental programado.
 - Middleware `X-Application-Id`.
 - Configuracion GDEBA por ambiente.
 - Selector de gateway por `GatewayMode`.
-- Gateway fake.
-- Gateway SOAP reservado.
+- Gateways fake y SOAP para expediente.
+- Gateways fake y SOAP para consulta documental `buscarDetallePorNumero`.
 - Auditoria configurable `InMemory`/`Persisted`.
+- Control de cuotas e invocaciones GDEBA, incluyendo origen `WorkerProgramado`.
 - Modelo persistente inicial para expedientes, movimientos, documentos, archivos locales, tratas, cache control, aplicaciones consumidoras y auditoria.
 - EF Core con `ProxyGdebaDbContext` y configuraciones explicitas.
 - URF para `Repository`, `TrackableRepository` y `UnitOfWork`.
 - `.gitignore` para Visual Studio y .NET.
 - Primera version de comportamiento de aggregate roots mediante clases parciales, sin mover las entidades existentes.
+- Enriquecimiento de `DocumentoGdeba` con metadata e historial documental.
 
 ### 15.1 Aggregate Roots Mediante Partials
 

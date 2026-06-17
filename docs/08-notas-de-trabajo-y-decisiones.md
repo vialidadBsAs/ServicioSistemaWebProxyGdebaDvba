@@ -204,6 +204,15 @@ La politica de cache no debe ser unica para todos los datos. Un PDF o documento 
 
 El Worker sera importante si se decide ejecutar refrescos programados, sincronizaciones por trata, precargas o procesos incrementales. Sin Worker, la cache solo se actualizaria como consecuencia de requests HTTP, lo cual simplifica el despliegue pero limita la estrategia de actualizacion.
 
+Decision posterior del feature `worker-cache-processing`:
+
+- El Worker es un host separado de la API. Si se despliegan ambos, cada uno arma su propio contenedor de dependencias y lee su propio `appsettings.json`.
+- Las librerias compartidas `Application`, `Domain` e `Infrastructure` no tienen host propio; toman la configuracion que les pasa el proceso que esta arrancando.
+- Si cambia codigo compartido en `Application`, `Domain` o `Infrastructure`, normalmente deben redesplegarse API y Worker.
+- El Worker decide cuando ejecutar procesos programados, que operacion controlar y que lote procesar.
+- La consulta de consumo/cuotas se hace mediante Application, usando `IConsultaCuotasGdeba`, pero la politica operativa del lote queda en el Worker.
+- Las invocaciones realizadas desde el Worker se registran con origen `WorkerProgramado` cuando el gateway SOAP responde.
+
 Decision posterior del feature `modelo-cache-persistente`:
 
 - Separar fisicamente datos GDEBA y control de cache dentro del dominio.
@@ -218,6 +227,14 @@ Respecto de documentos, se decidio distinguir `NumeroActuacionCompleto` y `Numer
 Tambien se agrego `TipoDocumentoGdeba` como catalogo para reglas futuras. Esto permite detectar resoluciones por configuracion y no solo por un acronimo puntual. El catalogo guarda codigo, codigo GDEBA, nombre, descripcion, familia, estado, tipo de produccion y atributos booleanos informados por GDEBA. En esta etapa no se fuerza clave foranea desde `DocumentoGdeba` hacia el catalogo, para no bloquear documentos parcialmente enriquecidos si el catalogo todavia no fue sincronizado.
 
 Una respuesta real de `consultarTipoDocumento` para `RESO` confirmo que `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo los tags booleanos `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
+
+Decision posterior del feature `worker-cache-processing`:
+
+- Se agrego `IGdebaDocumentoGateway` para consultar detalle documental por numero.
+- `DocumentoMetadataEnrichmentService` expone una operacion unitaria para enriquecer un documento por `Id` y una operacion por lote de pendientes.
+- El lote de pendientes no duplica la logica de enriquecimiento; carga documentos incompletos y reutiliza la operacion interna sobre cada `DocumentoGdeba`.
+- `DocumentoGdeba` concentra reglas de metadata e historial mediante su aggregate root.
+- El worker de enriquecimiento se configura en `Workers:DocumentoMetadataEnrichment` con habilitacion, intervalo, ventana no pico, tamanio de lote, reserva y limite operativo diario.
 
 ## 16. Auditoria y trazabilidad
 
@@ -327,6 +344,7 @@ Quedan pendientes para siguientes iteraciones:
 - Implementar servicios de cache sobre el modelo persistente.
 - Definir tabla o mecanismo para aplicaciones consumidoras habilitadas.
 - Implementar cache con politica de frescura.
+- Definir endpoints o comandos para enriquecimiento manual de un documento puntual.
 - Implementar `buscarDatosExpedientePorCodigosTrata`.
 - Agregar pruebas unitarias y de integracion.
 - Revisar `.gitattributes` para finales de linea.
