@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 
@@ -20,10 +20,12 @@ public static class GdebaDependencyInjection
         {
             case GdebaGatewayModes.Fake:
                 services.AddScoped<IGdebaExpedienteGateway, FakeGdebaExpedienteGateway>();
+                services.AddScoped<IGdebaDocumentoGateway, FakeGdebaDocumentoGateway>();
                 break;
 
             case GdebaGatewayModes.Soap:
                 services.AddHttpClient<IGdebaExpedienteGateway, SoapGdebaExpedienteGateway>();
+                services.AddHttpClient<IGdebaDocumentoGateway, SoapGdebaDocumentoGateway>();
                 break;
 
             case GdebaGatewayModes.Rest:

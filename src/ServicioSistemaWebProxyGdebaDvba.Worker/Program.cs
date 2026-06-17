@@ -1,4 +1,4 @@
-using ServicioSistemaWebProxyGdebaDvba.Worker;
+﻿using ServicioSistemaWebProxyGdebaDvba.Worker;
 using ServicioSistemaWebProxyGdebaDvba.Application;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
@@ -8,6 +8,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+builder.Services.Configure<DocumentoMetadataEnrichmentWorkerOptions>(
+    builder.Configuration.GetSection(DocumentoMetadataEnrichmentWorkerOptions.SectionName));
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);

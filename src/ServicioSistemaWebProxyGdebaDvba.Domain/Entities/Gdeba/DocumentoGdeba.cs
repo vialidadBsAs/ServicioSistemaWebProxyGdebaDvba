@@ -1,4 +1,4 @@
-using ServicioSistemaWebProxyGdebaDvba.Domain.Common;
+﻿using ServicioSistemaWebProxyGdebaDvba.Domain.Common;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
@@ -75,7 +75,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
 
     public void ActualizarNumeroActuacion(NumeroGdebaCompleto numeroActuacion)
     {
-        MarcarComoModificada();
+        this.MarcarComoModificada();
         NumeroActuacionCompleto = numeroActuacion.Valor;
         ActuacionTipoCodigo = numeroActuacion.Tipo;
         ActuacionAnio = numeroActuacion.Anio;
@@ -92,7 +92,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
         string? urlArchivo,
         bool? puedeVerDocumento)
     {
-        ActualizarMetadata(
+        this.ActualizarMetadata(
             numeroEspecial,
             tipoDocumentoCodigo: tipoDocumento,
             tipoDocumentoNombre: null,
@@ -119,8 +119,8 @@ public sealed partial class DocumentoGdeba : DomainEntity
         DateTimeOffset? fechaEnriquecimiento,
         bool metadataCompleta)
     {
-        MarcarComoModificada();
-        ActualizarNumeroEspecial(numeroEspecial);
+        this.MarcarComoModificada();
+        this.ActualizarNumeroEspecial(numeroEspecial);
         TipoDocumentoCodigo = Normalizar(tipoDocumentoCodigo);
         TipoDocumentoNombre = Normalizar(tipoDocumentoNombre);
         TipoDocumentoDescripcion = Normalizar(tipoDocumentoDescripcion);

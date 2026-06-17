@@ -1,4 +1,4 @@
-root = true
+﻿root = true
 
 [*.cs]
 charset = utf-8-bom
@@ -6,7 +6,7 @@ end_of_line = crlf
 insert_final_newline = true
 indent_style = space
 indent_size = 4
-max_line_length = 160
+max_line_length = 80
 
 # Hace visible si una llamada pertenece a la instancia actual.
 dotnet_style_qualification_for_method = true:warning
