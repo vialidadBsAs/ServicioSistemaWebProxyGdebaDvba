@@ -51,7 +51,7 @@ Esta capa define abstracciones como `IGdebaExpedienteGateway`, `IAuditoriaServic
 
 ### Infrastructure
 
-Contiene implementaciones tecnicas: gateway fake, futuro gateway SOAP, acceso futuro a SQL Server, auditoria persistida, configuracion GDEBA y registro de dependencias.
+Contiene implementaciones tecnicas: gateways fake/SOAP, acceso a SQL Server, auditoria persistida, control de cuotas, configuracion GDEBA y registro de dependencias.
 
 Tambien es la capa donde se decide, por configuracion, si se trabaja contra una implementacion fake, SOAP real o eventualmente REST.
 
@@ -98,11 +98,25 @@ Health:
 GET /api/health
 ```
 
-Consulta directa de expediente sin cache local:
+Expedientes:
 
 ```http
+GET /api/gdeba/expedientes/{numeroExpediente}/cabecera
+GET /api/gdeba/expedientes/{numeroExpediente}/documentos
+GET /api/gdeba/expedientes/{numeroExpediente}/adjuntos
+GET /api/gdeba/expedientes/{numeroExpediente}/pases
+GET /api/gdeba/expedientes/{numeroExpediente}/relaciones
+GET /api/gdeba/expedientes/{numeroExpediente}/completo
+GET /api/gdeba/expedientes/{numeroExpediente}/detalle
+GET /api/gdeba/expedientes/{numeroExpediente}/movimientos
 GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
 X-Application-Id: obras
+```
+
+Control de cuotas:
+
+```http
+GET /api/gdeba/cuotas?fecha=2026-06-17
 ```
 
 `X-Application-Id` es una convencion interna del proxy. En el estado actual identifica a la aplicacion consumidora para auditoria, pero todavia no autoriza ni bloquea solicitudes.
@@ -138,11 +152,10 @@ El archivo `docs/08-notas-de-trabajo-y-decisiones.md` funciona como memoria de c
 
 Quedan como proximos pasos tecnicos:
 
-- Implementar cliente JWT real contra GDEBA.
-- Implementar cliente SOAP real respetando `Content-Type: application/xml; charset=UTF-8`.
-- Modelar persistencia SQL Server.
-- Incorporar URF para Unit of Work y Repository.
-- Definir tablas de cache, auditoria y aplicaciones consumidoras.
+- Validar cliente JWT real contra GDEBA.
+- Completar y validar clientes SOAP reales respetando `Content-Type: application/xml; charset=UTF-8`.
+- Aplicar y revisar migraciones EF Core sobre SQL Server.
+- Definir autorizacion real de aplicaciones consumidoras.
 - Persistir auditoria.
 - Implementar cache por tipo de dato y politica de frescura.
 - Implementar los metodos GDEBA prioritarios.

@@ -188,11 +188,11 @@ Eso es importante: `Application` define interfaces que representan necesidades d
 `Infrastructure` contiene los detalles tecnicos:
 
 - Implementacion fake de GDEBA.
-- Implementacion futura SOAP.
+- Implementaciones SOAP para consulta de expediente y consulta documental.
 - Configuracion de GDEBA.
 - Acceso a SQL Server mediante EF Core.
 - Registros URF `Repository`, `TrackableRepository` y `UnitOfWork`.
-- Cliente JWT futuro.
+- Cliente JWT para autenticacion tecnica contra GDEBA.
 
 Esta capa responde a la pregunta: **como se implementan tecnicamente las necesidades definidas por Application?**
 
@@ -276,9 +276,16 @@ Esta decision evita desperdiciar respuestas grandes de GDEBA sin poner al usuari
 Los endpoints principales implementados para expedientes son:
 
 ```http
+GET /api/gdeba/expedientes/{numeroExpediente}/cabecera
+GET /api/gdeba/expedientes/{numeroExpediente}/documentos
+GET /api/gdeba/expedientes/{numeroExpediente}/adjuntos
+GET /api/gdeba/expedientes/{numeroExpediente}/pases
+GET /api/gdeba/expedientes/{numeroExpediente}/relaciones
+GET /api/gdeba/expedientes/{numeroExpediente}/completo
 GET /api/gdeba/expedientes/{numeroExpediente}/detalle
 GET /api/gdeba/expedientes/{numeroExpediente}/movimientos
 GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
+GET /api/gdeba/cuotas?fecha=YYYY-MM-DD
 ```
 
 El endpoint `/sin-cache` es una consulta directa contra GDEBA y no representa la consulta funcional normal del proxy con politica de cache.
@@ -335,7 +342,7 @@ En terminos simples hace esto:
 3. Registra auditoria.
 4. Devuelve un resultado con informacion de fuente y fecha.
 
-Hoy el gateway es fake. Mas adelante podra ser SOAP real, sin que el controlador cambie.
+El gateway puede ser fake o SOAP real segun `GatewayMode`. El controlador no cambia cuando se reemplaza la implementacion.
 
 ### 4.4 Gateway GDEBA
 
@@ -876,7 +883,9 @@ El fake permite:
 - Probar respuesta de API.
 - Desarrollar frontend o consumidores internos sin tener SOAP listo.
 
-Cuando se implemente SOAP real, deberia hacerse en `SoapGdebaExpedienteGateway`.
+La implementacion SOAP de expediente vive en `SoapGdebaExpedienteGateway`. Actualmente cubre `consultarExpedienteDetallado` y `buscarHistorialPasesExpediente`, obtiene JWT mediante `GdebaJwtTokenProvider`, arma el envelope SOAP en Infrastructure, parsea la respuesta XML y registra la invocacion para control de cuotas.
+
+La implementacion SOAP documental vive en `SoapGdebaDocumentoGateway` y cubre `buscarDetallePorNumero`.
 
 La API y Application no deberian cambiar por ese reemplazo.
 
@@ -885,7 +894,7 @@ La API y Application no deberian cambiar por ese reemplazo.
 Supongamos que se quiere agregar:
 
 ```text
-buscarHistorialPasesExpediente
+buscarDatosExpedientePorCodigosTrata
 ```
 
 No conviene empezar creando directamente un controlador que arme XML.
@@ -1061,10 +1070,8 @@ En Application, las operaciones de expediente se exponen mediante un unico `IExp
 
 Pendiente:
 
-- Cliente JWT real.
-- Cliente SOAP real.
+- Completar validacion de clientes SOAP reales contra ambiente GDEBA.
 - Implementacion de `buscarDatosExpedientePorCodigosTrata`.
-- Implementacion de `buscarHistorialPasesExpediente`.
 - Migraciones EF Core y creacion efectiva de base SQL Server.
 - Servicios de lectura/escritura de cache sobre el modelo persistente.
 - Validacion real de aplicaciones consumidoras.

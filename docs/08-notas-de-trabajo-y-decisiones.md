@@ -155,6 +155,13 @@ https://iop.gba.gob.ar/servicios/JWT/1/REST/jwt
 
 El mecanismo informado es Basic Auth con username y password, para obtener un token JWT que luego se usa en las invocaciones autorizadas.
 
+Decision posterior del feature `soap-expediente-gateway`:
+
+- Se agrego `GdebaJwtTokenProvider` en Infrastructure.
+- El provider resuelve la configuracion del ambiente activo y obtiene el token con Basic Auth.
+- La respuesta puede venir como texto plano o como JSON con propiedades habituales de token.
+- Las credenciales siguen perteneciendo a configuracion segura; no deben hardcodearse ni registrarse.
+
 Las credenciales no deben enviarse por chat, no deben hardcodearse y no deben subirse al repositorio. La resolucion definitiva debe hacerse mediante configuracion segura: variables de entorno, user secrets, secret manager o mecanismo institucional equivalente.
 
 ## 13. SOAP y codificacion UTF-8
@@ -170,6 +177,13 @@ Content-Type: application/xml; charset=UTF-8
 Sin ese charset, la respuesta podia no fallar tecnicamente, pero devolvia datos vacios. Este comportamiento fue indicado por el equipo tecnico que desarrolla el servicio GDEBA.
 
 La implementacion SOAP real debe respetar ese header desde el inicio.
+
+Decision posterior del feature `soap-expediente-gateway`:
+
+- `SoapGdebaExpedienteGateway` implementa `consultarExpedienteDetallado` y `buscarHistorialPasesExpediente`.
+- `GdebaExceptionMiddleware` transforma errores de integracion GDEBA en `502 Bad Gateway` con `ProblemDetails`.
+- Cada invocacion SOAP registra servicio, metodo, origen, ambiente, estado HTTP, duracion y resultado mediante el modulo de control de cuotas.
+- Se agrego `GET /api/gdeba/cuotas` para consultar consumos diarios por operacion.
 
 ## 14. Servicios GDEBA prioritarios
 
@@ -307,14 +321,13 @@ No guardar binarios documentales en la base salvo que exista una decision explic
 
 Quedan pendientes para siguientes iteraciones:
 
-- Implementar cliente JWT real.
-- Implementar cliente SOAP real.
+- Validar cliente JWT real contra HML/PROD.
+- Validar clientes SOAP reales contra HML/PROD.
 - Generar/aplicar migraciones EF Core sobre SQL Server.
 - Implementar servicios de cache sobre el modelo persistente.
 - Definir tabla o mecanismo para aplicaciones consumidoras habilitadas.
 - Implementar cache con politica de frescura.
 - Implementar `buscarDatosExpedientePorCodigosTrata`.
-- Implementar `buscarHistorialPasesExpediente`.
 - Agregar pruebas unitarias y de integracion.
 - Revisar `.gitattributes` para finales de linea.
 

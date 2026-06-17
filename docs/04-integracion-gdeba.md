@@ -8,6 +8,8 @@ La autorizacion hacia GDEBA se realiza mediante JWT:
 - Autenticacion: `Authorization` con Basic Auth.
 - Credenciales: `username` y `password`.
 
+La infraestructura contiene `GdebaJwtTokenProvider`, que obtiene el token por ambiente configurado y lo entrega a los gateways SOAP. El provider acepta respuestas donde el token venga como texto plano o dentro de propiedades JSON habituales como `token`, `access_token`, `jwt` o `id_token`.
+
 Las credenciales deben almacenarse mediante configuracion segura:
 
 - Variables de entorno.
@@ -26,6 +28,13 @@ No se deben registrar en logs:
 Los servicios autorizados son SOAP 1.0.
 
 El consumo SOAP debe encapsularse en gateways/adapters de infraestructura. La capa Application no debe construir XML ni conocer detalles de WSDL.
+
+Implementaciones actuales:
+
+- `SoapGdebaExpedienteGateway`, para `consultarExpedienteDetallado` y `buscarHistorialPasesExpediente`.
+- `SoapGdebaDocumentoGateway`, para `buscarDetallePorNumero`.
+
+Los gateways SOAP registran invocaciones para control de cuotas mediante `IRegistroInvocacionesGdeba`. Una invocacion cuenta como consumo si el servidor respondio; ademas se registra origen, ambiente, estado HTTP, duracion y resultado.
 
 Requisito tecnico:
 
@@ -54,6 +63,8 @@ Cada ambiente debe definir:
 ## Errores
 
 Los errores externos deben normalizarse antes de llegar a aplicaciones consumidoras.
+
+La API contiene `GdebaExceptionMiddleware`, que transforma `GdebaOperationException` en una respuesta `502 Bad Gateway` con `ProblemDetails`, operacion GDEBA, estado HTTP externo cuando existe y codigo SOAP cuando corresponde.
 
 Categorias recomendadas:
 
