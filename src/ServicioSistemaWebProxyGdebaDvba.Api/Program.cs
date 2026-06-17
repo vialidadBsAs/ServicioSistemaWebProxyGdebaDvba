@@ -2,6 +2,7 @@ using ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
 using ServicioSistemaWebProxyGdebaDvba.Application;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,7 @@ builder.Logging.AddDebug();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.MapType<DateOnly>(() => new OpenApiSchema { Type = "string", Format = "date" }));
 //inyeccion de dependencias
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);

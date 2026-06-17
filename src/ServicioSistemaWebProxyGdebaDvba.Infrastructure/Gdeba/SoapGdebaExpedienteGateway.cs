@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Xml.Linq;
@@ -6,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
@@ -16,36 +19,44 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     private readonly HttpClient _httpClient;
     private readonly IGdebaJwtTokenProvider _tokenProvider;
-    private readonly IGdebaInvocacionRecorder _invocacionRecorder;
+    private readonly IRegistroInvocacionesGdeba _registroInvocaciones;
     private readonly IOptions<GdebaOptions> _options;
     private readonly ILogger<SoapGdebaExpedienteGateway> _logger;
 
     public SoapGdebaExpedienteGateway(
         HttpClient httpClient,
         IGdebaJwtTokenProvider tokenProvider,
-        IGdebaInvocacionRecorder invocacionRecorder,
+        IRegistroInvocacionesGdeba registroInvocaciones,
         IOptions<GdebaOptions> options,
         ILogger<SoapGdebaExpedienteGateway> logger)
     {
         _httpClient = httpClient;
         _tokenProvider = tokenProvider;
-        _invocacionRecorder = invocacionRecorder;
+        _registroInvocaciones = registroInvocaciones;
         _options = options;
         _logger = logger;
     }
 
     public Task<ExpedienteGdebaDto?> BuscarExpedienteAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
-        return BuscarExpedienteDesdeDetalleAsync(numeroGdebaCompleto, cancellationToken);
+        return this.BuscarExpedienteDesdeDetalleAsync(
+            numeroGdebaCompleto,
+            contextoInvocacion,
+            cancellationToken);
     }
 
     private async Task<ExpedienteGdebaDto?> BuscarExpedienteDesdeDetalleAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
-        var detalle = await ConsultarExpedienteDetalladoAsync(numeroGdebaCompleto, cancellationToken);
+        var detalle = await ConsultarExpedienteDetalladoAsync(
+            numeroGdebaCompleto,
+            contextoInvocacion,
+            cancellationToken);
         return detalle is null
             ? null
             : new ExpedienteGdebaDto(
@@ -57,84 +68,88 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     public async Task<GdebaExpedienteDetalladoDto?> ConsultarExpedienteDetalladoAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
-        var contractOptions = ResolveSoapContractOptions();
-        var serviceContractOptions = ResolveConsultaExpedienteServiceContractOptions(contractOptions);
-        var serviceOptions = ResolveConsultaExpedienteServiceOptions();
+        var contractOptions = this.ResolveSoapContractOptions();
+        var serviceContractOptions = SoapGdebaExpedienteGateway.ResolveConsultaExpedienteServiceContractOptions(contractOptions);
+        var serviceOptions = this.ResolveConsultaExpedienteServiceOptions();
         var operationName = "consultarExpedienteDetallado";
-        var envelope = BuildEnvelope(
+        var envelope = SoapGdebaExpedienteGateway.BuildEnvelope(
             contractOptions,
             serviceContractOptions,
             operationName,
             numeroGdebaCompleto);
 
-        var document = await SendSoapAsync(
+        var document = await this.SendSoapAsync(
             serviceOptions,
-            ResolveSoapOperationContractOptions(serviceContractOptions, operationName),
+            SoapGdebaExpedienteGateway.ResolveSoapOperationContractOptions(serviceContractOptions, operationName),
             operationName,
             envelope,
+            contextoInvocacion,
             cancellationToken);
-        var response = FindFirstElement(document, "response");
+        var response = SoapGdebaExpedienteGateway.FindFirstElement(document, "response");
         if (response is null)
         {
             return null;
         }
 
         var relaciones = new List<GdebaRelacionExpedienteDto>();
-        relaciones.AddRange(MapRelaciones(response, "listaExpedientesAsociados", "Asociado"));
-        relaciones.AddRange(MapRelaciones(response, "listaExpedientesAsociadosFusion", "Fusion"));
-        relaciones.AddRange(MapRelaciones(response, "listaExpedientesAsociadosTC", "TramitacionConjunta"));
+        relaciones.AddRange(SoapGdebaExpedienteGateway.MapRelaciones(response, "listaExpedientesAsociados", "Asociado"));
+        relaciones.AddRange(SoapGdebaExpedienteGateway.MapRelaciones(response, "listaExpedientesAsociadosFusion", "Fusion"));
+        relaciones.AddRange(SoapGdebaExpedienteGateway.MapRelaciones(response, "listaExpedientesAsociadosTC", "TramitacionConjunta"));
 
         return new GdebaExpedienteDetalladoDto(
-            GetValue(response, "numeroExpediente") ?? numeroGdebaCompleto.Valor,
-            GetValue(response, "codigotrata") ?? GetValue(response, "codigoTrata"),
-            GetValue(response, "descripcionTrata"),
-            GetValue(response, "estado"),
-            GetValue(response, "sistemaOrigen"),
-            GetValue(response, "descripcionTramite"),
-            ParseDate(GetValue(response, "fechaCaratulacion")),
-            GetValue(response, "usuarioCaratulador"),
-            GetValue(response, "usuarioDestino"),
-            MapDocumentosDetalle(response),
-            GetRepeatedValues(response, "archivosAdjuntos"),
+            SoapGdebaExpedienteGateway.GetValue(response, "numeroExpediente") ?? numeroGdebaCompleto.Valor,
+            SoapGdebaExpedienteGateway.GetValue(response, "codigotrata") ?? SoapGdebaExpedienteGateway.GetValue(response, "codigoTrata"),
+            SoapGdebaExpedienteGateway.GetValue(response, "descripcionTrata"),
+            SoapGdebaExpedienteGateway.GetValue(response, "estado"),
+            SoapGdebaExpedienteGateway.GetValue(response, "sistemaOrigen"),
+            SoapGdebaExpedienteGateway.GetValue(response, "descripcionTramite"),
+            SoapGdebaExpedienteGateway.ParseDate(SoapGdebaExpedienteGateway.GetValue(response, "fechaCaratulacion")),
+            SoapGdebaExpedienteGateway.GetValue(response, "usuarioCaratulador"),
+            SoapGdebaExpedienteGateway.GetValue(response, "usuarioDestino"),
+            SoapGdebaExpedienteGateway.MapDocumentosDetalle(response),
+            SoapGdebaExpedienteGateway.GetRepeatedValues(response, "archivosAdjuntos"),
             relaciones);
     }
 
     public async Task<GdebaHistorialExpedienteDto?> BuscarHistorialPasesExpedienteAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
-        var contractOptions = ResolveSoapContractOptions();
-        var serviceContractOptions = ResolveConsultaExpedienteServiceContractOptions(contractOptions);
-        var serviceOptions = ResolveConsultaExpedienteServiceOptions();
+        var contractOptions = this.ResolveSoapContractOptions();
+        var serviceContractOptions = SoapGdebaExpedienteGateway.ResolveConsultaExpedienteServiceContractOptions(contractOptions);
+        var serviceOptions = this.ResolveConsultaExpedienteServiceOptions();
         var operationName = "buscarHistorialPasesExpediente";
-        var envelope = BuildEnvelope(
+        var envelope = SoapGdebaExpedienteGateway.BuildEnvelope(
             contractOptions,
             serviceContractOptions,
             operationName,
             numeroGdebaCompleto);
 
-        var document = await SendSoapAsync(
+        var document = await this.SendSoapAsync(
             serviceOptions,
-            ResolveSoapOperationContractOptions(serviceContractOptions, operationName),
+            SoapGdebaExpedienteGateway.ResolveSoapOperationContractOptions(serviceContractOptions, operationName),
             operationName,
             envelope,
+            contextoInvocacion,
             cancellationToken);
-        var response = FindFirstElement(document, "response");
+        var response = SoapGdebaExpedienteGateway.FindFirstElement(document, "response");
         if (response is null)
         {
             return null;
         }
 
         var relaciones = new List<GdebaRelacionExpedienteDto>();
-        relaciones.AddRange(MapRelacionesHistorial(response, "expedientesAsociados", "Asociado"));
-        relaciones.AddRange(MapRelacionesHistorial(response, "expedientesFusionAsociados", "Fusion"));
-        relaciones.AddRange(MapRelacionesHistorial(response, "expedientesVinculados", "TramitacionConjunta"));
+        relaciones.AddRange(SoapGdebaExpedienteGateway.MapRelacionesHistorial(response, "expedientesAsociados", "Asociado"));
+        relaciones.AddRange(SoapGdebaExpedienteGateway.MapRelacionesHistorial(response, "expedientesFusionAsociados", "Fusion"));
+        relaciones.AddRange(SoapGdebaExpedienteGateway.MapRelacionesHistorial(response, "expedientesVinculados", "TramitacionConjunta"));
 
         return new GdebaHistorialExpedienteDto(
-            MapDocumentosHistorial(response),
-            MapMovimientosHistorial(response),
+            SoapGdebaExpedienteGateway.MapDocumentosHistorial(response),
+            SoapGdebaExpedienteGateway.MapMovimientosHistorial(response),
             relaciones);
     }
 
@@ -143,10 +158,11 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
         GdebaSoapOperationContractOptions? operationContractOptions,
         string operationName,
         string envelope,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
         var token = await _tokenProvider.ObtenerTokenAsync(cancellationToken);
-        var endpoint = ResolveSoapEndpoint(serviceOptions);
+        var endpoint = SoapGdebaExpedienteGateway.ResolveSoapEndpoint(serviceOptions);
         _logger.LogInformation(
             "Invocando operacion SOAP GDEBA {Operacion} en {Endpoint}.",
             operationName,
@@ -166,10 +182,13 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
         request.Content = new StringContent(envelope, Encoding.UTF8);
         request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/xml;charset='UTF-8'");
 
+        var stopwatch = Stopwatch.StartNew();
         HttpResponseMessage? response = null;
+        int? statusCode = null;
         try
         {
             response = await _httpClient.SendAsync(request, cancellationToken);
+            statusCode = (int)response.StatusCode;
             using (response)
             {
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -192,7 +211,7 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var fault = document is null ? null : FindSoapFault(document);
+                    var fault = document is null ? null : SoapGdebaExpedienteGateway.FindSoapFault(document);
                     throw new GdebaOperationException(operationName, fault?.Message ?? $"GDEBA devolvio el error HTTP {(int)response.StatusCode}.", (int)response.StatusCode, fault?.Code);
                 }
 
@@ -201,14 +220,32 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
                     throw new GdebaOperationException(operationName, "GDEBA devolvio una respuesta vacia.", (int)response.StatusCode);
                 }
 
-                ThrowIfSoapFault(document, operationName);
-                await _invocacionRecorder.RegistrarAsync(ServicioConsultaExpediente, operationName, exitosa: true, (int)response.StatusCode, CancellationToken.None);
+                SoapGdebaExpedienteGateway.ThrowIfSoapFault(document, operationName);
+                stopwatch.Stop();
+                await _registroInvocaciones.AgregarInvocacionAsync(
+                    ServicioConsultaExpediente,
+                    operationName,
+                    contextoInvocacion,
+                    servidorRespondio: true,
+                    exitosa: true,
+                    statusCode,
+                    stopwatch.ElapsedMilliseconds,
+                    CancellationToken.None);
                 return document;
             }
         }
         catch
         {
-            await _invocacionRecorder.RegistrarAsync(ServicioConsultaExpediente, operationName, exitosa: false, response is null ? null : (int)response.StatusCode, CancellationToken.None);
+            stopwatch.Stop();
+            await _registroInvocaciones.AgregarInvocacionAsync(
+                ServicioConsultaExpediente,
+                operationName,
+                contextoInvocacion,
+                servidorRespondio: response is not null,
+                exitosa: false,
+                statusCode,
+                stopwatch.ElapsedMilliseconds,
+                CancellationToken.None);
             throw;
         }
     }
@@ -250,12 +287,12 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     private SoapServiceOptions ResolveConsultaExpedienteServiceOptions()
     {
-        var soapOptions = ResolveEnvironmentOptions().Soap;
+        var soapOptions = this.ResolveEnvironmentOptions().Soap;
         if (soapOptions.Services.TryGetValue(
                 GdebaSoapServiceNames.ConsultaExpediente,
                 out var configuredService))
         {
-            ValidateSoapServiceOptions(configuredService, GdebaSoapServiceNames.ConsultaExpediente);
+            SoapGdebaExpedienteGateway.ValidateSoapServiceOptions(configuredService, GdebaSoapServiceNames.ConsultaExpediente);
             return configuredService;
         }
 
@@ -304,7 +341,7 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
             <Envelope xmlns="{{contractOptions.EnvelopeNamespace}}">
                 <Body>
                     <{{operationName}} xmlns="{{serviceContractOptions.Namespace}}">
-                        <numeroExpediente xmlns="">{{EscapeXml(numeroGdebaCompleto.Valor)}}</numeroExpediente>
+                        <numeroExpediente xmlns="">{{SoapGdebaExpedienteGateway.EscapeXml(numeroGdebaCompleto.Valor)}}</numeroExpediente>
                     </{{operationName}}>
                 </Body>
             </Envelope>
@@ -313,10 +350,10 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     private static IReadOnlyCollection<GdebaDocumentoExpedienteDto> MapDocumentosDetalle(XElement response)
     {
-        var documentos = GetRepeatedValues(response, "documentosOficiales")
+        var documentos = SoapGdebaExpedienteGateway.GetRepeatedValues(response, "documentosOficiales")
             .Select(x => new GdebaDocumentoExpedienteDto(
                 x,
-                TipoDocumentoCodigo: TryGetTipoDocumentoFromNumero(x),
+                TipoDocumentoCodigo: SoapGdebaExpedienteGateway.TryGetTipoDocumentoFromNumero(x),
                 Referencia: null,
                 FechaCreacion: null,
                 FechaVinculacion: null,
@@ -331,18 +368,18 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
     {
         var documentos = response
             .Descendants()
-            .Where(x => IsElement(x, "documentosVinculados"))
+            .Where(x => SoapGdebaExpedienteGateway.IsElement(x, "documentosVinculados"))
             .Select(x => new
             {
-                Numero = GetValue(x, "numeroDocumentoGDEBA") ?? GetValue(x, "numeroGDEBADocumento"),
-                TipoDocumento = GetValue(x, "tipodeDocumento") ?? GetValue(x, "tipoDocumento"),
-                Referencia = GetValue(x, "referencia"),
-                FechaCreacion = ParseDate(GetValue(x, "fechaCreacion")),
-                FechaVinculacion = ParseDate(
-                    GetValue(x, "fechavinculacionDefinitiva") ??
-                    GetValue(x, "fechaVinculacionDefinitiva")),
-                UsuarioAsociacion = GetValue(x, "usuarioAsociacion"),
-                UsuarioGenerador = GetValue(x, "usuarioGenerador")
+                Numero = SoapGdebaExpedienteGateway.GetValue(x, "numeroDocumentoGDEBA") ?? SoapGdebaExpedienteGateway.GetValue(x, "numeroGDEBADocumento"),
+                TipoDocumento = SoapGdebaExpedienteGateway.GetValue(x, "tipodeDocumento") ?? SoapGdebaExpedienteGateway.GetValue(x, "tipoDocumento"),
+                Referencia = SoapGdebaExpedienteGateway.GetValue(x, "referencia"),
+                FechaCreacion = SoapGdebaExpedienteGateway.ParseDate(SoapGdebaExpedienteGateway.GetValue(x, "fechaCreacion")),
+                FechaVinculacion = SoapGdebaExpedienteGateway.ParseDate(
+                    SoapGdebaExpedienteGateway.GetValue(x, "fechavinculacionDefinitiva") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "fechaVinculacionDefinitiva")),
+                UsuarioAsociacion = SoapGdebaExpedienteGateway.GetValue(x, "usuarioAsociacion"),
+                UsuarioGenerador = SoapGdebaExpedienteGateway.GetValue(x, "usuarioGenerador")
             })
             .Where(x => !string.IsNullOrWhiteSpace(x.Numero))
             .OrderBy(x => x.FechaVinculacion ?? x.FechaCreacion ?? DateTimeOffset.MinValue)
@@ -366,21 +403,21 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
         var orden = 0;
         return response
             .Descendants()
-            .Where(x => IsElement(x, "historialDeOperacion"))
+            .Where(x => SoapGdebaExpedienteGateway.IsElement(x, "historialDeOperacion"))
             .Select(x => new GdebaMovimientoExpedienteDto(
                 ++orden,
-                ParseDate(GetValue(x, "fechaOperacion")),
+                SoapGdebaExpedienteGateway.ParseDate(SoapGdebaExpedienteGateway.GetValue(x, "fechaOperacion")),
                 EstadoOrigen: null,
-                EstadoDestino: GetValue(x, "estado"),
-                UsuarioOrigen: GetValue(x, "usuario"),
-                UsuarioDestino: GetValue(x, "destinatario"),
-                Motivo: GetValue(x, "motivo"),
-                ReparticionOrigen: GetValue(x, "origenPaseCodigoReparticion") ??
-                    GetValue(x, "origenPaseDescripcionReparticion"),
-                ReparticionDestino: GetValue(x, "destinoPaseCodigoReparticion") ??
-                    GetValue(x, "destinoPaseDescripcionReparticion"),
-                SectorDestino: GetValue(x, "destinoPaseCodigoSector") ??
-                    GetValue(x, "destinoPaseDescripcionSector")))
+                EstadoDestino: SoapGdebaExpedienteGateway.GetValue(x, "estado"),
+                UsuarioOrigen: SoapGdebaExpedienteGateway.GetValue(x, "usuario"),
+                UsuarioDestino: SoapGdebaExpedienteGateway.GetValue(x, "destinatario"),
+                Motivo: SoapGdebaExpedienteGateway.GetValue(x, "motivo"),
+                ReparticionOrigen: SoapGdebaExpedienteGateway.GetValue(x, "origenPaseCodigoReparticion") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "origenPaseDescripcionReparticion"),
+                ReparticionDestino: SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseCodigoReparticion") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionReparticion"),
+                SectorDestino: SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseCodigoSector") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionSector")))
             .ToArray();
     }
 
@@ -391,11 +428,11 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
     {
         return response
             .Descendants()
-            .Where(x => IsElement(x, collectionName))
+            .Where(x => SoapGdebaExpedienteGateway.IsElement(x, collectionName))
             .Select(x => new GdebaRelacionExpedienteDto(
-                GetValue(x, "numeroGDEBA") ?? string.Empty,
+                SoapGdebaExpedienteGateway.GetValue(x, "numeroGDEBA") ?? string.Empty,
                 tipoRelacion,
-                ParseBool(GetValue(x, "esCabecera"))))
+                SoapGdebaExpedienteGateway.ParseBool(SoapGdebaExpedienteGateway.GetValue(x, "esCabecera"))))
             .Where(x => !string.IsNullOrWhiteSpace(x.NumeroExpedienteRelacionado));
     }
 
@@ -406,26 +443,26 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
     {
         return response
             .Descendants()
-            .Where(x => IsElement(x, collectionName))
+            .Where(x => SoapGdebaExpedienteGateway.IsElement(x, collectionName))
             .Select(x => new GdebaRelacionExpedienteDto(
-                GetValue(x, "codigoExpediente") ?? string.Empty,
+                SoapGdebaExpedienteGateway.GetValue(x, "codigoExpediente") ?? string.Empty,
                 tipoRelacion,
                 EsCabecera: null,
-                GetValue(x, "codigoTrata") ??
-                    GetValue(x, "trataExpedienteASociado") ??
-                    GetValue(x, "trataExpedienteVinculado"),
-                GetValue(x, "descripcionTrata"),
-                ParseDate(
-                    GetValue(x, "fechaAsociacion") ??
-                    GetValue(x, "fechaVinculacion")),
-                GetValue(x, "usuarioAsociador") ??
-                    GetValue(x, "usuarioVinculador")))
+                SoapGdebaExpedienteGateway.GetValue(x, "codigoTrata") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "trataExpedienteASociado") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "trataExpedienteVinculado"),
+                SoapGdebaExpedienteGateway.GetValue(x, "descripcionTrata"),
+                SoapGdebaExpedienteGateway.ParseDate(
+                    SoapGdebaExpedienteGateway.GetValue(x, "fechaAsociacion") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "fechaVinculacion")),
+                SoapGdebaExpedienteGateway.GetValue(x, "usuarioAsociador") ??
+                    SoapGdebaExpedienteGateway.GetValue(x, "usuarioVinculador")))
             .Where(x => !string.IsNullOrWhiteSpace(x.NumeroExpedienteRelacionado));
     }
 
     private static void ThrowIfSoapFault(XDocument document, string operationName)
     {
-        var fault = FindSoapFault(document);
+        var fault = SoapGdebaExpedienteGateway.FindSoapFault(document);
         if (fault is null)
         {
             return;
@@ -439,14 +476,15 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     private static SoapFault? FindSoapFault(XDocument document)
     {
-        var fault = document.Descendants().FirstOrDefault(x => IsElement(x, "Fault"));
+        var fault = document.Descendants().FirstOrDefault(x => SoapGdebaExpedienteGateway.IsElement(x, "Fault"));
         if (fault is null)
         {
             return null;
         }
 
-        var message = SimplifySoapFaultMessage(GetValue(fault, "faultstring") ?? fault.Value.Trim());
-        return new SoapFault(GetValue(fault, "faultcode"), message);
+        var message = SoapGdebaExpedienteGateway.SimplifySoapFaultMessage(
+            SoapGdebaExpedienteGateway.GetValue(fault, "faultstring") ?? fault.Value.Trim());
+        return new SoapFault(SoapGdebaExpedienteGateway.GetValue(fault, "faultcode"), message);
     }
 
     private static string SimplifySoapFaultMessage(string message)
@@ -469,14 +507,14 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     private static XElement? FindFirstElement(XDocument document, string localName)
     {
-        return document.Descendants().FirstOrDefault(x => IsElement(x, localName));
+        return document.Descendants().FirstOrDefault(x => SoapGdebaExpedienteGateway.IsElement(x, localName));
     }
 
     private static string? GetValue(XElement parent, string localName)
     {
         var value = parent
             .Elements()
-            .FirstOrDefault(x => IsElement(x, localName))
+            .FirstOrDefault(x => SoapGdebaExpedienteGateway.IsElement(x, localName))
             ?.Value;
 
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -486,7 +524,7 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
     {
         return parent
             .Elements()
-            .Where(x => IsElement(x, localName))
+            .Where(x => SoapGdebaExpedienteGateway.IsElement(x, localName))
             .Select(x => x.Value?.Trim())
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x!)

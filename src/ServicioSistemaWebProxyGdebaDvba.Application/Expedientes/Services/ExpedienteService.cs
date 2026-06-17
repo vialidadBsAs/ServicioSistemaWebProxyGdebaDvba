@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Logging;
-using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
-using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Security;
-using ServicioSistemaWebProxyGdebaDvba.Application.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
@@ -19,6 +20,15 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionDetalle = "consultarExpedienteDetallado";
     private const string OperacionHistorial = "buscarHistorialPasesExpediente";
     private const string OperacionExpediente = "expediente";
+    private const string OperacionConsultarDetalle = "ConsultarDetalle";
+    private const string OperacionConsultarMovimientos = "ConsultarMovimientos";
+    private const string OperacionConsultarSinCache = "ConsultarSinCache";
+    private const string OperacionObtenerCabecera = "ObtenerCabecera";
+    private const string OperacionObtenerDocumentos = "ObtenerDocumentos";
+    private const string OperacionObtenerAdjuntos = "ObtenerAdjuntos";
+    private const string OperacionObtenerPases = "ObtenerPases";
+    private const string OperacionObtenerRelaciones = "ObtenerRelaciones";
+    private const string OperacionObtenerCompleto = "ObtenerCompleto";
 
     private readonly IExpedienteCacheReadStore _expedienteCacheReadStore;
     private readonly IGdebaExpedienteGateway _gdebaExpedienteGateway;
@@ -63,20 +73,22 @@ public sealed class ExpedienteService : IExpedienteService
         CancellationToken cancellationToken)
     {
         // Normaliza el numero completo y busca una copia local para evaluar la politica de cache.
-        var numero = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var operacionSolicitada = request.OperacionSolicitada ?? OperacionConsultarDetalle;
         var resolvedAt = DateTimeOffset.Now;
 
         //lee datos de cache para evaluar si se puede responder desde cache o si es necesario consultar a GDEBA. Esta consulta no bloquea la respuesta y se vuelve a realizar si se necesita refrescar desde GDEBA para obtener la entidad completa y actualizada.
-        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
+        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
         ExpedienteDetalladoDto? expedienteDto;
         FuenteRespuesta fuente;
         bool exitoso;
         DateTimeOffset? cachedAt = null;
+        Expediente? expedienteConsolidado = null;
 
         if (!request.ForceRefresh && expediente?.PuedeResponderDetalleDesdeCache(resolvedAt) == true)
         {
             // Responde desde cache cuando el expediente esta completo y dentro de su vigencia.
-            expedienteDto = Mapear(expediente!);
+            expedienteDto = ExpedienteService.Mapear(expediente!);
             fuente = FuenteRespuesta.Cache;
             exitoso = true;
             cachedAt = expediente!.CacheControl?.FechaUltimaActualizacionLocal;
@@ -87,20 +99,24 @@ public sealed class ExpedienteService : IExpedienteService
             GdebaExpedienteDetalladoDto? detalle;
             try
             {
-                detalle = await _gdebaExpedienteGateway.ConsultarExpedienteDetalladoAsync(numero, cancellationToken);
+                detalle = await _gdebaExpedienteGateway.ConsultarExpedienteDetalladoAsync(
+                    numeroGdebaCompleto,
+                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh),
+                    cancellationToken);
             }
-            catch (GdebaOperationException)
+            catch (GdebaOperationException ex)
             {
-                await RegistrarFalloGdebaAsync(OperacionDetalle, numero.Valor, resolvedAt, cancellationToken);
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw;
             }
             catch (OperationCanceledException)
             {
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
                 throw;
             }
             catch (Exception ex)
             {
-                await RegistrarFalloGdebaAsync(OperacionDetalle, numero.Valor, resolvedAt, cancellationToken);
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw new GdebaOperationException(OperacionDetalle, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
             }
             if (detalle is null)
@@ -108,10 +124,10 @@ public sealed class ExpedienteService : IExpedienteService
                 if (expediente is not null)
                 {
                     // Conserva la ultima copia local como fallback y deja marcado el error de refresco.
-                    MarcarDetalleConsultadoConError(expediente, resolvedAt, resolvedAt, "GDEBA no devolvio detalle del expediente.");
-                    RegistrarCambiosExpediente(expediente, esNuevo: false);
+                    this.MarcarDetalleConsultadoConError(expediente, resolvedAt, resolvedAt, "GDEBA no devolvio detalle del expediente.");
+                    this.RegistrarCambiosExpediente(expediente, esNuevo: false);
 
-                    expedienteDto = Mapear(expediente);
+                    expedienteDto = ExpedienteService.Mapear(expediente);
                     fuente = FuenteRespuesta.FallbackCache;
                     exitoso = true;
                     cachedAt = expediente.CacheControl?.FechaUltimaActualizacionLocal;
@@ -127,19 +143,26 @@ public sealed class ExpedienteService : IExpedienteService
             {
                 // Consolida la cache en forma local. La mensajeria queda reservada para una etapa posterior
                 // con worker, monitoreo y politica de reintentos operativa.
-                await this.ConsolidarDetalleEnCacheAsync(detalle, resolvedAt, cancellationToken);
+                expedienteConsolidado = await this.PrepararConsolidacionDetalleEnCacheAsync(
+                    detalle,
+                    resolvedAt,
+                    cancellationToken);
 
-                expedienteDto = MapearRespuestaLiviana(detalle);
+                expedienteDto = ExpedienteService.MapearRespuestaLiviana(detalle);
                 fuente = FuenteRespuesta.Gdeba;
                 exitoso = true;
             }
         }
 
         // Centraliza la auditoria para todos los caminos funcionales de la consulta detallada.
-        await RegistrarAuditoriaAsync(OperacionDetalle, numero.Valor, fuente, exitoso, resolvedAt, cancellationToken);
+        await this.RegistrarAuditoriaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, fuente, exitoso, ExpedienteService.CrearMensajeResultado(fuente, exitoso), resolvedAt, cancellationToken);
 
         // Confirma en una sola transaccion los cambios de dominio y la auditoria funcional.
-        await ConfirmarCambiosAsync("ConsultarExpedienteDetallado", numero.Valor, cancellationToken);
+        await this.ConfirmarCambiosAsync("ConsultarExpedienteDetallado", numeroGdebaCompleto.Valor, cancellationToken);
+        if (expedienteConsolidado is not null)
+        {
+            _expedienteRepository.AcceptChanges(expedienteConsolidado);
+        }
 
         return new ConsultarExpedienteDetalladoResult(expedienteDto, fuente, resolvedAt, cachedAt);
     }
@@ -155,22 +178,23 @@ public sealed class ExpedienteService : IExpedienteService
         CancellationToken cancellationToken)
     {
         // Normaliza el numero completo y busca la copia local para evaluar la cache de movimientos.
-        var numero = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
+        var operacionSolicitada = request.OperacionSolicitada ?? OperacionConsultarMovimientos;
         var resolvedAt = DateTimeOffset.Now;
-        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
+        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
         var expedienteEsNuevo = false;
         var expedienteModificado = false;
 
         if (expediente?.CacheControl is null)
         {
-            var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(numero.Valor), cancellationToken);
+            var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(numeroGdebaCompleto.Valor, OperacionSolicitada: operacionSolicitada), cancellationToken);
 
             if (detalle.Expediente is null)
             {
-                return new ConsultarMovimientosExpedienteResult(numero.Valor, Array.Empty<MovimientoExpedienteDto>(), detalle.Fuente, Exitoso: false, resolvedAt, detalle.CachedAt);
+                return new ConsultarMovimientosExpedienteResult(numeroGdebaCompleto.Valor, Array.Empty<MovimientoExpedienteDto>(), detalle.Fuente, Exitoso: false, resolvedAt, detalle.CachedAt);
             }
 
-            expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
+            expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
         }
 
         IReadOnlyCollection<MovimientoExpedienteDto> movimientos;
@@ -181,7 +205,7 @@ public sealed class ExpedienteService : IExpedienteService
         if (!request.ForceRefresh && expediente?.PuedeResponderMovimientosDesdeCache(resolvedAt) == true)
         {
             // Responde desde cache cuando los movimientos fueron sincronizados y siguen vigentes.
-            movimientos = MapearMovimientos(expediente);
+            movimientos = ExpedienteService.MapearMovimientos(expediente);
             fuente = FuenteRespuesta.Cache;
             exitoso = true;
             cachedAt = expediente.HistorialCacheControl?.FechaUltimaActualizacionLocal;
@@ -192,20 +216,24 @@ public sealed class ExpedienteService : IExpedienteService
             GdebaHistorialExpedienteDto? historialGdeba;
             try
             {
-                historialGdeba = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(numero, cancellationToken);
+                historialGdeba = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
+                    numeroGdebaCompleto,
+                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh),
+                    cancellationToken);
             }
-            catch (GdebaOperationException)
+            catch (GdebaOperationException ex)
             {
-                await RegistrarFalloGdebaAsync(OperacionHistorial, numero.Valor, resolvedAt, cancellationToken);
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw;
             }
             catch (OperationCanceledException)
             {
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
                 throw;
             }
             catch (Exception ex)
             {
-                await RegistrarFalloGdebaAsync(OperacionHistorial, numero.Valor, resolvedAt, cancellationToken);
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw new GdebaOperationException(OperacionHistorial, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
             }
 
@@ -214,10 +242,10 @@ public sealed class ExpedienteService : IExpedienteService
                 if (expediente is not null)
                 {
                     // Conserva los movimientos locales como fallback ante una falta de respuesta externa.
-                    MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, "GDEBA no devolvio movimientos del expediente.");
+                    this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, "GDEBA no devolvio movimientos del expediente.");
                     expedienteModificado = true;
 
-                    movimientos = MapearMovimientos(expediente);
+                    movimientos = ExpedienteService.MapearMovimientos(expediente);
                     fuente = FuenteRespuesta.FallbackCache;
                     exitoso = true;
                     cachedAt = expediente.HistorialCacheControl?.FechaUltimaActualizacionLocal;
@@ -234,31 +262,31 @@ public sealed class ExpedienteService : IExpedienteService
                 // Crea o actualiza el expediente y consolida todas las colecciones del historial recibido.
                 if (expediente is null)
                 {
-                    expediente = CrearExpediente(numero);
+                    expediente = this.CrearExpediente(numeroGdebaCompleto);
                     expedienteEsNuevo = true;
                 }
 
-                var documentos = await ResolverDocumentosAsync(historialGdeba.DocumentosVinculados, cancellationToken);
+                var documentos = await this.ResolverDocumentosAsync(historialGdeba.DocumentosVinculados, cancellationToken);
 
-                ConsolidarDocumentos(expediente, historialGdeba.DocumentosVinculados, documentos, FuenteDeteccionGdeba.BuscarHistorialPasesExpediente, resolvedAt);
+                ExpedienteService.ConsolidarDocumentos(expediente, historialGdeba.DocumentosVinculados, documentos, FuenteDeteccionGdeba.BuscarHistorialPasesExpediente, resolvedAt);
 
-                ConsolidarRelaciones(expediente, historialGdeba.Relaciones, FuenteDeteccionGdeba.BuscarHistorialPasesExpediente, resolvedAt);
+                ExpedienteService.ConsolidarRelaciones(expediente, historialGdeba.Relaciones, FuenteDeteccionGdeba.BuscarHistorialPasesExpediente, resolvedAt);
 
                 var movimientosDetectados = historialGdeba.Movimientos
                     .Select(x => new MovimientoExpedienteDetectado(x.Orden, x.FechaOperacion, x.EstadoOrigen, x.EstadoDestino, x.UsuarioOrigen, x.UsuarioDestino, x.Motivo, x.ReparticionOrigen, x.ReparticionDestino))
                     .ToArray();
                 var ultimoMovimiento = expediente.ConsolidarMovimientosDetectados(movimientosDetectados);
-                var ultimoMovimientoGdeba = ResolverUltimoMovimiento(historialGdeba.Movimientos);
+                var ultimoMovimientoGdeba = ExpedienteService.ResolverUltimoMovimiento(historialGdeba.Movimientos);
                 if (ultimoMovimientoGdeba is not null)
                 {
                     expediente.ActualizarDestinoActualDesdeHistorial(ultimoMovimientoGdeba.ReparticionDestino, ultimoMovimientoGdeba.SectorDestino);
                 }
 
                 // Marca la cache de movimientos con vigencia diaria para la consulta bajo demanda.
-                MarcarHistorialConsultadoCorrectamente(
-                    expediente, resolvedAt, resolvedAt, CalcularVencimientoDiario(resolvedAt), ultimoMovimiento, estaCompleto: true, tieneDatosParciales: false);
+                this.MarcarHistorialConsultadoCorrectamente(
+                    expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), ultimoMovimiento, estaCompleto: true, tieneDatosParciales: false);
 
-                movimientos = MapearMovimientos(expediente);
+                movimientos = ExpedienteService.MapearMovimientos(expediente);
                 fuente = FuenteRespuesta.Gdeba;
                 exitoso = true;
                 expedienteModificado = true;
@@ -268,93 +296,93 @@ public sealed class ExpedienteService : IExpedienteService
         // Registra auditoria funcional una sola vez, independientemente de la fuente de respuesta.
         if (expediente is not null && expedienteModificado)
         {
-            RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+            this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
         }
 
-        await RegistrarAuditoriaAsync(OperacionHistorial, numero.Valor, fuente, exitoso, resolvedAt, cancellationToken);
+        await this.RegistrarAuditoriaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, fuente, exitoso, ExpedienteService.CrearMensajeResultado(fuente, exitoso), resolvedAt, cancellationToken);
 
         // Persiste movimientos/cache y auditoria en una unica unidad de trabajo.
-        await ConfirmarCambiosAsync("ConsultarMovimientosExpediente", numero.Valor, cancellationToken);
+        await this.ConfirmarCambiosAsync("ConsultarMovimientosExpediente", numeroGdebaCompleto.Valor, cancellationToken);
 
-        return new ConsultarMovimientosExpedienteResult(numero.Valor, movimientos, fuente, exitoso, resolvedAt, cachedAt);
+        return new ConsultarMovimientosExpedienteResult(numeroGdebaCompleto.Valor, movimientos, fuente, exitoso, resolvedAt, cachedAt);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<CabeceraExpedienteDto>> ObtenerCabeceraAsync(
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var result = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCabecera), cancellationToken);
 
-        var cabecera = result.Expediente is null ? null : MapearCabecera(result.Expediente);
-        return CrearResultadoRecurso(request.NumeroGdebaCompleto, cabecera, result.Fuente, cabecera is not null, result.ResolvedAt, result.CachedAt);
+        var cabecera = result.Expediente is null ? null : ExpedienteService.MapearCabecera(result.Expediente);
+        return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, cabecera, result.Fuente, cabecera is not null, result.ResolvedAt, result.CachedAt);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<DocumentoExpedienteDto>>> ObtenerDocumentosAsync(
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerDocumentos), cancellationToken);
+        var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var documentos = expediente is null
             ? null
-            : Mapear(expediente).Documentos;
+            : ExpedienteService.Mapear(expediente).Documentos;
 
-        return CrearResultadoRecurso(request.NumeroGdebaCompleto, documentos, historial.Source, historial.Exitoso && documentos is not null, historial.ResolvedAt, historial.CachedAt);
+        return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, documentos, historial.Source, historial.Exitoso && documentos is not null, historial.ResolvedAt, historial.CachedAt);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<ArchivoAdjuntoExpedienteDto>>> ObtenerAdjuntosAsync(
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerAdjuntos), cancellationToken);
+        var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var adjuntos = expediente is null
             ? null
-            : Mapear(expediente).ArchivosAdjuntos;
+            : ExpedienteService.Mapear(expediente).ArchivosAdjuntos;
 
-        return CrearResultadoRecurso(request.NumeroGdebaCompleto, adjuntos, detalle.Fuente, detalle.Expediente is not null && adjuntos is not null, detalle.ResolvedAt, detalle.CachedAt);
+        return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, adjuntos, detalle.Fuente, detalle.Expediente is not null && adjuntos is not null, detalle.ResolvedAt, detalle.CachedAt);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<MovimientoExpedienteDto>>> ObtenerPasesAsync(
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerPases), cancellationToken);
 
-        return CrearResultadoRecurso(request.NumeroGdebaCompleto, historial.Movimientos, historial.Source, historial.Exitoso, historial.ResolvedAt, historial.CachedAt);
+        return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, historial.Movimientos, historial.Source, historial.Exitoso, historial.ResolvedAt, historial.CachedAt);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<IReadOnlyCollection<RelacionExpedienteDto>>> ObtenerRelacionesAsync(
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerRelaciones), cancellationToken);
+        var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var relaciones = expediente is null
             ? null
-            : Mapear(expediente).Relaciones;
+            : ExpedienteService.Mapear(expediente).Relaciones;
 
-        return CrearResultadoRecurso(request.NumeroGdebaCompleto, relaciones, historial.Source, historial.Exitoso && relaciones is not null, historial.ResolvedAt, historial.CachedAt);
+        return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, relaciones, historial.Source, historial.Exitoso && relaciones is not null, historial.ResolvedAt, historial.CachedAt);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<ExpedienteCompletoDto>> ObtenerCompletoAsync(
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh), cancellationToken);
-        var expediente = await CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
+        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCompleto), cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCompleto), cancellationToken);
+        var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
 
         ExpedienteCompletoDto? completo = null;
         if (expediente is not null)
         {
-            var expedienteDto = Mapear(expediente);
+            var expedienteDto = ExpedienteService.Mapear(expediente);
             completo = new ExpedienteCompletoDto(
-                MapearCabecera(expedienteDto), expedienteDto.Documentos, expedienteDto.ArchivosAdjuntos, MapearMovimientos(expediente), expedienteDto.Relaciones);
+                ExpedienteService.MapearCabecera(expedienteDto), expedienteDto.Documentos, expedienteDto.ArchivosAdjuntos, ExpedienteService.MapearMovimientos(expediente), expedienteDto.Relaciones);
         }
 
-        return CrearResultadoRecurso(
-            request.NumeroGdebaCompleto, completo, CombinarFuente(detalle.Fuente, historial.Source), detalle.Expediente is not null && historial.Exitoso && completo is not null, detalle.ResolvedAt > historial.ResolvedAt ? detalle.ResolvedAt : historial.ResolvedAt, Max(detalle.CachedAt, historial.CachedAt));
+        return ExpedienteService.CrearResultadoRecurso(
+            request.NumeroGdebaCompleto, completo, ExpedienteService.CombinarFuente(detalle.Fuente, historial.Source), detalle.Expediente is not null && historial.Exitoso && completo is not null, detalle.ResolvedAt > historial.ResolvedAt ? detalle.ResolvedAt : historial.ResolvedAt, ExpedienteService.Max(detalle.CachedAt, historial.CachedAt));
     }
 
     /// <summary>
@@ -369,25 +397,38 @@ public sealed class ExpedienteService : IExpedienteService
         DateTimeOffset fechaConsulta,
         CancellationToken cancellationToken)
     {
-        var numero = NumeroGdebaCompleto.Create(detalle.NumeroGdebaCompleto);
-        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
-        var expedienteEsNuevo = expediente is null;
-        expediente ??= CrearExpediente(numero);
-        var trata = await ResolverTrataAsync(detalle.CodigoTrata, detalle.DescripcionTrata, cancellationToken);
-        var documentos = await ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
+        var expediente = await this.PrepararConsolidacionDetalleEnCacheAsync(
+            detalle,
+            fechaConsulta,
+            cancellationToken);
+        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(detalle.NumeroGdebaCompleto);
 
-        ConsolidarCabecera(expediente, detalle, trata?.Id);
-        ConsolidarDocumentos(expediente, detalle.Documentos, documentos, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
-        ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
-        ConsolidarRelaciones(expediente, detalle.Relaciones, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
-
-        MarcarDetalleConsultadoCorrectamente(expediente, fechaConsulta, fechaConsulta, CalcularVencimientoDiario(fechaConsulta), estaCompleto: true, tieneDatosParciales: false);
-
-        RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
-
-        await ConfirmarCambiosAsync("ConsolidarDetalleEnCache", numero.Valor, cancellationToken);
-
+        await this.ConfirmarCambiosAsync("ConsolidarDetalleEnCache", numeroGdebaCompleto.Valor, cancellationToken);
         _expedienteRepository.AcceptChanges(expediente);
+    }
+
+    private async Task<Expediente> PrepararConsolidacionDetalleEnCacheAsync(
+        GdebaExpedienteDetalladoDto detalle,
+        DateTimeOffset fechaConsulta,
+        CancellationToken cancellationToken)
+    {
+        var numeroGdebaCompleto = NumeroGdebaCompleto.Create(detalle.NumeroGdebaCompleto);
+        var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
+        var expedienteEsNuevo = expediente is null;
+        expediente ??= this.CrearExpediente(numeroGdebaCompleto);
+        var trata = await this.ResolverTrataAsync(detalle.CodigoTrata, detalle.DescripcionTrata, cancellationToken);
+        var documentos = await this.ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
+
+        ExpedienteService.ConsolidarCabecera(expediente, detalle, trata?.Id);
+        ExpedienteService.ConsolidarDocumentos(expediente, detalle.Documentos, documentos, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
+        ExpedienteService.ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
+        ExpedienteService.ConsolidarRelaciones(expediente, detalle.Relaciones, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
+
+        this.MarcarDetalleConsultadoCorrectamente(expediente, fechaConsulta, fechaConsulta, ExpedienteService.CalcularVencimientoDiario(fechaConsulta), estaCompleto: true, tieneDatosParciales: false);
+
+        this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+
+        return expediente;
     }
 
     /// <summary>
@@ -401,12 +442,37 @@ public sealed class ExpedienteService : IExpedienteService
         CancellationToken cancellationToken)
     {
         var numeroGdebaCompleto = NumeroGdebaCompleto.Create(request.NumeroGdebaCompleto);
-        var expediente = await _gdebaExpedienteGateway.BuscarExpedienteAsync(numeroGdebaCompleto, cancellationToken);
         var resolvedAt = DateTimeOffset.Now;
+        ExpedienteGdebaDto? expediente;
+        try
+        {
+            expediente = await _gdebaExpedienteGateway.BuscarExpedienteAsync(
+                numeroGdebaCompleto,
+                ContextoInvocacionGdeba.Crear(OrigenInvocacionGdeba.Administrativo),
+                cancellationToken);
+        }
+        catch (GdebaOperationException ex)
+        {
+            await this.RegistrarFalloGdebaAsync(OperacionConsultarSinCache, OperacionExpediente, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            await this.RegistrarFalloGdebaAsync(OperacionConsultarSinCache, OperacionExpediente, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await this.RegistrarFalloGdebaAsync(OperacionConsultarSinCache, OperacionExpediente, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+            throw new GdebaOperationException(
+                OperacionExpediente,
+                $"No se pudo ejecutar la operacion GDEBA: {ex.Message}",
+                innerException: ex);
+        }
 
-        await RegistrarAuditoriaAsync(OperacionExpediente, numeroGdebaCompleto.Valor, FuenteRespuesta.Gdeba, expediente is not null, resolvedAt, cancellationToken);
+        await this.RegistrarAuditoriaAsync(OperacionConsultarSinCache, OperacionExpediente, numeroGdebaCompleto.Valor, FuenteRespuesta.Gdeba, expediente is not null, ExpedienteService.CrearMensajeResultado(FuenteRespuesta.Gdeba, expediente is not null), resolvedAt, cancellationToken);
 
-        await ConfirmarCambiosAsync("ConsultarExpedienteSinCache", numeroGdebaCompleto.Valor, cancellationToken);
+        await this.ConfirmarCambiosAsync("ConsultarExpedienteSinCache", numeroGdebaCompleto.Valor, cancellationToken);
 
         return new ConsultarExpedienteSinCacheResult(expediente, FuenteRespuesta.Gdeba, resolvedAt);
     }
@@ -415,14 +481,22 @@ public sealed class ExpedienteService : IExpedienteService
 
     #region Metodos privados del servicio
 
+    private static ContextoInvocacionGdeba CrearContextoInvocacion(bool forceRefresh)
+    {
+        return ContextoInvocacionGdeba.Crear(
+            forceRefresh
+                ? OrigenInvocacionGdeba.RefrescoManual
+                : OrigenInvocacionGdeba.Interactiva);
+    }
+
     /// <summary>
     /// Crea un expediente local nuevo.
     /// </summary>
-    /// <param name="numero">Numero GDEBA completo validado.</param>
+    /// <param name="numeroGdebaCompleto">Numero GDEBA completo validado.</param>
     /// <returns>Nueva entidad de expediente aun no registrada en el repositorio.</returns>
-    private Expediente CrearExpediente(NumeroGdebaCompleto numero)
+    private Expediente CrearExpediente(NumeroGdebaCompleto numeroGdebaCompleto)
     {
-        return new Expediente(numero.Valor);
+        return new Expediente(numeroGdebaCompleto.Valor);
     }
 
     private void RegistrarCambiosExpediente(Expediente expediente, bool esNuevo)
@@ -555,7 +629,7 @@ public sealed class ExpedienteService : IExpedienteService
         foreach (var relacion in relaciones)
         {
             expediente.RegistrarRelacionDetectada(
-                relacion.NumeroExpedienteRelacionado, ParsearTipoRelacion(relacion.TipoRelacion), expedienteRelacionadoId: null, relacion.CodigoTrata, relacion.DescripcionTrata, relacion.FechaRelacion, relacion.UsuarioRelacion, relacion.EsCabecera, fuenteDeteccion, fechaDeteccion);
+                relacion.NumeroExpedienteRelacionado, ExpedienteService.ParsearTipoRelacion(relacion.TipoRelacion), expedienteRelacionadoId: null, relacion.CodigoTrata, relacion.DescripcionTrata, relacion.FechaRelacion, relacion.UsuarioRelacion, relacion.EsCabecera, fuenteDeteccion, fechaDeteccion);
         }
     }
 
@@ -691,8 +765,8 @@ public sealed class ExpedienteService : IExpedienteService
         string numeroGdebaCompleto,
         CancellationToken cancellationToken)
     {
-        var numero = NumeroGdebaCompleto.Create(numeroGdebaCompleto);
-        return await _expedienteCacheReadStore.CargarExpedienteAsync(numero.Valor, cancellationToken);
+        var numeroValidado = NumeroGdebaCompleto.Create(numeroGdebaCompleto);
+        return await _expedienteCacheReadStore.CargarExpedienteAsync(numeroValidado.Valor, cancellationToken);
     }
 
     private static CabeceraExpedienteDto MapearCabecera(ExpedienteDetalladoDto expediente)
@@ -764,6 +838,22 @@ public sealed class ExpedienteService : IExpedienteService
         return fechaConsulta.AddDays(1);
     }
 
+    private static string CrearMensajeResultado(FuenteRespuesta fuente, bool exitoso)
+    {
+        if (!exitoso)
+        {
+            return "La operacion no obtuvo datos.";
+        }
+
+        return fuente switch
+        {
+            FuenteRespuesta.Gdeba => "Respuesta obtenida desde GDEBA.",
+            FuenteRespuesta.Cache => "Respuesta obtenida desde cache local.",
+            FuenteRespuesta.FallbackCache => "GDEBA no devolvio datos y se respondio desde cache local.",
+            _ => "Operacion completada."
+        };
+    }
+
     /// <summary>
     /// Registra la auditoria funcional de una operacion realizada por una aplicacion consumidora.
     /// </summary>
@@ -774,27 +864,17 @@ public sealed class ExpedienteService : IExpedienteService
     /// <param name="fecha">Fecha de resolucion de la operacion.</param>
     /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
     /// <returns>Tarea asincronica de registro de auditoria.</returns>
-    private Task RegistrarAuditoriaAsync(
-        string operacion,
-        string recurso,
-        FuenteRespuesta fuente,
-        bool exitoso,
-        DateTimeOffset fecha,
-        CancellationToken cancellationToken)
+    private Task RegistrarAuditoriaAsync(string operacionSolicitada, string operacionGdeba, string recurso, FuenteRespuesta fuente, bool exitoso, string? mensaje, DateTimeOffset fecha, CancellationToken cancellationToken)
     {
         return _auditoriaService.RegistrarAsync(
-            new RegistrarAuditoriaRequest(_currentApplicationAccessor.Current.ApplicationId, operacion, recurso, _gdebaExecutionContext.Ambiente, fuente, exitoso, fecha), cancellationToken);
+            new RegistrarAuditoriaRequest(_currentApplicationAccessor.Current.ApplicationId, operacionSolicitada, operacionGdeba, recurso, _gdebaExecutionContext.Ambiente, fuente, exitoso, mensaje, fecha), cancellationToken);
     }
 
-    private async Task RegistrarFalloGdebaAsync(
-        string operacion,
-        string recurso,
-        DateTimeOffset fecha,
-        CancellationToken cancellationToken)
+    private async Task RegistrarFalloGdebaAsync(string operacionSolicitada, string operacionGdeba, string recurso, string mensaje, DateTimeOffset fecha, CancellationToken cancellationToken)
     {
-        await RegistrarAuditoriaAsync(operacion, recurso, FuenteRespuesta.Gdeba, exitoso: false, fecha, cancellationToken);
+        await this.RegistrarAuditoriaAsync(operacionSolicitada, operacionGdeba, recurso, FuenteRespuesta.Gdeba, exitoso: false, mensaje, fecha, cancellationToken);
 
-        await ConfirmarCambiosAsync($"AuditarFallo{operacion}", recurso, cancellationToken);
+        await this.ConfirmarCambiosAsync($"AuditarFallo{operacionGdeba}", recurso, cancellationToken);
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
-using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Security;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Models;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
 

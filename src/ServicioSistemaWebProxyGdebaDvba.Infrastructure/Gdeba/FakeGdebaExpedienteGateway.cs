@@ -1,12 +1,16 @@
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 
 public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
 {
-    public Task<ExpedienteGdebaDto?> BuscarExpedienteAsync(NumeroGdebaCompleto numeroGdebaCompleto, CancellationToken cancellationToken)
+    public Task<ExpedienteGdebaDto?> BuscarExpedienteAsync(
+        NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
+        CancellationToken cancellationToken)
     {
         var expediente = new ExpedienteGdebaDto(
             numeroGdebaCompleto.Valor,
@@ -19,6 +23,7 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     public Task<GdebaExpedienteDetalladoDto?> ConsultarExpedienteDetalladoAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
         var expediente = new GdebaExpedienteDetalladoDto(
@@ -71,6 +76,7 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     public Task<GdebaHistorialExpedienteDto?> BuscarHistorialPasesExpedienteAsync(
         NumeroGdebaCompleto numeroGdebaCompleto,
+        ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
         IReadOnlyCollection<GdebaMovimientoExpedienteDto> movimientos = new[]

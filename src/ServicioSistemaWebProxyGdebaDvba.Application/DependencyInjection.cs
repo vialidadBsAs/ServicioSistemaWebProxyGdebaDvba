@@ -1,11 +1,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
-using ServicioSistemaWebProxyGdebaDvba.Application.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.ReadStores;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Services;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application;
 
@@ -16,6 +19,8 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
+        services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
+        services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
@@ -25,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
+        services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
+        services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

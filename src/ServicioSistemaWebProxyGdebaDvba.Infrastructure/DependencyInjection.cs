@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Security;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
-using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Security;
+using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Transversales.Seguridad;
 using URF.Core.Abstractions;
 using URF.Core.Abstractions.Trackable;
 using URF.Core.EF;
@@ -24,7 +24,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ICurrentApplicationAccessor, CurrentApplicationAccessor>();
 
-        var connectionString = configuration.GetConnectionString("ProxyGdeba");
+        var connectionString = configuration.GetConnectionString("ProxyGdeba_LocalDb");
         if (!string.IsNullOrWhiteSpace(connectionString))
         {
             services.AddDbContext<ProxyGdebaDbContext>(options => options.UseSqlServer(connectionString));
