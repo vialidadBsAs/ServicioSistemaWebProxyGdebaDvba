@@ -309,6 +309,20 @@ expedientes ya persistidos. No ejecuta sincronizacion, no consulta GDEBA y no
 consume cuota. Devuelve totales agrupados por trata y acepta filtros opcionales
 por `codigoTrata`, `fechaDesde`, `fechaHasta` y `estado`.
 
+El flujo conceptual de estadisticas es:
+
+```text
+Request HTTP
+  -> EstadisticasController
+  -> IEstadisticasService
+  -> EstadisticasService
+  -> IEstadisticasReadStore
+  -> EstadisticasReadStore
+  -> URF SelectSqlAsync
+  -> dbo.fn_EstadisticaExpedientesPorTrata
+  -> Response HTTP
+```
+
 El flujo conceptual es:
 
 ```text
@@ -1088,6 +1102,71 @@ En esta primera version se consideran aggregate roots:
 No se crean clases independientes llamadas `ExpedienteAggregateRoot` ni se reorganiza el directorio `Entities`. El aggregate root es la propia entidad principal.
 
 En Application, las operaciones de expediente se exponen mediante un unico `IExpedienteService`. Esto evita replicar la granularidad de los metodos SOAP en clases de caso de uso separadas y mantiene un unico punto de entrada funcional para consultas de expediente, detalle, historial y futuras sincronizaciones por trata.
+
+### 15.3 Estadisticas Locales
+
+El modulo de estadisticas se modela como una capacidad general, no como una
+operacion propia de expedientes ni de tratas. La primera estadistica implementada
+es `ObtenerTotalesExpedientesPorTrataAsync`, que devuelve totales de expedientes
+agrupados por trata.
+
+Componentes iniciales:
+
+- `EstadisticasController`: expone el endpoint HTTP.
+- `IEstadisticasService` y `EstadisticasService`: caso de uso de Application.
+- `IEstadisticasReadStore` y `EstadisticasReadStore`: lectura local mediante
+  URF.
+- `EstadisticaExpedientesPorTrataReadModel`: modelo tecnico de lectura.
+- `dbo.fn_EstadisticaExpedientesPorTrata`: funcion SQL Server que calcula el
+  agregado.
+
+El endpoint inicial es:
+
+```http
+GET /api/gdeba/estadisticas/expedientes-por-trata
+```
+
+Los filtros son opcionales:
+
+```http
+GET /api/gdeba/estadisticas/expedientes-por-trata?codigoTrata=...&fechaDesde=YYYY-MM-DD&fechaHasta=YYYY-MM-DD&estado=...
+```
+
+Reglas de filtros:
+
+- Si `codigoTrata` no se informa, se incluyen todas las tratas.
+- Si `fechaDesde` no se informa, no se aplica limite inferior.
+- Si `fechaHasta` no se informa, no se aplica limite superior.
+- Si `estado` no se informa, se incluyen todos los estados.
+- `fechaHasta` se transforma en limite exclusivo del dia siguiente para incluir
+  todo el dia solicitado sin aplicar funciones sobre la columna
+  `FechaCaratulacion`.
+
+La consulta agregada se resuelve en SQL Server mediante:
+
+```sql
+dbo.fn_EstadisticaExpedientesPorTrata(
+    @CodigoTrata,
+    @FechaDesde,
+    @FechaHastaExclusiva,
+    @Estado)
+```
+
+Esta funcion se crea por migracion EF Core y no representa una tabla funcional
+del dominio. Su resultado se mapea con un read model keyless configurado con
+`HasNoKey()` y `ToView(null)`, para que URF pueda ejecutar la lectura mediante
+`SelectSqlAsync` sin materializar expedientes.
+
+La construccion de parametros se realiza desde Application con valores
+posiblemente nulos. No se concatena SQL con valores de entrada del usuario. Si un
+filtro no viene informado, se envia `DBNull.Value` para que la funcion aplique
+la regla `@Parametro IS NULL OR ...`.
+
+El manejo de errores tecnicos de la consulta pertenece al read store. Ante una
+falla de SQL Server, URF, permisos, timeout o ausencia de la funcion, el read
+store registra el error y lanza una `InvalidOperationException` con mensaje
+funcional. Las cancelaciones se propagan mediante `OperationCanceledException`
+sin registrarse como error.
 
 Pendiente:
 
