@@ -298,10 +298,16 @@ GET /api/gdeba/expedientes/{numeroExpediente}/completo
 GET /api/gdeba/expedientes/{numeroExpediente}/detalle
 GET /api/gdeba/expedientes/{numeroExpediente}/movimientos
 GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
+GET /api/gdeba/estadisticas/expedientes-por-trata
 GET /api/gdeba/cuotas?fecha=YYYY-MM-DD
 ```
 
 El endpoint `/sin-cache` es una consulta directa contra GDEBA y no representa la consulta funcional normal del proxy con politica de cache.
+
+El endpoint de estadisticas de expedientes por trata es una lectura local sobre
+expedientes ya persistidos. No ejecuta sincronizacion, no consulta GDEBA y no
+consume cuota. Devuelve totales agrupados por trata y acepta filtros opcionales
+por `codigoTrata`, `fechaDesde`, `fechaHasta` y `estado`.
 
 El flujo conceptual es:
 

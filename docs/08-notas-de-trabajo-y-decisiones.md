@@ -334,7 +334,23 @@ No duplicar entidades de historial y movimiento si representan el mismo hecho.
 
 No guardar binarios documentales en la base salvo que exista una decision explicita posterior que justifique ese cambio.
 
-## 22. Pendientes tecnicos
+## 22. Estadisticas de expedientes por trata
+
+Se agrego una primera lectura local de estadisticas sobre expedientes cacheados.
+La operacion inicial devuelve totales por trata y acepta filtros opcionales por
+trata, periodo de fecha de caratulacion y estado. Esta funcionalidad no
+reemplaza la futura sincronizacion por `buscarDatosExpedientePorCodigosTrata`:
+solo expone el estado actual de la base local.
+
+Endpoint inicial:
+
+- `GET /api/gdeba/estadisticas/expedientes-por-trata`
+
+La consulta agregada se resuelve en SQL Server mediante la funcion
+`dbo.fn_EstadisticaExpedientesPorTrata`, invocada desde Application a traves de
+URF con parametros. No se materializan expedientes para calcular los totales.
+
+## 23. Pendientes tecnicos
 
 Quedan pendientes para siguientes iteraciones:
 

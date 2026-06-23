@@ -1,4 +1,5 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
@@ -23,6 +24,9 @@ public sealed class ProxyGdebaDbContext : DbContext
     public DbSet<Expediente> Expedientes => Set<Expediente>();
 
     public DbSet<ExpedienteCacheControl> ExpedienteCacheControls => Set<ExpedienteCacheControl>();
+
+    public DbSet<EstadisticaExpedientesPorTrataReadModel> EstadisticasExpedientesPorTrata =>
+        Set<EstadisticaExpedientesPorTrataReadModel>();
 
     public DbSet<ExpedienteDocumento> ExpedienteDocumentos => Set<ExpedienteDocumento>();
 

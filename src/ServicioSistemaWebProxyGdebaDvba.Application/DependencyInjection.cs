@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.ReadStores;
+using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.ReadStores;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
@@ -19,6 +22,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IDocumentoMetadataEnrichmentService, DocumentoMetadataEnrichmentService>();
+        services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
+        services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
@@ -31,6 +36,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDocumentoMetadataEnrichmentService, DocumentoMetadataEnrichmentService>();
+        services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
+        services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
