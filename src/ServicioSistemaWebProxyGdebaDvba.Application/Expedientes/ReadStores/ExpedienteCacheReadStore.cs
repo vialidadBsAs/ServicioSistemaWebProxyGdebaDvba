@@ -8,13 +8,13 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
 {
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
-    private readonly IRepository<TrataGdeba> _trataRepository;
+    private readonly IRepository<TrataHabilitadaVialidad> _trataRepository;
     private readonly IRepository<MovimientoExpediente> _movimientoRepository;
     private readonly IRepository<ExpedienteDocumento> _expedienteDocumentoRepository;
     private readonly IRepository<ExpedienteRelacion> _expedienteRelacionRepository;
     private readonly IRepository<ArchivoAdjuntoExpediente> _archivoAdjuntoRepository;
 
-    public ExpedienteCacheReadStore( IRepository<Expediente> expedienteRepository, IRepository<DocumentoGdeba> documentoRepository, IRepository<TrataGdeba> trataRepository,
+    public ExpedienteCacheReadStore( IRepository<Expediente> expedienteRepository, IRepository<DocumentoGdeba> documentoRepository, IRepository<TrataHabilitadaVialidad> trataRepository,
         IRepository<MovimientoExpediente> movimientoRepository, IRepository<ExpedienteDocumento> expedienteDocumentoRepository, IRepository<ExpedienteRelacion> expedienteRelacionRepository,
         IRepository<ArchivoAdjuntoExpediente> archivoAdjuntoRepository)
     {
@@ -69,13 +69,22 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
         return expediente;
     }
 
-    public async Task<TrataGdeba?> BuscarTrataPorCodigoAsync(
+    public async Task<TrataHabilitadaVialidad?> BuscarTrataPorCodigoAsync(
         string codigo,
+        string? codigoReparticion,
         CancellationToken cancellationToken)
     {
-        return await _trataRepository
+        var codigoNormalizado = codigo.Trim();
+        var reparticionNormalizada = string.IsNullOrWhiteSpace(codigoReparticion)
+            ? null
+            : codigoReparticion.Trim();
+        var tratas = await _trataRepository
             .Query()
-            .FirstOrDefaultAsync(x => x.Codigo == codigo, cancellationToken);
+            .Where(x => x.CodigoTrata == codigoNormalizado)
+            .SelectAsync(cancellationToken);
+
+        return tratas.FirstOrDefault(x => string.Equals(x.CodigoReparticion, reparticionNormalizada, StringComparison.OrdinalIgnoreCase))
+            ?? tratas.FirstOrDefault();
     }
 
     public async Task<IReadOnlyDictionary<string, DocumentoGdeba>> BuscarDocumentosPorNumeroActuacionAsync(

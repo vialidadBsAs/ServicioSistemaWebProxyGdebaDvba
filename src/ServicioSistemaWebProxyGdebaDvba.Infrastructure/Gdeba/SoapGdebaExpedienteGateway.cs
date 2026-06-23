@@ -153,6 +153,44 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
             relaciones);
     }
 
+    public async Task<IReadOnlyCollection<GdebaExpedientePorTrataDto>> BuscarDatosExpedientePorCodigosTrataAsync(
+        string codigoTrata,
+        string estadoDestino,
+        string? usuario,
+        ContextoInvocacionGdeba contextoInvocacion,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(estadoDestino))
+        {
+            throw new ArgumentException("El estado destino es requerido para buscar expedientes por trata.", nameof(estadoDestino));
+        }
+
+        var contractOptions = this.ResolveSoapContractOptions();
+        var serviceContractOptions = SoapGdebaExpedienteGateway.ResolveConsultaExpedienteServiceContractOptions(contractOptions);
+        var serviceOptions = this.ResolveConsultaExpedienteServiceOptions();
+        var operationName = "buscarDatosExpedientePorCodigosTrata";
+        var envelope = SoapGdebaExpedienteGateway.BuildBuscarDatosExpedientePorCodigosTrataEnvelope(
+            contractOptions,
+            serviceContractOptions,
+            operationName,
+            codigoTrata,
+            estadoDestino,
+            usuario);
+
+        var document = await this.SendSoapAsync(
+            serviceOptions,
+            SoapGdebaExpedienteGateway.ResolveSoapOperationContractOptions(serviceContractOptions, operationName),
+            operationName,
+            envelope,
+            contextoInvocacion,
+            cancellationToken);
+
+        var response = SoapGdebaExpedienteGateway.FindFirstElement(document, "response");
+        return response is null
+            ? Array.Empty<GdebaExpedientePorTrataDto>()
+            : SoapGdebaExpedienteGateway.MapExpedientesPorTrata(response);
+    }
+
     private async Task<XDocument> SendSoapAsync(
         SoapServiceOptions serviceOptions,
         GdebaSoapOperationContractOptions? operationContractOptions,
@@ -346,6 +384,49 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
                 </Body>
             </Envelope>
             """;
+    }
+
+    private static string BuildBuscarDatosExpedientePorCodigosTrataEnvelope(
+        GdebaSoapContractsOptions contractOptions,
+        GdebaSoapServiceContractOptions serviceContractOptions,
+        string operationName,
+        string codigoTrata,
+        string estadoDestino,
+        string? usuario)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine($"""<Envelope xmlns="{contractOptions.EnvelopeNamespace}">""");
+        builder.AppendLine("    <Body>");
+        builder.AppendLine($"""        <{operationName} xmlns="{serviceContractOptions.Namespace}">""");
+        builder.AppendLine($"""            <codigosTrata xmlns="">{SoapGdebaExpedienteGateway.EscapeXml(codigoTrata.Trim())}</codigosTrata>""");
+        builder.AppendLine($"""            <estadoDestino xmlns="">{SoapGdebaExpedienteGateway.EscapeXml(estadoDestino.Trim())}</estadoDestino>""");
+
+        if (!string.IsNullOrWhiteSpace(usuario))
+        {
+            builder.AppendLine($"""            <usuario xmlns="">{SoapGdebaExpedienteGateway.EscapeXml(usuario.Trim())}</usuario>""");
+        }
+
+        builder.AppendLine($"""        </{operationName}>""");
+        builder.AppendLine("    </Body>");
+        builder.AppendLine("</Envelope>");
+        return builder.ToString();
+    }
+
+    private static IReadOnlyCollection<GdebaExpedientePorTrataDto> MapExpedientesPorTrata(XElement response)
+    {
+        return response
+            .Descendants()
+            .Where(x => SoapGdebaExpedienteGateway.IsElement(x, "datosTarea"))
+            .Select(x => new GdebaExpedientePorTrataDto(
+                SoapGdebaExpedienteGateway.GetValue(x, "numeroExpediente") ?? string.Empty,
+                SoapGdebaExpedienteGateway.GetValue(x, "codigoTrata"),
+                SoapGdebaExpedienteGateway.GetValue(x, "descripcionTrata"),
+                SoapGdebaExpedienteGateway.GetValue(x, "estado"),
+                SoapGdebaExpedienteGateway.ParseDate(SoapGdebaExpedienteGateway.GetValue(x, "fechaModificacion")),
+                SoapGdebaExpedienteGateway.GetValue(x, "motivo"),
+                SoapGdebaExpedienteGateway.GetValue(x, "usuarioAnterior")))
+            .Where(x => !string.IsNullOrWhiteSpace(x.NumeroExpediente))
+            .ToArray();
     }
 
     private static IReadOnlyCollection<GdebaDocumentoExpedienteDto> MapDocumentosDetalle(XElement response)

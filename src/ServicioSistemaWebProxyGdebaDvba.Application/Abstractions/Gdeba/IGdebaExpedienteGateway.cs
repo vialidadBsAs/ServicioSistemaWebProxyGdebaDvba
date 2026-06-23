@@ -20,4 +20,11 @@ public interface IGdebaExpedienteGateway
         NumeroGdebaCompleto numeroGdebaCompleto,
         ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyCollection<GdebaExpedientePorTrataDto>> BuscarDatosExpedientePorCodigosTrataAsync(
+        string codigoTrata,
+        string estadoDestino,
+        string? usuario,
+        ContextoInvocacionGdeba contextoInvocacion,
+        CancellationToken cancellationToken);
 }

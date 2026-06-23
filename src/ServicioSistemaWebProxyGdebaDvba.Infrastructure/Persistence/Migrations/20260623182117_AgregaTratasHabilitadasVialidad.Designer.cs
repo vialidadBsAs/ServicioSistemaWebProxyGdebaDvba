@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProxyGdebaDbContext))]
-    partial class ProxyGdebaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260623182117_AgregaTratasHabilitadasVialidad")]
+    partial class AgregaTratasHabilitadasVialidad
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1037,10 +1040,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AcronimoGedo")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<bool?>("CaratulaVariable")
                         .HasColumnType("bit");
 
@@ -1063,17 +1062,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<bool?>("EsAutomatica")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("EsTrataManual")
-                        .HasColumnType("bit");
-
                     b.Property<string>("EstadoTrata")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("IdTrataGdeba")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -1094,17 +1083,8 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Property<bool?>("ReservaTotal")
                         .HasColumnType("bit");
 
-                    b.Property<string>("TipoReservaDescripcion")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("TipoReservaDescripcionTipoReserva")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("TipoReservaId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<Guid?>("TrataId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -1114,7 +1094,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CodigoTrata");
 
-                    b.HasIndex("IdTrataGdeba");
+                    b.HasIndex("TrataId");
 
                     b.HasIndex("CodigoTrata", "CodigoOrganismo", "CodigoReparticion")
                         .IsUnique();
@@ -1167,7 +1147,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Expediente", b =>
                 {
-                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", "Trata")
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataGdeba", "Trata")
                         .WithMany("Expedientes")
                         .HasForeignKey("TrataId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1287,11 +1267,21 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataCacheControl", b =>
                 {
-                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", "Trata")
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataGdeba", "Trata")
                         .WithOne("CacheControl")
                         .HasForeignKey("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataCacheControl", "TrataId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Trata");
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", b =>
+                {
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataGdeba", "Trata")
+                        .WithMany()
+                        .HasForeignKey("TrataId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Trata");
                 });
@@ -1332,7 +1322,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("Invocaciones");
                 });
 
-            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", b =>
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataGdeba", b =>
                 {
                     b.Navigation("CacheControl");
 

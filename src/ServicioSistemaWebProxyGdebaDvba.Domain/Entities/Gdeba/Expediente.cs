@@ -34,7 +34,7 @@ public sealed partial class Expediente : DomainEntity
 
     public Guid? TrataId { get; private set; }
 
-    public TrataGdeba? Trata { get; private set; }
+    public TrataHabilitadaVialidad? Trata { get; private set; }
 
     public string? EstadoActual { get; private set; }
 

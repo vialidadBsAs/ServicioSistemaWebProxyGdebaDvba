@@ -8,8 +8,9 @@ public interface IExpedienteCacheReadStore
         string numeroGdebaCompleto,
         CancellationToken cancellationToken);
 
-    Task<TrataGdeba?> BuscarTrataPorCodigoAsync(
+    Task<TrataHabilitadaVialidad?> BuscarTrataPorCodigoAsync(
         string codigo,
+        string? codigoReparticion,
         CancellationToken cancellationToken);
 
     Task<IReadOnlyDictionary<string, DocumentoGdeba>> BuscarDocumentosPorNumeroActuacionAsync(

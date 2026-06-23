@@ -48,6 +48,8 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<TrataGdeba> Tratas => Set<TrataGdeba>();
 
+    public DbSet<TrataHabilitadaVialidad> TratasHabilitadasVialidad => Set<TrataHabilitadaVialidad>();
+
     public DbSet<TrataCacheControl> TrataCacheControls => Set<TrataCacheControl>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

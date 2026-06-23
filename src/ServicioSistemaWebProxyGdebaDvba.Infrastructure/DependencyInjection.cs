@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
@@ -24,7 +24,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ICurrentApplicationAccessor, CurrentApplicationAccessor>();
 
-        var connectionString = configuration.GetConnectionString("ProxyGdeba_LocalDb");
+        var connectionString = configuration.GetConnectionString("ProxyGdeba");
         if (!string.IsNullOrWhiteSpace(connectionString))
         {
             services.AddDbContext<ProxyGdebaDbContext>(options => options.UseSqlServer(connectionString));

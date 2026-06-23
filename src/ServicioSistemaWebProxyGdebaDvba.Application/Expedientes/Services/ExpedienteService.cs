@@ -36,7 +36,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IAuditoriaService _auditoriaService;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
-    private readonly ITrackableRepository<TrataGdeba> _trataRepository;
+    private readonly ITrackableRepository<TrataHabilitadaVialidad> _trataRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
@@ -44,7 +44,7 @@ public sealed class ExpedienteService : IExpedienteService
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor, 
                               ITrackableRepository<Expediente> expedienteRepository,
-                              ITrackableRepository<TrataGdeba> trataRepository, 
+                              ITrackableRepository<TrataHabilitadaVialidad> trataRepository, 
                               ITrackableRepository<DocumentoGdeba> documentoRepository, 
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
     {
@@ -416,7 +416,7 @@ public sealed class ExpedienteService : IExpedienteService
         var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
         var expedienteEsNuevo = expediente is null;
         expediente ??= this.CrearExpediente(numeroGdebaCompleto);
-        var trata = await this.ResolverTrataAsync(detalle.CodigoTrata, detalle.DescripcionTrata, cancellationToken);
+        var trata = await this.ResolverTrataAsync(detalle.CodigoTrata, detalle.DescripcionTrata, numeroGdebaCompleto.Reparticion, cancellationToken);
         var documentos = await this.ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
 
         ExpedienteService.ConsolidarCabecera(expediente, detalle, trata?.Id);
@@ -639,9 +639,10 @@ public sealed class ExpedienteService : IExpedienteService
     /// <param name="codigoTrata">Codigo de trata informado en la respuesta externa.</param>
     /// <param name="descripcionTrata">Descripcion de la trata informada en la respuesta externa.</param>
     /// <returns>Entidad de trata local cuando el codigo esta informado; en caso contrario, null.</returns>
-    private async Task<TrataGdeba?> ResolverTrataAsync(
+    private async Task<TrataHabilitadaVialidad?> ResolverTrataAsync(
         string? codigoTrata,
         string? descripcionTrata,
+        string? codigoReparticion,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(codigoTrata))
@@ -650,12 +651,13 @@ public sealed class ExpedienteService : IExpedienteService
         }
 
         var codigo = codigoTrata.Trim();
-        var trata = await _expedienteCacheReadStore.BuscarTrataPorCodigoAsync(codigo, cancellationToken);
+        var reparticion = string.IsNullOrWhiteSpace(codigoReparticion) ? "DVMIYSPGP" : codigoReparticion.Trim();
+        var trata = await _expedienteCacheReadStore.BuscarTrataPorCodigoAsync(codigo, reparticion, cancellationToken);
         var trataEsNueva = trata is null;
-        trata ??= new TrataGdeba(codigo);
+        trata ??= new TrataHabilitadaVialidad(codigo, codigoOrganismo: "DVMIYSPGP", codigoReparticion: reparticion);
 
-        trata.ActualizarDatos(
-            descripcionTrata, acronimoGedo: null, esAutomatica: null, esTrataManual: null, estado: null, idTrataGdeba: null, tipoReservaDescripcion: null, tipoReservaId: null, tipoReservaDescripcionTipoReserva: null);
+        trata.ActualizarDatosGdeba(
+            descripcionTrata, acronimoGedo: null, esAutomatica: null, esTrataManual: null, estadoTrata: null, idTrataGdeba: null, tipoReservaDescripcion: null, tipoReservaId: null, tipoReservaDescripcionTipoReserva: null);
 
         if (trataEsNueva)
         {
@@ -734,7 +736,7 @@ public sealed class ExpedienteService : IExpedienteService
     private static ExpedienteDetalladoDto Mapear(Expediente expediente)
     {
         return new ExpedienteDetalladoDto(
-            expediente.GdebaNumeroCompleto, expediente.Trata?.Codigo, expediente.Trata?.Descripcion, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, expediente.Documentos.OrderByDescending(x => x.OrdenRespuesta ?? 0).ThenByDescending(x => x.FechaVinculacion ?? x.Documento.FechaCreacion ?? DateTimeOffset.MinValue).ThenByDescending(x => x.Documento.NumeroActuacionCompleto).Select(x => new DocumentoExpedienteDto(x.Documento.NumeroActuacionCompleto, x.Documento.TipoDocumentoCodigo, x.Documento.Referencia, x.Documento.FechaCreacion, x.FechaVinculacion, x.UsuarioAsociacion, x.UsuarioGenerador, x.OrdenRespuesta)).ToArray(), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado, x.FechaRelacion, x.UsuarioRelacion)).ToArray());
+            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, expediente.Documentos.OrderByDescending(x => x.OrdenRespuesta ?? 0).ThenByDescending(x => x.FechaVinculacion ?? x.Documento.FechaCreacion ?? DateTimeOffset.MinValue).ThenByDescending(x => x.Documento.NumeroActuacionCompleto).Select(x => new DocumentoExpedienteDto(x.Documento.NumeroActuacionCompleto, x.Documento.TipoDocumentoCodigo, x.Documento.Referencia, x.Documento.FechaCreacion, x.FechaVinculacion, x.UsuarioAsociacion, x.UsuarioGenerador, x.OrdenRespuesta)).ToArray(), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado, x.FechaRelacion, x.UsuarioRelacion)).ToArray());
     }
 
     /// <summary>

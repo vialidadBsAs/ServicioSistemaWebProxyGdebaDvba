@@ -83,12 +83,15 @@ Ejemplos actuales:
 - `ExpedienteDocumento`
 - `TipoDocumentoGdeba`
 - `TrataGdeba`
+- `TrataHabilitadaVialidad`
 
 `Expediente` representa la definicion local de un expediente GDEBA con sus datos propios. No es reemplazado por un value object: el value object solo modela el numero compuesto.
 
 `MovimientoExpediente` representa el historial/pase del expediente. No existe una entidad separada llamada historial para guardar los mismos datos, porque el historial esta compuesto por movimientos.
 
-`TrataGdeba` representa el catalogo de tratas informado por GDEBA. La descripcion de la trata no debe duplicarse innecesariamente en cada ocurrencia de expediente cuando puede relacionarse con una entidad de catalogo.
+`TrataGdeba` representa el catalogo amplio de tratas informado por GDEBA, pero no es la referencia principal para el cache local de expedientes viales.
+
+`TrataHabilitadaVialidad` representa la trata operativa del sistema local. Incluye organismo, reparticion, permisos de caratulacion o reserva y los campos devueltos por `buscarTratasPorCodigo`: acronimo GEDO, estado, identificador interno `idTrata`, caracteristicas automaticas/manuales y tipo de reserva. Los expedientes cacheados se relacionan con esta entidad.
 
 `DocumentoArchivoLocal` representa la ubicacion y metadatos del archivo guardado local o externamente. La base no guarda el binario del PDF/Word; guarda referencias, tipo de archivo, hash, longitud y fechas de descarga/verificacion.
 

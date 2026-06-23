@@ -145,4 +145,26 @@ public sealed class FakeGdebaExpedienteGateway : IGdebaExpedienteGateway
 
         return Task.FromResult<GdebaHistorialExpedienteDto?>(historial);
     }
+
+    public Task<IReadOnlyCollection<GdebaExpedientePorTrataDto>> BuscarDatosExpedientePorCodigosTrataAsync(
+        string codigoTrata,
+        string estadoDestino,
+        string? usuario,
+        ContextoInvocacionGdeba contextoInvocacion,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyCollection<GdebaExpedientePorTrataDto> expedientes = new[]
+        {
+            new GdebaExpedientePorTrataDto(
+                "EX-2020-14232989-GDEBA-DVMIYSPGP",
+                codigoTrata,
+                "Licitacion de Obra Fake",
+                estadoDestino,
+                new DateTimeOffset(2025, 6, 20, 10, 30, 0, TimeSpan.FromHours(-3)),
+                "Pase a seguimiento",
+                usuario)
+        };
+
+        return Task.FromResult(expedientes);
+    }
 }

@@ -4,8 +4,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
 public sealed class TrataGdeba : DomainEntity
 {
-    private readonly List<Expediente> _expedientes = new();
-
     private TrataGdeba()
     {
     }
@@ -36,10 +34,6 @@ public sealed class TrataGdeba : DomainEntity
     public string? TipoReservaId { get; private set; }
 
     public string? TipoReservaDescripcionTipoReserva { get; private set; }
-
-    public TrataCacheControl? CacheControl { get; private set; }
-
-    public IReadOnlyCollection<Expediente> Expedientes => _expedientes;
 
     public void ActualizarDatos(
         string? descripcion,

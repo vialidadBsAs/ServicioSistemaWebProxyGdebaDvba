@@ -19,7 +19,7 @@ public sealed class TrataCacheControl : DomainEntity
 
     public Guid TrataId { get; private set; }
 
-    public TrataGdeba Trata { get; private set; } = null!;
+    public TrataHabilitadaVialidad Trata { get; private set; } = null!;
 
     public DateTimeOffset FechaPrimeraDeteccion { get; private set; }
 
