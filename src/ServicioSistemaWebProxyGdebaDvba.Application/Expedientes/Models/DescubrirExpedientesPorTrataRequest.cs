@@ -2,7 +2,6 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
-public sealed record IncorporarExpedientesPorTrataRequest(
+public sealed record DescubrirExpedientesPorTrataRequest(
     string CodigoTrata,
-    string EstadoDestino,
     OrigenInvocacionGdeba OrigenInvocacion = OrigenInvocacionGdeba.Administrativo);

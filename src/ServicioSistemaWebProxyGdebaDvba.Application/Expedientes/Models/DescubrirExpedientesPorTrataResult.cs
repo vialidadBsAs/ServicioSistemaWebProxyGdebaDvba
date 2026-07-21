@@ -1,9 +1,9 @@
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
-public sealed record IncorporarExpedientesPorTrataResult(
+public sealed record DescubrirExpedientesPorTrataResult(
     string CodigoTrata,
-    string EstadoDestino,
     DateTimeOffset ResolvedAt,
+    IReadOnlyCollection<IncorporarExpedientesPorTrataResult> Estados,
     int RecibidosGdeba,
     int Habilitados,
     int Descartados,

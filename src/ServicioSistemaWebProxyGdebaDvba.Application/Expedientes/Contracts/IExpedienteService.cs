@@ -48,4 +48,8 @@ public interface IExpedienteService
     Task<IncorporarExpedientesPorTrataResult> IncorporarExpedientesPorTrataAsync(
         IncorporarExpedientesPorTrataRequest request,
         CancellationToken cancellationToken);
+
+    Task<DescubrirExpedientesPorTrataResult> DescubrirExpedientesPorTrataAsync(
+        DescubrirExpedientesPorTrataRequest request,
+        CancellationToken cancellationToken);
 }

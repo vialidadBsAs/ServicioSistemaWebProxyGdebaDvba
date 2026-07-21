@@ -141,4 +141,15 @@ public sealed class ExpedientesController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("por-trata/descubrir")]
+    public async Task<ActionResult<DescubrirExpedientesPorTrataResult>> DescubrirPorTrata(
+        [FromQuery] string codigoTrata,
+        CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.DescubrirExpedientesPorTrataAsync(
+            new DescubrirExpedientesPorTrataRequest(codigoTrata), cancellationToken);
+
+        return Ok(result);
+    }
 }

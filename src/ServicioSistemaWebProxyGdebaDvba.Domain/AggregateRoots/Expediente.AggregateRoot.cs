@@ -6,11 +6,22 @@ namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
 public sealed partial class Expediente : IAggregateRoot
 {
-    public void AplicarDatosDescubiertosPorTrata(Guid trataId, string? estadoActual)
+    public bool AplicarDatosDescubiertosPorTrata(Guid trataId, string? estadoActual)
     {
+        var estadoNormalizado = Normalizar(estadoActual);
+        var trataCambio = TrataId != trataId;
+        var estadoCambio = estadoNormalizado is not null &&
+            !string.Equals(EstadoActual, estadoNormalizado, StringComparison.Ordinal);
+
+        if (!trataCambio && !estadoCambio)
+        {
+            return false;
+        }
+
         MarcarComoModificada();
         TrataId = trataId;
-        EstadoActual = string.IsNullOrWhiteSpace(estadoActual) ? EstadoActual : estadoActual.Trim();
+        EstadoActual = estadoNormalizado ?? EstadoActual;
+        return true;
     }
 
     public void AplicarCabeceraDetallada(

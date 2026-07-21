@@ -1135,6 +1135,20 @@ La carga local puntual que alimenta esta estadistica se expone separadamente:
 POST /api/gdeba/expedientes/por-trata?codigoTrata=COMP0027&estadoDestino=Tramitación
 ```
 
+La operacion completa de descubrimiento de una trata se expone por separado:
+
+```http
+POST /api/gdeba/expedientes/por-trata/descubrir?codigoTrata=COMP0027
+```
+
+`DescubrirExpedientesPorTrataAsync` consulta `EstadosExpedienteGdeba` y ejecuta
+una incorporacion independiente por cada estado habilitado, en orden de
+prioridad. La tabla es un catalogo configurable: comienza con los estados
+verificados `Iniciación`, `Tramitación`, `Comunicación`, `Guarda Temporal`,
+`Ejecución` y `Pendiente Iniciación`, pero admite incorporar los demas estados
+GDEBA sin cambios de codigo. `Expediente.EstadoActual` conserva el texto
+externo efectivamente recibido y no se reemplaza por una clave foranea.
+
 La operacion interna `IncorporarExpedientesPorTrataAsync` invoca una sola vez
 `buscarDatosExpedientePorCodigosTrata`, obtiene los codigos de reparticion
 distintos de `TratasHabilitadasVialidad` y conserva solo los expedientes cuyo
@@ -1143,6 +1157,9 @@ solo como fuente local de autorizacion: no se crea ni se actualiza durante la
 operacion. La incorporacion actualiza solamente la asociacion de trata y el
 estado actual del expediente; no marca detalle ni historial como frescos,
 porque esa respuesta no contiene su informacion completa.
+Para un expediente existente solo se registra una actualizacion si cambio la
+trata asignada o el estado recibido; los existentes sin diferencias se
+informan como `SinCambios` y no se escriben nuevamente.
 
 Los filtros son opcionales:
 

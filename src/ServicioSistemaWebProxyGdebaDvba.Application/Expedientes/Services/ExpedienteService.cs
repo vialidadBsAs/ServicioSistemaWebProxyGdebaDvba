@@ -25,6 +25,7 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionConsultarMovimientos = "ConsultarMovimientos";
     private const string OperacionConsultarSinCache = "ConsultarSinCache";
     private const string OperacionIncorporarExpedientesPorTrata = "IncorporarExpedientesPorTrata";
+    private const string OperacionDescubrirExpedientesPorTrata = "DescubrirExpedientesPorTrata";
     private const string OperacionObtenerCabecera = "ObtenerCabecera";
     private const string OperacionObtenerDocumentos = "ObtenerDocumentos";
     private const string OperacionObtenerAdjuntos = "ObtenerAdjuntos";
@@ -38,6 +39,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IAuditoriaService _auditoriaService;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
+    private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
@@ -45,6 +47,7 @@ public sealed class ExpedienteService : IExpedienteService
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor, 
                               ITrackableRepository<Expediente> expedienteRepository,
+                              IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
                               ITrackableRepository<DocumentoGdeba> documentoRepository, 
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
     {
@@ -54,6 +57,7 @@ public sealed class ExpedienteService : IExpedienteService
         _auditoriaService = auditoriaService;
         _currentApplicationAccessor = currentApplicationAccessor;
         _expedienteRepository = expedienteRepository;
+        _estadoExpedienteGdebaRepository = estadoExpedienteGdebaRepository;
         _documentoRepository = documentoRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -502,7 +506,7 @@ public sealed class ExpedienteService : IExpedienteService
         {
             datosGdeba = await _gdebaExpedienteGateway.BuscarDatosExpedientePorCodigosTrataAsync(
                 codigoTrata, estadoDestino, usuario: null,
-                ContextoInvocacionGdeba.Crear(OrigenInvocacionGdeba.Administrativo), cancellationToken);
+                ContextoInvocacionGdeba.Crear(request.OrigenInvocacion), cancellationToken);
         }
         catch (GdebaOperationException ex)
         {
@@ -545,32 +549,79 @@ public sealed class ExpedienteService : IExpedienteService
             expedientesDetectados.Select(x => x.Numero.Valor), cancellationToken);
         var creados = 0;
         var actualizados = 0;
+        var sinCambios = 0;
 
         foreach (var (numero, datos) in expedientesDetectados)
         {
             var expedienteEsNuevo = !expedientesLocales.TryGetValue(numero.Valor, out var expediente);
             expediente ??= this.CrearExpediente(numero);
-            expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
-            this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+            var datosCambiaron = expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
+
+            if (expedienteEsNuevo || datosCambiaron)
+            {
+                this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+            }
 
             if (expedienteEsNuevo)
             {
                 creados++;
             }
-            else
+            else if (datosCambiaron)
             {
                 actualizados++;
+            }
+            else
+            {
+                sinCambios++;
             }
         }
 
         await this.RegistrarAuditoriaAsync(
             OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso,
             FuenteRespuesta.Gdeba, exitoso: true,
-            $"Recibidos: {datosGdeba.Count}. Incorporados: {expedientesDetectados.Count}. Descartados: {descartados}.", resolvedAt, cancellationToken);
+            $"Recibidos: {datosGdeba.Count}. Habilitados: {expedientesDetectados.Count}. Descartados: {descartados}.", resolvedAt, cancellationToken);
         await this.ConfirmarCambiosAsync(OperacionIncorporarExpedientesPorTrata, recurso, cancellationToken);
 
         return new IncorporarExpedientesPorTrataResult(
-            codigoTrata, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados, creados, actualizados);
+            codigoTrata, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados, creados, actualizados, sinCambios);
+    }
+
+    public async Task<DescubrirExpedientesPorTrataResult> DescubrirExpedientesPorTrataAsync(
+        DescubrirExpedientesPorTrataRequest request,
+        CancellationToken cancellationToken)
+    {
+        var codigoTrata = ExpedienteService.NormalizarRequerido(request.CodigoTrata, nameof(request.CodigoTrata));
+        var estados = await _estadoExpedienteGdebaRepository
+            .Query()
+            .Where(x => x.HabilitadoParaDescubrimiento)
+            .OrderBy(x => x.PrioridadDescubrimiento)
+            .ThenBy(x => x.NombreGdeba)
+            .SelectAsync(cancellationToken);
+
+        if (!estados.Any())
+        {
+            throw new InvalidOperationException("No hay estados habilitados para el descubrimiento de expedientes.");
+        }
+
+        var resultadosPorEstado = new List<IncorporarExpedientesPorTrataResult>();
+
+        foreach (var estado in estados)
+        {
+            var resultado = await this.IncorporarExpedientesPorTrataAsync(
+                new IncorporarExpedientesPorTrataRequest(codigoTrata, estado.NombreGdeba, request.OrigenInvocacion), cancellationToken);
+            resultadosPorEstado.Add(resultado);
+        }
+
+        return new DescubrirExpedientesPorTrataResult(
+            codigoTrata,
+            DateTimeOffset.Now,
+            resultadosPorEstado,
+            resultadosPorEstado.Sum(x => x.RecibidosGdeba),
+            resultadosPorEstado.Sum(x => x.Habilitados),
+            resultadosPorEstado.Sum(x => x.Descartados),
+            resultadosPorEstado.Sum(x => x.Creados),
+            resultadosPorEstado.Sum(x => x.Actualizados),
+            resultadosPorEstado.Sum(x => x.SinCambios));
     }
 
     #endregion

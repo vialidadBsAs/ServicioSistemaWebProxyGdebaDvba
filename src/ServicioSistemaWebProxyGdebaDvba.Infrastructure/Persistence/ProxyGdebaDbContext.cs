@@ -23,6 +23,8 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<Expediente> Expedientes => Set<Expediente>();
 
+    public DbSet<EstadoExpedienteGdeba> EstadosExpedienteGdeba => Set<EstadoExpedienteGdeba>();
+
     public DbSet<ExpedienteCacheControl> ExpedienteCacheControls => Set<ExpedienteCacheControl>();
 
     public DbSet<EstadisticaExpedientesPorTrataReadModel> EstadisticasExpedientesPorTrata =>
