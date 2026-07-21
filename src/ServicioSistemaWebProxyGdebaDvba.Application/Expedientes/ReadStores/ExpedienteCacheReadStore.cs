@@ -69,6 +69,40 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
         return expediente;
     }
 
+    public async Task<IReadOnlyDictionary<string, Expediente>> CargarExpedientesPorNumeroAsync(
+        IEnumerable<string> numerosGdebaCompletos,
+        CancellationToken cancellationToken)
+    {
+        var numeros = numerosGdebaCompletos
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (numeros.Length == 0)
+        {
+            return new Dictionary<string, Expediente>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var expedientes = await _expedienteRepository
+            .Query()
+            .Where(x => numeros.Contains(x.GdebaNumeroCompleto))
+            .SelectAsync(cancellationToken);
+
+        return expedientes.ToDictionary(x => x.GdebaNumeroCompleto, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<IReadOnlySet<string>> CargarCodigosReparticionHabilitadosAsync(CancellationToken cancellationToken)
+    {
+        var tratas = await _trataRepository
+            .Query()
+            .SelectAsync(cancellationToken);
+
+        return new HashSet<string>(
+            tratas.Select(x => x.CodigoReparticion),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<TrataHabilitadaVialidad?> BuscarTrataPorCodigoAsync(
         string codigo,
         string? codigoReparticion,

@@ -18,14 +18,26 @@ public sealed class EstadisticasService : IEstadisticasService
         CancellationToken cancellationToken)
     {
         var filtro = this.CrearFiltro(request);
+        var filtrosAplicados = this.CrearFiltrosAplicados(request);
         var tratas = await _estadisticasReadStore.ConsultarTotalesExpedientesPorTrataAsync(
             filtro,
             cancellationToken);
 
         return new EstadisticaExpedientesPorTrataResult(
             DateTimeOffset.Now,
+            filtrosAplicados,
             tratas.Sum(x => x.TotalExpedientes),
             tratas);
+    }
+
+    private EstadisticaExpedientesPorTrataFiltrosAplicadosDto CrearFiltrosAplicados(
+        EstadisticaExpedientesPorTrataRequest request)
+    {
+        return new EstadisticaExpedientesPorTrataFiltrosAplicadosDto(
+            EstadisticasService.Normalizar(request.CodigoTrata),
+            request.FechaDesde,
+            request.FechaHasta,
+            EstadisticasService.Normalizar(request.Estado));
     }
 
     private EstadisticaExpedientesPorTrataFiltro CrearFiltro(

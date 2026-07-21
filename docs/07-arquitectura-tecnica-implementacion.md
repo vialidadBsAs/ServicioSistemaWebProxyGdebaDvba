@@ -1129,6 +1129,21 @@ El endpoint inicial es:
 GET /api/gdeba/estadisticas/expedientes-por-trata
 ```
 
+La carga local puntual que alimenta esta estadistica se expone separadamente:
+
+```http
+POST /api/gdeba/expedientes/por-trata?codigoTrata=COMP0027&estadoDestino=Tramitación
+```
+
+La operacion interna `IncorporarExpedientesPorTrataAsync` invoca una sola vez
+`buscarDatosExpedientePorCodigosTrata`, obtiene los codigos de reparticion
+distintos de `TratasHabilitadasVialidad` y conserva solo los expedientes cuyo
+numero GDEBA pertenece a ese conjunto. La tabla de tratas habilitadas se usa
+solo como fuente local de autorizacion: no se crea ni se actualiza durante la
+operacion. La incorporacion actualiza solamente la asociacion de trata y el
+estado actual del expediente; no marca detalle ni historial como frescos,
+porque esa respuesta no contiene su informacion completa.
+
 Los filtros son opcionales:
 
 ```http
@@ -1144,6 +1159,11 @@ Reglas de filtros:
 - `fechaHasta` se transforma en limite exclusivo del dia siguiente para incluir
   todo el dia solicitado sin aplicar funciones sobre la columna
   `FechaCaratulacion`.
+
+La respuesta informa los filtros aplicados y, para cada trata, el desglose por
+estado. El total general es la suma de las tratas devueltas y el total de cada
+trata es la suma de sus estados. No se requiere una segunda llamada para
+mostrar ambos niveles.
 
 La consulta agregada se resuelve en SQL Server mediante:
 
@@ -1174,7 +1194,7 @@ sin registrarse como error.
 Pendiente:
 
 - Completar validacion de clientes SOAP reales contra ambiente GDEBA.
-- Implementacion de `buscarDatosExpedientePorCodigosTrata`.
+- Operacion masiva o programada basada en `buscarDatosExpedientePorCodigosTrata`.
 - Migraciones EF Core y creacion efectiva de base SQL Server.
 - Servicios de lectura/escritura de cache sobre el modelo persistente.
 - Validacion real de aplicaciones consumidoras.

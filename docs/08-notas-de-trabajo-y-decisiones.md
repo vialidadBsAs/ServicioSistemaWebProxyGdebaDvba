@@ -350,6 +350,12 @@ La consulta agregada se resuelve en SQL Server mediante la funcion
 `dbo.fn_EstadisticaExpedientesPorTrata`, invocada desde Application a traves de
 URF con parametros. No se materializan expedientes para calcular los totales.
 
+Como carga puntual de esa lectura se incorporo
+`IncorporarExpedientesPorTrataAsync`. Recibe un codigo de trata y un estado
+destino, ejecuta una unica invocacion SOAP y persiste las cabeceras minimas de
+los expedientes de `DVMIYSPGP`. No es una sincronizacion masiva ni marca como
+vigentes el detalle o el historial del expediente.
+
 ## 23. Pendientes tecnicos
 
 Quedan pendientes para siguientes iteraciones:
@@ -361,7 +367,8 @@ Quedan pendientes para siguientes iteraciones:
 - Definir tabla o mecanismo para aplicaciones consumidoras habilitadas.
 - Implementar cache con politica de frescura.
 - Definir endpoints o comandos para enriquecimiento manual de un documento puntual.
-- Implementar `buscarDatosExpedientePorCodigosTrata`.
+- Definir, cuando sea necesario, una ejecucion masiva o programada de
+  `buscarDatosExpedientePorCodigosTrata`.
 - Agregar pruebas unitarias y de integracion.
 - Revisar `.gitattributes` para finales de linea.
 

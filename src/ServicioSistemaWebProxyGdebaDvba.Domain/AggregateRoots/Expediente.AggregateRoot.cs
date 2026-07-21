@@ -6,6 +6,13 @@ namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
 public sealed partial class Expediente : IAggregateRoot
 {
+    public void AplicarDatosDescubiertosPorTrata(Guid trataId, string? estadoActual)
+    {
+        MarcarComoModificada();
+        TrataId = trataId;
+        EstadoActual = string.IsNullOrWhiteSpace(estadoActual) ? EstadoActual : estadoActual.Trim();
+    }
+
     public void AplicarCabeceraDetallada(
         Guid? trataId,
         string? estadoActual,

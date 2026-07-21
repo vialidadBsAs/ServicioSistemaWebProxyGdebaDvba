@@ -44,4 +44,8 @@ public interface IExpedienteService
     Task<ConsultarExpedienteSinCacheResult> ConsultarExpedienteSinCacheAsync(
         ConsultarExpedienteSinCacheRequest request,
         CancellationToken cancellationToken);
+
+    Task<IncorporarExpedientesPorTrataResult> IncorporarExpedientesPorTrataAsync(
+        IncorporarExpedientesPorTrataRequest request,
+        CancellationToken cancellationToken);
 }

@@ -17,5 +17,8 @@ public sealed class EstadisticaExpedientesPorTrataReadModelConfiguration
 
         builder.Property(x => x.DescripcionTrata)
             .HasMaxLength(500);
+
+        builder.Property(x => x.Estado)
+            .HasMaxLength(100);
     }
 }

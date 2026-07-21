@@ -8,6 +8,13 @@ public interface IExpedienteCacheReadStore
         string numeroGdebaCompleto,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyDictionary<string, Expediente>> CargarExpedientesPorNumeroAsync(
+        IEnumerable<string> numerosGdebaCompletos,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlySet<string>> CargarCodigosReparticionHabilitadosAsync(
+        CancellationToken cancellationToken);
+
     Task<TrataHabilitadaVialidad?> BuscarTrataPorCodigoAsync(
         string codigo,
         string? codigoReparticion,

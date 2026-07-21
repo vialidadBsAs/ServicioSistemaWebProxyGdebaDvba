@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
@@ -20,9 +20,11 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionDetalle = "consultarExpedienteDetallado";
     private const string OperacionHistorial = "buscarHistorialPasesExpediente";
     private const string OperacionExpediente = "expediente";
+    private const string OperacionBuscarDatosExpedientePorCodigosTrata = "buscarDatosExpedientePorCodigosTrata";
     private const string OperacionConsultarDetalle = "ConsultarDetalle";
     private const string OperacionConsultarMovimientos = "ConsultarMovimientos";
     private const string OperacionConsultarSinCache = "ConsultarSinCache";
+    private const string OperacionIncorporarExpedientesPorTrata = "IncorporarExpedientesPorTrata";
     private const string OperacionObtenerCabecera = "ObtenerCabecera";
     private const string OperacionObtenerDocumentos = "ObtenerDocumentos";
     private const string OperacionObtenerAdjuntos = "ObtenerAdjuntos";
@@ -36,7 +38,6 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IAuditoriaService _auditoriaService;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
-    private readonly ITrackableRepository<TrataHabilitadaVialidad> _trataRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
@@ -44,7 +45,6 @@ public sealed class ExpedienteService : IExpedienteService
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor, 
                               ITrackableRepository<Expediente> expedienteRepository,
-                              ITrackableRepository<TrataHabilitadaVialidad> trataRepository, 
                               ITrackableRepository<DocumentoGdeba> documentoRepository, 
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
     {
@@ -54,7 +54,6 @@ public sealed class ExpedienteService : IExpedienteService
         _auditoriaService = auditoriaService;
         _currentApplicationAccessor = currentApplicationAccessor;
         _expedienteRepository = expedienteRepository;
-        _trataRepository = trataRepository;
         _documentoRepository = documentoRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -416,7 +415,7 @@ public sealed class ExpedienteService : IExpedienteService
         var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
         var expedienteEsNuevo = expediente is null;
         expediente ??= this.CrearExpediente(numeroGdebaCompleto);
-        var trata = await this.ResolverTrataAsync(detalle.CodigoTrata, detalle.DescripcionTrata, numeroGdebaCompleto.Reparticion, cancellationToken);
+        var trata = await this.BuscarTrataHabilitadaLocalAsync(detalle.CodigoTrata, numeroGdebaCompleto.Reparticion, cancellationToken);
         var documentos = await this.ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
 
         ExpedienteService.ConsolidarCabecera(expediente, detalle, trata?.Id);
@@ -477,6 +476,103 @@ public sealed class ExpedienteService : IExpedienteService
         return new ConsultarExpedienteSinCacheResult(expediente, FuenteRespuesta.Gdeba, resolvedAt);
     }
 
+    public async Task<IncorporarExpedientesPorTrataResult> IncorporarExpedientesPorTrataAsync(
+        IncorporarExpedientesPorTrataRequest request,
+        CancellationToken cancellationToken)
+    {
+        var codigoTrata = ExpedienteService.NormalizarRequerido(request.CodigoTrata, nameof(request.CodigoTrata));
+        var estadoDestino = ExpedienteService.NormalizarRequerido(request.EstadoDestino, nameof(request.EstadoDestino));
+        var recurso = $"{codigoTrata}|{estadoDestino}";
+        var resolvedAt = DateTimeOffset.Now;
+        var trata = await this.BuscarTrataHabilitadaLocalAsync(codigoTrata, codigoReparticion: null, cancellationToken);
+        if (trata is null)
+        {
+            throw new InvalidOperationException($"La trata '{codigoTrata}' no esta habilitada localmente.");
+        }
+
+        var codigosReparticionHabilitados = await _expedienteCacheReadStore.CargarCodigosReparticionHabilitadosAsync(cancellationToken);
+        if (codigosReparticionHabilitados.Count == 0)
+        {
+            throw new InvalidOperationException("No hay reparticiones habilitadas localmente para incorporar expedientes por trata.");
+        }
+
+        IReadOnlyCollection<GdebaExpedientePorTrataDto> datosGdeba;
+
+        try
+        {
+            datosGdeba = await _gdebaExpedienteGateway.BuscarDatosExpedientePorCodigosTrataAsync(
+                codigoTrata, estadoDestino, usuario: null,
+                ContextoInvocacionGdeba.Crear(OrigenInvocacionGdeba.Administrativo), cancellationToken);
+        }
+        catch (GdebaOperationException ex)
+        {
+            await this.RegistrarFalloGdebaAsync(OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso, ex.Message, resolvedAt, cancellationToken);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            await this.RegistrarFalloGdebaAsync(OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await this.RegistrarFalloGdebaAsync(OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso, ex.Message, resolvedAt, cancellationToken);
+            throw new GdebaOperationException(OperacionBuscarDatosExpedientePorCodigosTrata, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
+        }
+
+        var expedientesDetectados = new List<(NumeroGdebaCompleto Numero, GdebaExpedientePorTrataDto Datos)>();
+        var descartados = 0;
+        foreach (var datos in datosGdeba)
+        {
+            try
+            {
+                var numero = NumeroGdebaCompleto.Create(datos.NumeroExpediente);
+                if (!codigosReparticionHabilitados.Contains(numero.Reparticion))
+                {
+                    descartados++;
+                    continue;
+                }
+
+                expedientesDetectados.Add((numero, datos));
+            }
+            catch (ArgumentException)
+            {
+                descartados++;
+            }
+        }
+
+        var expedientesLocales = await _expedienteCacheReadStore.CargarExpedientesPorNumeroAsync(
+            expedientesDetectados.Select(x => x.Numero.Valor), cancellationToken);
+        var creados = 0;
+        var actualizados = 0;
+
+        foreach (var (numero, datos) in expedientesDetectados)
+        {
+            var expedienteEsNuevo = !expedientesLocales.TryGetValue(numero.Valor, out var expediente);
+            expediente ??= this.CrearExpediente(numero);
+            expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
+            this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+
+            if (expedienteEsNuevo)
+            {
+                creados++;
+            }
+            else
+            {
+                actualizados++;
+            }
+        }
+
+        await this.RegistrarAuditoriaAsync(
+            OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso,
+            FuenteRespuesta.Gdeba, exitoso: true,
+            $"Recibidos: {datosGdeba.Count}. Incorporados: {expedientesDetectados.Count}. Descartados: {descartados}.", resolvedAt, cancellationToken);
+        await this.ConfirmarCambiosAsync(OperacionIncorporarExpedientesPorTrata, recurso, cancellationToken);
+
+        return new IncorporarExpedientesPorTrataResult(
+            codigoTrata, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados, creados, actualizados);
+    }
+
     #endregion
 
     #region Metodos privados del servicio
@@ -487,6 +583,13 @@ public sealed class ExpedienteService : IExpedienteService
             forceRefresh
                 ? OrigenInvocacionGdeba.RefrescoManual
                 : OrigenInvocacionGdeba.Interactiva);
+    }
+
+    private static string NormalizarRequerido(string? valor, string parameterName)
+    {
+        return string.IsNullOrWhiteSpace(valor)
+            ? throw new ArgumentException("El valor es requerido.", parameterName)
+            : valor.Trim();
     }
 
     /// <summary>
@@ -633,15 +736,8 @@ public sealed class ExpedienteService : IExpedienteService
         }
     }
 
-    /// <summary>
-    /// Resuelve una trata por codigo y actualiza su informacion descriptiva cuando viene informada por GDEBA.
-    /// </summary>
-    /// <param name="codigoTrata">Codigo de trata informado en la respuesta externa.</param>
-    /// <param name="descripcionTrata">Descripcion de la trata informada en la respuesta externa.</param>
-    /// <returns>Entidad de trata local cuando el codigo esta informado; en caso contrario, null.</returns>
-    private async Task<TrataHabilitadaVialidad?> ResolverTrataAsync(
+    private async Task<TrataHabilitadaVialidad?> BuscarTrataHabilitadaLocalAsync(
         string? codigoTrata,
-        string? descripcionTrata,
         string? codigoReparticion,
         CancellationToken cancellationToken)
     {
@@ -651,24 +747,7 @@ public sealed class ExpedienteService : IExpedienteService
         }
 
         var codigo = codigoTrata.Trim();
-        var reparticion = string.IsNullOrWhiteSpace(codigoReparticion) ? "DVMIYSPGP" : codigoReparticion.Trim();
-        var trata = await _expedienteCacheReadStore.BuscarTrataPorCodigoAsync(codigo, reparticion, cancellationToken);
-        var trataEsNueva = trata is null;
-        trata ??= new TrataHabilitadaVialidad(codigo, codigoOrganismo: "DVMIYSPGP", codigoReparticion: reparticion);
-
-        trata.ActualizarDatosGdeba(
-            descripcionTrata, acronimoGedo: null, esAutomatica: null, esTrataManual: null, estadoTrata: null, idTrataGdeba: null, tipoReservaDescripcion: null, tipoReservaId: null, tipoReservaDescripcionTipoReserva: null);
-
-        if (trataEsNueva)
-        {
-            _trataRepository.Insert(trata);
-        }
-        else
-        {
-            _trataRepository.Update(trata);
-        }
-
-        return trata;
+        return await _expedienteCacheReadStore.BuscarTrataPorCodigoAsync(codigo, codigoReparticion, cancellationToken);
     }
 
     /// <summary>

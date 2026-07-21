@@ -129,4 +129,16 @@ public sealed class ExpedientesController : ControllerBase
 
         return result.Expediente is null ? NotFound(result) : Ok(result);
     }
+
+    [HttpPost("por-trata")]
+    public async Task<ActionResult<IncorporarExpedientesPorTrataResult>> IncorporarPorTrata(
+        [FromQuery] string codigoTrata,
+        [FromQuery] string estadoDestino,
+        CancellationToken cancellationToken)
+    {
+        var result = await _expedienteService.IncorporarExpedientesPorTrataAsync(
+            new IncorporarExpedientesPorTrataRequest(codigoTrata, estadoDestino), cancellationToken);
+
+        return Ok(result);
+    }
 }

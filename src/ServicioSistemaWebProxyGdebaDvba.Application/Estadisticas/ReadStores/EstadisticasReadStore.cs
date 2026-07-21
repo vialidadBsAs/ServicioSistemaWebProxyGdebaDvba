@@ -19,11 +19,12 @@ public sealed class EstadisticasReadStore : IEstadisticasReadStore
         _logger = logger;
     }
 
-    public async Task<IReadOnlyCollection<EstadisticaExpedientesPorTrataDto>> ConsultarTotalesExpedientesPorTrataAsync( EstadisticaExpedientesPorTrataFiltro filtro,
-                                                                                                                        CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<EstadisticaExpedientesPorTrataDto>> ConsultarTotalesExpedientesPorTrataAsync(
+        EstadisticaExpedientesPorTrataFiltro filtro,
+        CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT CodigoTrata, DescripcionTrata, TotalExpedientes
+            SELECT CodigoTrata, DescripcionTrata, Estado, TotalExpedientes
             FROM dbo.fn_EstadisticaExpedientesPorTrata({0}, {1}, {2}, {3})
             """;
 
@@ -37,10 +38,16 @@ public sealed class EstadisticasReadStore : IEstadisticasReadStore
                     cancellationToken);
 
             return filas
-                .Select(x => new EstadisticaExpedientesPorTrataDto(
-                    x.CodigoTrata,
-                    x.DescripcionTrata,
-                    x.TotalExpedientes))
+                .GroupBy(x => new { x.CodigoTrata, x.DescripcionTrata })
+                .OrderBy(x => x.Key.CodigoTrata)
+                .Select(grupoTrata => new EstadisticaExpedientesPorTrataDto(
+                    grupoTrata.Key.CodigoTrata,
+                    grupoTrata.Key.DescripcionTrata,
+                    grupoTrata.Sum(x => x.TotalExpedientes),
+                    grupoTrata
+                        .OrderBy(x => x.Estado ?? string.Empty)
+                        .Select(x => new EstadisticaExpedientesPorTrataEstadoDto(x.Estado, x.TotalExpedientes))
+                        .ToArray()))
                 .ToArray();
         }
         catch (OperationCanceledException)
