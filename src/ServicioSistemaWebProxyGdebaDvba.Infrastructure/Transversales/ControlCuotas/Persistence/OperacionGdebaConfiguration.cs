@@ -8,7 +8,7 @@ public sealed class OperacionGdebaConfiguration : IEntityTypeConfiguration<Opera
 {
     public void Configure(EntityTypeBuilder<OperacionGdeba> builder)
     {
-        builder.ToTable("OperacionesGdeba");
+        builder.ToTable("IntegracionGdeba_Operaciones");
 
         builder.HasKey(x => x.Id);
 

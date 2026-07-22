@@ -8,7 +8,7 @@ public sealed class HistorialExpedienteCacheControlConfiguration : IEntityTypeCo
 {
     public void Configure(EntityTypeBuilder<HistorialExpedienteCacheControl> builder)
     {
-        builder.ToTable("HistorialExpedienteCacheControls");
+        builder.ToTable("Cache_HistorialExpedienteControl");
 
         builder.HasKey(x => x.Id);
 

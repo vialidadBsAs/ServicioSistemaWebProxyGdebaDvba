@@ -8,7 +8,7 @@ public sealed class ExpedienteCacheControlConfiguration : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<ExpedienteCacheControl> builder)
     {
-        builder.ToTable("ExpedienteCacheControls");
+        builder.ToTable("Cache_ExpedienteControl");
 
         builder.HasKey(x => x.Id);
 

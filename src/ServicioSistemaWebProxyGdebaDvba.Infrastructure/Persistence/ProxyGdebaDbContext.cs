@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -20,6 +21,12 @@ public sealed class ProxyGdebaDbContext : DbContext
     public DbSet<DocumentoArchivoLocal> DocumentoArchivosLocales => Set<DocumentoArchivoLocal>();
 
     public DbSet<ArchivoAdjuntoExpediente> ArchivosAdjuntosExpediente => Set<ArchivoAdjuntoExpediente>();
+
+    public DbSet<ConfiguracionDescubrimientoEstadoExpediente> ConfiguracionesDescubrimientoEstadosExpediente => Set<ConfiguracionDescubrimientoEstadoExpediente>();
+
+    public DbSet<ConfiguracionDescubrimientoTrataExpediente> ConfiguracionesDescubrimientoTratasExpediente => Set<ConfiguracionDescubrimientoTrataExpediente>();
+
+    public DbSet<ProcesoDescubrimientoTrataEstadoExpediente> ProcesosDescubrimientoTratasEstadosExpediente => Set<ProcesoDescubrimientoTrataEstadoExpediente>();
 
     public DbSet<Expediente> Expedientes => Set<Expediente>();
 

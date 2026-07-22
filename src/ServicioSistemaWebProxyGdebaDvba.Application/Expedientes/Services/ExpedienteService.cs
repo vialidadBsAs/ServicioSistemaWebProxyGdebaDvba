@@ -8,6 +8,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Model
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 using URF.Core.Abstractions;
@@ -40,6 +41,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
+    private readonly IRepository<ConfiguracionDescubrimientoEstadoExpediente> _configuracionDescubrimientoEstadoRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
@@ -48,6 +50,7 @@ public sealed class ExpedienteService : IExpedienteService
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor, 
                               ITrackableRepository<Expediente> expedienteRepository,
                               IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
+                              IRepository<ConfiguracionDescubrimientoEstadoExpediente> configuracionDescubrimientoEstadoRepository,
                               ITrackableRepository<DocumentoGdeba> documentoRepository, 
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
     {
@@ -58,6 +61,7 @@ public sealed class ExpedienteService : IExpedienteService
         _currentApplicationAccessor = currentApplicationAccessor;
         _expedienteRepository = expedienteRepository;
         _estadoExpedienteGdebaRepository = estadoExpedienteGdebaRepository;
+        _configuracionDescubrimientoEstadoRepository = configuracionDescubrimientoEstadoRepository;
         _documentoRepository = documentoRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -591,22 +595,32 @@ public sealed class ExpedienteService : IExpedienteService
         CancellationToken cancellationToken)
     {
         var codigoTrata = ExpedienteService.NormalizarRequerido(request.CodigoTrata, nameof(request.CodigoTrata));
-        var estados = await _estadoExpedienteGdebaRepository
+        var configuracionesEstados = await _configuracionDescubrimientoEstadoRepository
             .Query()
-            .Where(x => x.HabilitadoParaDescubrimiento)
-            .OrderBy(x => x.PrioridadDescubrimiento)
-            .ThenBy(x => x.NombreGdeba)
+            .Where(x => x.Habilitado)
+            .OrderBy(x => x.Prioridad)
             .SelectAsync(cancellationToken);
 
-        if (!estados.Any())
+        if (!configuracionesEstados.Any())
         {
             throw new InvalidOperationException("No hay estados habilitados para el descubrimiento de expedientes.");
         }
 
+        var estadosPorId = (await _estadoExpedienteGdebaRepository
+                .Query()
+                .Where(x => configuracionesEstados.Select(y => y.EstadoExpedienteGdebaId).Contains(x.Id))
+                .SelectAsync(cancellationToken))
+            .ToDictionary(x => x.Id);
+
         var resultadosPorEstado = new List<IncorporarExpedientesPorTrataResult>();
 
-        foreach (var estado in estados)
+        foreach (var configuracionEstado in configuracionesEstados)
         {
+            if (!estadosPorId.TryGetValue(configuracionEstado.EstadoExpedienteGdebaId, out var estado))
+            {
+                throw new InvalidOperationException("La configuracion de descubrimiento referencia un estado GDEBA inexistente.");
+            }
+
             var resultado = await this.IncorporarExpedientesPorTrataAsync(
                 new IncorporarExpedientesPorTrataRequest(codigoTrata, estado.NombreGdeba, request.OrigenInvocacion), cancellationToken);
             resultadosPorEstado.Add(resultado);

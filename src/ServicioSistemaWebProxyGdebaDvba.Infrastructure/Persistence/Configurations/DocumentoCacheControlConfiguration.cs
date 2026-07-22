@@ -8,7 +8,7 @@ public sealed class DocumentoCacheControlConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<DocumentoCacheControl> builder)
     {
-        builder.ToTable("DocumentoCacheControls");
+        builder.ToTable("Cache_DocumentoControl");
 
         builder.HasKey(x => x.Id);
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProxyGdebaDbContext))]
-    partial class ProxyGdebaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722163100_OrganizaConfiguracionDescubrimientoYTablasTransversales")]
+    partial class OrganizaConfiguracionDescubrimientoYTablasTransversales
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,42 +158,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.HasIndex("Habilitada", "Prioridad");
 
                     b.ToTable("Configuracion_TratasDescubrimientoExpediente", (string)null);
-                });
-
-            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ProcesoDescubrimientoTrataEstadoExpediente", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CodigoTrata")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("ConsultasSinResultadosConsecutivas")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("EstadoExpedienteGdebaId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("FechaUltimaConsulta")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("FechaUltimoResultadoHabilitado")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("OmitirHasta")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OmitirHasta");
-
-                    b.HasIndex("CodigoTrata", "EstadoExpedienteGdebaId")
-                        .IsUnique();
-
-                    b.ToTable("WorkerDescubrimiento_ExpedientesSegunTratasEstados", (string)null);
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.DocumentoArchivoLocal", b =>

@@ -8,25 +8,12 @@ public sealed class EstadoExpedienteGdeba : DomainEntity
     {
     }
 
-    public EstadoExpedienteGdeba(string nombreGdeba, bool habilitadoParaDescubrimiento, int prioridadDescubrimiento)
+    public EstadoExpedienteGdeba(string nombreGdeba)
     {
         NombreGdeba = NormalizarRequerido(nombreGdeba, nameof(nombreGdeba));
-        HabilitadoParaDescubrimiento = habilitadoParaDescubrimiento;
-        PrioridadDescubrimiento = prioridadDescubrimiento;
     }
 
     public string NombreGdeba { get; private set; } = string.Empty;
-
-    public bool HabilitadoParaDescubrimiento { get; private set; }
-
-    public int PrioridadDescubrimiento { get; private set; }
-
-    public void ConfigurarDescubrimiento(bool habilitadoParaDescubrimiento, int prioridadDescubrimiento)
-    {
-        MarcarComoModificada();
-        HabilitadoParaDescubrimiento = habilitadoParaDescubrimiento;
-        PrioridadDescubrimiento = prioridadDescubrimiento;
-    }
 
     private static string NormalizarRequerido(string value, string parameterName)
     {

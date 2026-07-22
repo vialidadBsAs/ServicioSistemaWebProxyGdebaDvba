@@ -8,7 +8,7 @@ public sealed class RegistroAuditoriaConfiguration : IEntityTypeConfiguration<Re
 {
     public void Configure(EntityTypeBuilder<RegistroAuditoria> builder)
     {
-        builder.ToTable("RegistrosAuditoria");
+        builder.ToTable("Auditoria_Registros");
 
         builder.HasKey(x => x.Id);
 

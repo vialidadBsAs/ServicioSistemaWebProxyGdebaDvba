@@ -19,14 +19,12 @@ public sealed class EstadoExpedienteGdebaConfiguration : IEntityTypeConfiguratio
         builder.HasIndex(x => x.NombreGdeba)
             .IsUnique();
 
-        builder.HasIndex(x => new { x.HabilitadoParaDescubrimiento, x.PrioridadDescubrimiento });
-
         builder.HasData(
-            new { Id = new Guid("20000000-0000-0000-0000-000000000001"), NombreGdeba = "Iniciación", HabilitadoParaDescubrimiento = true, PrioridadDescubrimiento = 10 },
-            new { Id = new Guid("20000000-0000-0000-0000-000000000002"), NombreGdeba = "Tramitación", HabilitadoParaDescubrimiento = true, PrioridadDescubrimiento = 20 },
-            new { Id = new Guid("20000000-0000-0000-0000-000000000003"), NombreGdeba = "Comunicación", HabilitadoParaDescubrimiento = true, PrioridadDescubrimiento = 30 },
-            new { Id = new Guid("20000000-0000-0000-0000-000000000004"), NombreGdeba = "Guarda Temporal", HabilitadoParaDescubrimiento = true, PrioridadDescubrimiento = 40 },
-            new { Id = new Guid("20000000-0000-0000-0000-000000000005"), NombreGdeba = "Ejecución", HabilitadoParaDescubrimiento = true, PrioridadDescubrimiento = 50 },
-            new { Id = new Guid("20000000-0000-0000-0000-000000000006"), NombreGdeba = "Pendiente Iniciación", HabilitadoParaDescubrimiento = true, PrioridadDescubrimiento = 60 });
+            new { Id = new Guid("20000000-0000-0000-0000-000000000001"), NombreGdeba = "Iniciación" },
+            new { Id = new Guid("20000000-0000-0000-0000-000000000002"), NombreGdeba = "Tramitación" },
+            new { Id = new Guid("20000000-0000-0000-0000-000000000003"), NombreGdeba = "Comunicación" },
+            new { Id = new Guid("20000000-0000-0000-0000-000000000004"), NombreGdeba = "Guarda Temporal" },
+            new { Id = new Guid("20000000-0000-0000-0000-000000000005"), NombreGdeba = "Ejecución" },
+            new { Id = new Guid("20000000-0000-0000-0000-000000000006"), NombreGdeba = "Pendiente Iniciación" });
     }
 }

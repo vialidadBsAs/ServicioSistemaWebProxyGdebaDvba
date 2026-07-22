@@ -9,7 +9,7 @@ public sealed class InvocacionGdebaConfiguration : IEntityTypeConfiguration<Invo
 {
     public void Configure(EntityTypeBuilder<InvocacionGdeba> builder)
     {
-        builder.ToTable("InvocacionesGdeba");
+        builder.ToTable("IntegracionGdeba_Invocaciones");
 
         builder.HasKey(x => x.Id);
 

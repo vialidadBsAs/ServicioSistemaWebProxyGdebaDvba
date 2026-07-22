@@ -8,7 +8,7 @@ public sealed class TrataCacheControlConfiguration : IEntityTypeConfiguration<Tr
 {
     public void Configure(EntityTypeBuilder<TrataCacheControl> builder)
     {
-        builder.ToTable("TrataCacheControls");
+        builder.ToTable("Cache_TrataControl");
 
         builder.HasKey(x => x.Id);
 

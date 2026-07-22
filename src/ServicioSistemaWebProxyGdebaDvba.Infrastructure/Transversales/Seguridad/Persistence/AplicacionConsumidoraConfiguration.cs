@@ -8,7 +8,7 @@ public sealed class AplicacionConsumidoraConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<AplicacionConsumidora> builder)
     {
-        builder.ToTable("AplicacionesConsumidoras");
+        builder.ToTable("Seguridad_AplicacionesConsumidoras");
 
         builder.HasKey(x => x.Id);
 
