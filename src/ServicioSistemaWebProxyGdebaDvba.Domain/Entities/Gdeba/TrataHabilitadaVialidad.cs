@@ -5,6 +5,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 public sealed class TrataHabilitadaVialidad : DomainEntity
 {
     private readonly List<Expediente> _expedientes = new();
+    private readonly List<TemaExpedienteTrata> _temasExpediente = new();
 
     private TrataHabilitadaVialidad()
     {
@@ -56,6 +57,8 @@ public sealed class TrataHabilitadaVialidad : DomainEntity
     public TrataCacheControl? CacheControl { get; private set; }
 
     public IReadOnlyCollection<Expediente> Expedientes => _expedientes;
+
+    public IReadOnlyCollection<TemaExpedienteTrata> TemasExpediente => _temasExpediente;
 
     public void ActualizarDatos(
         string? descripcionTrata,

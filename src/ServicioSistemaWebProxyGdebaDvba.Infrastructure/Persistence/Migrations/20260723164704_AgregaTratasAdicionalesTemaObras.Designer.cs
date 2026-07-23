@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProxyGdebaDbContext))]
-    partial class ProxyGdebaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723164704_AgregaTratasAdicionalesTemaObras")]
+    partial class AgregaTratasAdicionalesTemaObras
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -128,31 +131,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.HasIndex("Habilitado", "Prioridad");
 
                     b.ToTable("Configuracion_EstadosDescubrimientoExpediente", (string)null);
-                });
-
-            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionDescubrimientoTemaExpediente", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("Habilitado")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Prioridad")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TemaExpedienteId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TemaExpedienteId")
-                        .IsUnique();
-
-                    b.HasIndex("Habilitado", "Prioridad");
-
-                    b.ToTable("Configuracion_TemasDescubrimientoExpediente", (string)null);
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionDescubrimientoTrataExpediente", b =>
@@ -1039,17 +1017,19 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TemaExpedienteId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("CodigoTrata")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("TrataHabilitadaVialidadId")
+                    b.Property<Guid>("TemaExpedienteId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TrataHabilitadaVialidadId");
+                    b.HasIndex("CodigoTrata");
 
-                    b.HasIndex("TemaExpedienteId", "TrataHabilitadaVialidadId")
+                    b.HasIndex("TemaExpedienteId", "CodigoTrata")
                         .IsUnique();
 
                     b.ToTable("TemaExpedienteTratas", (string)null);
@@ -1352,17 +1332,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("EstadoExpedienteGdeba");
                 });
 
-            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionDescubrimientoTemaExpediente", b =>
-                {
-                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TemaExpediente", "TemaExpediente")
-                        .WithMany()
-                        .HasForeignKey("TemaExpedienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TemaExpediente");
-                });
-
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.DocumentoArchivoLocal", b =>
                 {
                     b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.DocumentoGdeba", "Documento")
@@ -1523,15 +1492,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", "TrataHabilitadaVialidad")
-                        .WithMany("TemasExpediente")
-                        .HasForeignKey("TrataHabilitadaVialidadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("TemaExpediente");
-
-                    b.Navigation("TrataHabilitadaVialidad");
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataCacheControl", b =>
@@ -1591,8 +1552,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("CacheControl");
 
                     b.Navigation("Expedientes");
-
-                    b.Navigation("TemasExpediente");
                 });
 #pragma warning restore 612, 618
         }

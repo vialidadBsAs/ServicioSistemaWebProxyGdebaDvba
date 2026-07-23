@@ -27,6 +27,7 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionConsultarSinCache = "ConsultarSinCache";
     private const string OperacionIncorporarExpedientesPorTrata = "IncorporarExpedientesPorTrata";
     private const string OperacionDescubrirExpedientesPorTrata = "DescubrirExpedientesPorTrata";
+    private const string OperacionDescubrimientoProgramadoOmitido = "DescubrimientoProgramadoOmitido";
     private const string OperacionObtenerCabecera = "ObtenerCabecera";
     private const string OperacionObtenerDocumentos = "ObtenerDocumentos";
     private const string OperacionObtenerAdjuntos = "ObtenerAdjuntos";
@@ -42,6 +43,10 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
     private readonly IRepository<ConfiguracionDescubrimientoEstadoExpediente> _configuracionDescubrimientoEstadoRepository;
+    private readonly IRepository<ConfiguracionDescubrimientoTemaExpediente> _configuracionDescubrimientoTemaRepository;
+    private readonly IRepository<ConfiguracionDescubrimientoTrataExpediente> _configuracionDescubrimientoTrataRepository;
+    private readonly IRepository<TemaExpedienteTrata> _temaExpedienteTrataRepository;
+    private readonly ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> _procesoDescubrimientoRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
@@ -51,6 +56,10 @@ public sealed class ExpedienteService : IExpedienteService
                               ITrackableRepository<Expediente> expedienteRepository,
                               IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
                               IRepository<ConfiguracionDescubrimientoEstadoExpediente> configuracionDescubrimientoEstadoRepository,
+                              IRepository<ConfiguracionDescubrimientoTemaExpediente> configuracionDescubrimientoTemaRepository,
+                              IRepository<ConfiguracionDescubrimientoTrataExpediente> configuracionDescubrimientoTrataRepository,
+                              IRepository<TemaExpedienteTrata> temaExpedienteTrataRepository,
+                              ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> procesoDescubrimientoRepository,
                               ITrackableRepository<DocumentoGdeba> documentoRepository, 
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
     {
@@ -62,6 +71,10 @@ public sealed class ExpedienteService : IExpedienteService
         _expedienteRepository = expedienteRepository;
         _estadoExpedienteGdebaRepository = estadoExpedienteGdebaRepository;
         _configuracionDescubrimientoEstadoRepository = configuracionDescubrimientoEstadoRepository;
+        _configuracionDescubrimientoTemaRepository = configuracionDescubrimientoTemaRepository;
+        _configuracionDescubrimientoTrataRepository = configuracionDescubrimientoTrataRepository;
+        _temaExpedienteTrataRepository = temaExpedienteTrataRepository;
+        _procesoDescubrimientoRepository = procesoDescubrimientoRepository;
         _documentoRepository = documentoRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -291,7 +304,7 @@ public sealed class ExpedienteService : IExpedienteService
 
                 // Marca la cache de movimientos con vigencia diaria para la consulta bajo demanda.
                 this.MarcarHistorialConsultadoCorrectamente(
-                    expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), ultimoMovimiento, estaCompleto: true, tieneDatosParciales: false);
+                    expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), ultimoMovimiento, estaCompleto: true);
 
                 movimientos = ExpedienteService.MapearMovimientos(expediente);
                 fuente = FuenteRespuesta.Gdeba;
@@ -431,7 +444,7 @@ public sealed class ExpedienteService : IExpedienteService
         ExpedienteService.ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
         ExpedienteService.ConsolidarRelaciones(expediente, detalle.Relaciones, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
 
-        this.MarcarDetalleConsultadoCorrectamente(expediente, fechaConsulta, fechaConsulta, ExpedienteService.CalcularVencimientoDiario(fechaConsulta), estaCompleto: true, tieneDatosParciales: false);
+        this.RegistrarRespuestaExpedienteCorrecta(expediente, fechaConsulta, fechaConsulta, ExpedienteService.CalcularVencimientoDiario(fechaConsulta), estaCompleto: true);
 
         this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
 
@@ -560,9 +573,11 @@ public sealed class ExpedienteService : IExpedienteService
             var expedienteEsNuevo = !expedientesLocales.TryGetValue(numero.Valor, out var expediente);
             expediente ??= this.CrearExpediente(numero);
             var datosCambiaron = expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
+            var cacheDebeRegistrarse = expedienteEsNuevo || datosCambiaron || expediente.CacheControl is null;
 
-            if (expedienteEsNuevo || datosCambiaron)
+            if (cacheDebeRegistrarse)
             {
+                this.RegistrarRespuestaExpedienteCorrecta(expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), estaCompleto: false);
                 this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
             }
 
@@ -638,9 +653,114 @@ public sealed class ExpedienteService : IExpedienteService
             resultadosPorEstado.Sum(x => x.SinCambios));
     }
 
+    public async Task DescubrirExpedientesProgramadosAsync(DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
+    {
+        var fecha = DateTimeOffset.Now;
+        var fechaLocal = DateOnly.FromDateTime(fecha.LocalDateTime);
+        var tratas = await this.CargarTratasDescubrimientoProgramadoAsync(cancellationToken);
+        var configuracionesEstados = await _configuracionDescubrimientoEstadoRepository.Query()
+            .Where(x => x.Habilitado).OrderBy(x => x.Prioridad).SelectAsync(cancellationToken);
+        var estados = (await _estadoExpedienteGdebaRepository.Query()
+                .Where(x => configuracionesEstados.Select(y => y.EstadoExpedienteGdebaId).Contains(x.Id)).SelectAsync(cancellationToken))
+            .ToDictionary(x => x.Id);
+        var procesos = await _procesoDescubrimientoRepository.Query().SelectAsync(cancellationToken);
+        var procesosPorClave = procesos.ToDictionary(x => (x.CodigoTrata.Trim().ToUpperInvariant(), x.EstadoExpedienteGdebaId));
+        var candidatos = new List<CandidatoDescubrimientoProgramado>();
+
+        foreach (var trata in tratas)
+        {
+            foreach (var configuracionEstado in configuracionesEstados)
+            {
+                if (!estados.TryGetValue(configuracionEstado.EstadoExpedienteGdebaId, out var estado)) continue;
+                procesosPorClave.TryGetValue((trata.CodigoTrata, estado.Id), out var proceso);
+                if (proceso?.FechaUltimaConsulta is DateTimeOffset fechaUltimaConsulta && DateOnly.FromDateTime(fechaUltimaConsulta.LocalDateTime) == fechaLocal) continue;
+                if (proceso?.OmitirHasta > fecha) continue;
+                candidatos.Add(new CandidatoDescubrimientoProgramado(trata, configuracionEstado.Prioridad, estado, proceso));
+            }
+        }
+
+        var seleccionados = candidatos
+            .OrderBy(x => x.Proceso?.FechaUltimaConsulta is not null)
+            .ThenBy(x => x.Proceso?.FechaUltimaConsulta)
+            .ThenBy(x => x.Trata.PrioridadTema)
+            .ThenBy(x => x.Trata.PrioridadTrata)
+            .ThenBy(x => x.PrioridadEstado)
+            .ThenBy(x => x.Trata.CodigoTrata)
+            .Take(Math.Max(0, request.MaximoInvocaciones))
+            .ToArray();
+
+        foreach (var candidato in seleccionados)
+        {
+            var resultado = await this.IncorporarExpedientesPorTrataAsync(
+                new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion), cancellationToken);
+            var procesoEsNuevo = candidato.Proceso is null;
+            var proceso = candidato.Proceso ?? new ProcesoDescubrimientoTrataEstadoExpediente(candidato.Trata.CodigoTrata, candidato.Estado.Id);
+            proceso.RegistrarResultado(resultado.ResolvedAt, resultado.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
+            if (procesoEsNuevo) _procesoDescubrimientoRepository.Insert(proceso);
+            else _procesoDescubrimientoRepository.Update(proceso);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    public async Task RegistrarDescubrimientoProgramadoOmitidoAsync(RegistrarDescubrimientoProgramadoOmitidoRequest request, CancellationToken cancellationToken)
+    {
+        var fecha = DateTimeOffset.Now;
+        var mensaje = $"Origen: WorkerProgramado. Ejecucion omitida. Motivo: {request.Motivo}. Limite: {request.LimiteDiario?.ToString() ?? "No configurado"}. Invocaciones registradas: {request.InvocacionesRegistradas}. Reserva: {request.CupoReservaDiaria}.";
+
+        await this.RegistrarAuditoriaAsync(OperacionDescubrimientoProgramadoOmitido, operacionGdeba: null, recurso: null, fuente: null, exitoso: true, mensaje, fecha, cancellationToken);
+        await this.ConfirmarCambiosAsync(OperacionDescubrimientoProgramadoOmitido, "CupoDiario", cancellationToken);
+    }
+
     #endregion
 
     #region Metodos privados del servicio
+
+    private async Task<IReadOnlyCollection<TrataDescubrimientoProgramado>> CargarTratasDescubrimientoProgramadoAsync(CancellationToken cancellationToken)
+    {
+        var configuracionesTemas = await _configuracionDescubrimientoTemaRepository.Query()
+            .Where(x => x.Habilitado).OrderBy(x => x.Prioridad).SelectAsync(cancellationToken);
+        var configuracionesTratas = await _configuracionDescubrimientoTrataRepository.Query().SelectAsync(cancellationToken);
+        var configuracionesTrataPorCodigo = configuracionesTratas.ToDictionary(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase);
+        var prioridadesTemaPorId = configuracionesTemas.ToDictionary(x => x.TemaExpedienteId, x => x.Prioridad);
+        var idsTemas = prioridadesTemaPorId.Keys.ToArray();
+        var asignacionesTemas = idsTemas.Length == 0
+            ? Array.Empty<TemaExpedienteTrata>()
+            : (await _temaExpedienteTrataRepository.Query().Include(x => x.TrataHabilitadaVialidad).Where(x => idsTemas.Contains(x.TemaExpedienteId)).SelectAsync(cancellationToken)).ToArray();
+        var tratasPorCodigo = new Dictionary<string, TrataDescubrimientoProgramado>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var asignacion in asignacionesTemas)
+        {
+            var codigoTrata = asignacion.TrataHabilitadaVialidad.CodigoTrata.Trim().ToUpperInvariant();
+            configuracionesTrataPorCodigo.TryGetValue(codigoTrata, out var configuracionTrata);
+            if (configuracionTrata is { Habilitada: false }) continue;
+            var prioridadTema = prioridadesTemaPorId[asignacion.TemaExpedienteId];
+            var prioridadTrata = configuracionTrata?.Prioridad ?? int.MaxValue;
+
+            if (tratasPorCodigo.TryGetValue(codigoTrata, out var existente))
+            {
+                tratasPorCodigo[codigoTrata] = existente with { PrioridadTema = Math.Min(existente.PrioridadTema, prioridadTema), PrioridadTrata = Math.Min(existente.PrioridadTrata, prioridadTrata) };
+            }
+            else
+            {
+                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(codigoTrata, prioridadTema, prioridadTrata));
+            }
+        }
+
+        foreach (var configuracionTrata in configuracionesTratas.Where(x => x.Habilitada))
+        {
+            var codigoTrata = configuracionTrata.CodigoTrata.Trim().ToUpperInvariant();
+            if (tratasPorCodigo.TryGetValue(codigoTrata, out var existente))
+            {
+                tratasPorCodigo[codigoTrata] = existente with { PrioridadTrata = Math.Min(existente.PrioridadTrata, configuracionTrata.Prioridad) };
+            }
+            else
+            {
+                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(codigoTrata, int.MaxValue, configuracionTrata.Prioridad));
+            }
+        }
+
+        return tratasPorCodigo.Values.ToArray();
+    }
 
     private static ContextoInvocacionGdeba CrearContextoInvocacion(bool forceRefresh)
     {
@@ -681,15 +801,14 @@ public sealed class ExpedienteService : IExpedienteService
         _expedienteRepository.ApplyChanges(expediente);
     }
 
-    private void MarcarDetalleConsultadoCorrectamente(
+    private void RegistrarRespuestaExpedienteCorrecta(
         Expediente expediente,
         DateTimeOffset fechaConsulta,
         DateTimeOffset fechaActualizacionLocal,
         DateTimeOffset? fechaVencimiento,
-        bool estaCompleto,
-        bool tieneDatosParciales)
+        bool estaCompleto)
     {
-        expediente.MarcarDetalleConsultadoCorrectamente(fechaConsulta, fechaActualizacionLocal, fechaVencimiento, estaCompleto, tieneDatosParciales);
+        expediente.RegistrarRespuestaExpedienteCorrecta(fechaConsulta, fechaActualizacionLocal, fechaVencimiento, estaCompleto);
 
     }
 
@@ -709,10 +828,9 @@ public sealed class ExpedienteService : IExpedienteService
         DateTimeOffset fechaActualizacionLocal,
         DateTimeOffset? fechaVencimiento,
         MovimientoExpediente? ultimoMovimientoDetectado,
-        bool estaCompleto,
-        bool tieneDatosParciales)
+        bool estaCompleto)
     {
-        expediente.MarcarHistorialConsultadoCorrectamente(fechaConsulta, fechaActualizacionLocal, fechaVencimiento, ultimoMovimientoDetectado, estaCompleto, tieneDatosParciales);
+        expediente.MarcarHistorialConsultadoCorrectamente(fechaConsulta, fechaActualizacionLocal, fechaVencimiento, ultimoMovimientoDetectado, estaCompleto);
 
     }
 
@@ -1010,7 +1128,7 @@ public sealed class ExpedienteService : IExpedienteService
     /// <param name="fecha">Fecha de resolucion de la operacion.</param>
     /// <param name="cancellationToken">Token de cancelacion de la operacion asincronica.</param>
     /// <returns>Tarea asincronica de registro de auditoria.</returns>
-    private Task RegistrarAuditoriaAsync(string operacionSolicitada, string operacionGdeba, string recurso, FuenteRespuesta fuente, bool exitoso, string? mensaje, DateTimeOffset fecha, CancellationToken cancellationToken)
+    private Task RegistrarAuditoriaAsync(string operacionSolicitada, string? operacionGdeba, string? recurso, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha, CancellationToken cancellationToken)
     {
         return _auditoriaService.RegistrarAsync(
             new RegistrarAuditoriaRequest(_currentApplicationAccessor.Current.ApplicationId, operacionSolicitada, operacionGdeba, recurso, _gdebaExecutionContext.Ambiente, fuente, exitoso, mensaje, fecha), cancellationToken);
@@ -1050,6 +1168,10 @@ public sealed class ExpedienteService : IExpedienteService
             throw new InvalidOperationException($"No se pudieron persistir los cambios de la operacion '{operacion}' para el recurso '{recurso}'.", ex);
         }
     }
+
+    private sealed record TrataDescubrimientoProgramado(string CodigoTrata, int PrioridadTema, int PrioridadTrata);
+
+    private sealed record CandidatoDescubrimientoProgramado(TrataDescubrimientoProgramado Trata, int PrioridadEstado, EstadoExpedienteGdeba Estado, ProcesoDescubrimientoTrataEstadoExpediente? Proceso);
 
     #endregion
 }

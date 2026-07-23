@@ -10,11 +10,14 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Services.Configure<DocumentoMetadataEnrichmentWorkerOptions>(
     builder.Configuration.GetSection(DocumentoMetadataEnrichmentWorkerOptions.SectionName));
+builder.Services.Configure<DescubrimientoExpedientesWorkerOptions>(
+    builder.Configuration.GetSection(DescubrimientoExpedientesWorkerOptions.SectionName));
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);
 builder.Services.AddRabbitMqMessaging(builder.Configuration, includeConsumers: true);
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<DocumentoMetadataEnrichmentWorker>();
+builder.Services.AddHostedService<DescubrimientoExpedientesWorker>();
 
 var host = builder.Build();
 host.Run();

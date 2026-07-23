@@ -33,7 +33,5 @@ public sealed class DocumentoCacheControl : DomainEntity
 
     public bool EstaCompleto { get; private set; }
 
-    public bool TieneDatosParciales { get; private set; }
-
     public string? UltimoErrorConsulta { get; private set; }
 }

@@ -211,12 +211,11 @@ public sealed partial class Expediente : IAggregateRoot
             : _movimientos.MinBy(x => x.Orden)!;
     }
 
-    public void MarcarDetalleConsultadoCorrectamente(
+    public void RegistrarRespuestaExpedienteCorrecta(
         DateTimeOffset fechaConsulta,
         DateTimeOffset fechaActualizacionLocal,
         DateTimeOffset? fechaVencimiento,
-        bool estaCompleto,
-        bool tieneDatosParciales)
+        bool estaCompleto)
     {
         if (CacheControl is null)
         {
@@ -232,7 +231,6 @@ public sealed partial class Expediente : IAggregateRoot
             fechaVencimiento,
             FuenteRespuesta.Gdeba,
             estaCompleto,
-            tieneDatosParciales,
             ultimoErrorConsulta: null);
     }
 
@@ -255,7 +253,6 @@ public sealed partial class Expediente : IAggregateRoot
             CacheControl.FechaVencimiento,
             FuenteRespuesta.FallbackCache,
             CacheControl.EstaCompleto,
-            tieneDatosParciales: true,
             error);
     }
 
@@ -264,8 +261,7 @@ public sealed partial class Expediente : IAggregateRoot
         DateTimeOffset fechaActualizacionLocal,
         DateTimeOffset? fechaVencimiento,
         MovimientoExpediente? ultimoMovimientoDetectado,
-        bool estaCompleto,
-        bool tieneDatosParciales)
+        bool estaCompleto)
     {
         if (HistorialCacheControl is null)
         {
@@ -282,7 +278,6 @@ public sealed partial class Expediente : IAggregateRoot
             FuenteRespuesta.Gdeba,
             ultimoMovimientoDetectado,
             estaCompleto,
-            tieneDatosParciales,
             ultimoErrorConsulta: null);
     }
 
@@ -306,7 +301,6 @@ public sealed partial class Expediente : IAggregateRoot
             FuenteRespuesta.FallbackCache,
             HistorialCacheControl.UltimoMovimientoDetectadoId,
             HistorialCacheControl.EstaCompleto,
-            tieneDatosParciales: true,
             error);
     }
 

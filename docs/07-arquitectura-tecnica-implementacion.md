@@ -84,6 +84,7 @@ Ejemplos actuales:
 - `TipoDocumentoGdeba`
 - `TrataGdeba`
 - `TrataHabilitadaVialidad`
+- `TemaExpediente`
 
 `Expediente` representa la definicion local de un expediente GDEBA con sus datos propios. No es reemplazado por un value object: el value object solo modela el numero compuesto.
 
@@ -92,6 +93,8 @@ Ejemplos actuales:
 `TrataGdeba` representa el catalogo amplio de tratas informado por GDEBA, pero no es la referencia principal para el cache local de expedientes viales.
 
 `TrataHabilitadaVialidad` representa la trata operativa del sistema local. Incluye organismo, reparticion, permisos de caratulacion o reserva y los campos devueltos por `buscarTratasPorCodigo`: acronimo GEDO, estado, identificador interno `idTrata`, caracteristicas automaticas/manuales y tipo de reserva. Los expedientes cacheados se relacionan con esta entidad.
+
+`TemaExpediente` representa una clasificacion institucional compartida, por ejemplo Obras o Finanzas. `TemaExpedienteTratas` conserva la asignacion y referencia mediante claves foraneas tanto al tema como a la fila concreta de `TratasHabilitadasVialidad`. Ambas entidades son padres de las asignaciones guardadas en la tabla intermedia. Esta clasificacion de dominio no forma parte de la configuracion del Worker.
 
 `DocumentoArchivoLocal` representa la ubicacion y metadatos del archivo guardado local o externamente. La base no guarda el binario del PDF/Word; guarda referencias, tipo de archivo, hash, longitud y fechas de descarga/verificacion.
 
@@ -237,10 +240,15 @@ Actualmente el Worker ejecuta dos responsabilidades de fondo:
 
 - Mantener vivos los consumers de MassTransit para trabajos asincronicos de cache.
 - Ejecutar enriquecimiento documental programado para documentos con metadata incompleta.
+- Descubrir expedientes programados a partir de temas institucionales y tratas configuradas.
 
 Para enriquecimiento documental, el Worker conserva las decisiones operativas: si el proceso esta habilitado, si la hora local cae dentro de la ventana no pico, que operacion GDEBA se controla para cuota y cuantos documentos se autorizan en el lote. La consulta del consumo se realiza mediante `IConsultaCuotasGdeba`, pero la decision de ejecutar o no ejecutar el lote queda en el Worker.
 
+El limite diario autorizado se obtiene exclusivamente de la configuracion persistida de cada operacion GDEBA. Los Workers no mantienen un segundo limite en `appsettings`; solamente pueden reservar parte del cupo mediante `CupoReservaDiaria`. Si una operacion no existe en el control de cuotas o no tiene limite diario, el proceso se omite sin invocar GDEBA.
+
 La logica reutilizable de enriquecer un documento no vive en el Worker. Esta en Application mediante `IDocumentoMetadataEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.
+
+El descubrimiento programado obtiene los temas habilitados desde `Configuracion_TemasDescubrimientoExpediente`, carga sus asignaciones de `TemaExpedienteTratas` junto con la correspondiente `TrataHabilitadaVialidad`, deduplica los codigos de trata y combina el resultado con `Configuracion_TratasDescubrimientoExpediente`. Una configuracion individual deshabilitada excluye la trata del tema; una habilitada permite priorizarla o incorporar una trata fuera de los temas. Las combinaciones trata-estado nunca consultadas y las de consulta mas antigua se procesan primero para evitar que el limite diario deje siempre pendientes las mismas tratas. El Worker no repite una combinacion ya consultada durante la fecha local actual, aunque conserve presupuesto. Esta restriccion no se aplica a las operaciones manuales de descubrimiento por trata o por estado.
 
 ### 3.6 Mensajeria con MassTransit y RabbitMQ
 
@@ -1101,6 +1109,7 @@ En esta primera version se consideran aggregate roots:
 
 - `Expediente`, para la vista local/cacheada del expediente GDEBA, deteccion de documentos, relaciones, adjuntos y control de cache.
 - `DocumentoGdeba`, para metadata documental, enriquecimiento y futura descarga/cache documental.
+- `TemaExpediente`, para administrar la clasificacion institucional de codigos de trata.
 
 No se crean clases independientes llamadas `ExpedienteAggregateRoot` ni se reorganiza el directorio `Entities`. El aggregate root es la propia entidad principal.
 
@@ -1211,7 +1220,6 @@ sin registrarse como error.
 Pendiente:
 
 - Completar validacion de clientes SOAP reales contra ambiente GDEBA.
-- Operacion masiva o programada basada en `buscarDatosExpedientePorCodigosTrata`.
 - Migraciones EF Core y creacion efectiva de base SQL Server.
 - Servicios de lectura/escritura de cache sobre el modelo persistente.
 - Validacion real de aplicaciones consumidoras.

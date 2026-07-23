@@ -6,16 +6,16 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Worker;
 
-public class Worker : BackgroundService
+public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<Worker> _logger;
+    private readonly ILogger<DocumentoMetadataEnrichmentWorker> _logger;
     private readonly DocumentoMetadataEnrichmentWorkerOptions _options;
 
-    public Worker(
+    public DocumentoMetadataEnrichmentWorker(
         IServiceScopeFactory scopeFactory,
         IOptions<DocumentoMetadataEnrichmentWorkerOptions> options,
-        ILogger<Worker> logger)
+        ILogger<DocumentoMetadataEnrichmentWorker> logger)
     {
         _scopeFactory = scopeFactory;
         _options = options.Value;
@@ -78,13 +78,22 @@ public class Worker : BackgroundService
             return;
         }
 
-        var loteAutorizado = this.CalcularLoteAutorizado(cuota);
+        if (cuota.LimiteDiario is not int limiteDiario)
+        {
+            _logger.LogWarning(
+                "La operacion {Servicio}.{Metodo} no tiene limite diario configurado. Se omite el enriquecimiento documental.",
+                _options.ServicioCuota,
+                _options.MetodoCuota);
+            return;
+        }
+
+        var loteAutorizado = this.CalcularLoteAutorizado(cuota, limiteDiario);
         if (loteAutorizado <= 0)
         {
             _logger.LogInformation(
-                "Enriquecimiento documental omitido por cuota. Consumido hoy: {Consumido}. Limite operativo: {LimiteOperativo}. Reserva diaria: {Reserva}.",
+                "Enriquecimiento documental omitido por cuota. Consumido hoy: {Consumido}. Limite diario: {LimiteDiario}. Reserva diaria: {Reserva}.",
                 cuota.Total,
-                this.CalcularLimiteOperativo(cuota),
+                limiteDiario,
                 Math.Max(0, _options.CupoReservaDiaria));
             return;
         }
@@ -103,25 +112,18 @@ public class Worker : BackgroundService
             result.Errores);
     }
 
-    private int CalcularLoteAutorizado(ConsumoCuotaOperacionGdebaDto cuota)
+    private int CalcularLoteAutorizado(ConsumoCuotaOperacionGdebaDto cuota, int limiteDiario)
     {
-        var limiteOperativo = this.CalcularLimiteOperativo(cuota);
-        var remanente = limiteOperativo - cuota.Total;
+        var remanente = limiteDiario - cuota.Total;
         var disponible = remanente - Math.Max(0, _options.CupoReservaDiaria);
         return Math.Max(0, Math.Min(Math.Max(1, _options.BatchSize), disponible));
-    }
-
-    private int CalcularLimiteOperativo(ConsumoCuotaOperacionGdebaDto cuota)
-    {
-        var limiteConfigurado = cuota.LimiteDiario ?? _options.LimiteDiarioOperativo;
-        return Math.Min(limiteConfigurado, Math.Max(1, _options.LimiteDiarioOperativo));
     }
 
     private bool EstaDentroDeLaVentanaNoPico()
     {
         var horaActual = TimeOnly.FromDateTime(DateTime.Now);
-        var inicio = Worker.CrearHora(_options.VentanaInicioHoraLocal);
-        var fin = Worker.CrearHora(_options.VentanaFinHoraLocal);
+        var inicio = DocumentoMetadataEnrichmentWorker.CrearHora(_options.VentanaInicioHoraLocal);
+        var fin = DocumentoMetadataEnrichmentWorker.CrearHora(_options.VentanaFinHoraLocal);
 
         if (inicio == fin)
         {

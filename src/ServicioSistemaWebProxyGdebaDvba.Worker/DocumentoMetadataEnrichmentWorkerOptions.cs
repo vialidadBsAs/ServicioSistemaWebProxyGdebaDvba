@@ -22,8 +22,6 @@ public sealed class DocumentoMetadataEnrichmentWorkerOptions
 
     public int CupoReservaDiaria { get; set; } = 10;
 
-    public int LimiteDiarioOperativo { get; set; } = 50;
-
     public string ServicioCuota { get; set; } = DocumentoMetadataEnrichmentWorkerOptions.ServicioCuotaDefault;
 
     public string MetodoCuota { get; set; } = DocumentoMetadataEnrichmentWorkerOptions.MetodoCuotaDefault;

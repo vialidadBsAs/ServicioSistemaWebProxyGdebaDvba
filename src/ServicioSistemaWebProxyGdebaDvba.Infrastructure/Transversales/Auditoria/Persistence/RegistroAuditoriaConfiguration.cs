@@ -17,8 +17,7 @@ public sealed class RegistroAuditoriaConfiguration : IEntityTypeConfiguration<Re
             .IsRequired();
 
         builder.Property(x => x.OperacionGdeba)
-            .HasMaxLength(150)
-            .IsRequired();
+            .HasMaxLength(150);
 
         builder.Property(x => x.Recurso)
             .HasMaxLength(200);

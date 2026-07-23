@@ -37,8 +37,6 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
 
     public bool EstaCompleto { get; private set; }
 
-    public bool TieneDatosParciales { get; private set; }
-
     public string? UltimoErrorConsulta { get; private set; }
 
     public bool PuedeResponder(DateTimeOffset fechaActual)
@@ -55,7 +53,6 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
         FuenteRespuesta fuente,
         MovimientoExpediente? ultimoMovimientoDetectado,
         bool estaCompleto,
-        bool tieneDatosParciales,
         string? ultimoErrorConsulta)
     {
         MarcarComoModificada();
@@ -67,7 +64,6 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
             fuente,
             ultimoMovimientoDetectado?.Id,
             estaCompleto,
-            tieneDatosParciales,
             ultimoErrorConsulta);
     }
 
@@ -78,7 +74,6 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
         FuenteRespuesta fuente,
         Guid? ultimoMovimientoDetectadoId,
         bool estaCompleto,
-        bool tieneDatosParciales,
         string? ultimoErrorConsulta)
     {
         MarcarComoModificada();
@@ -88,7 +83,6 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
         FuenteUltimaRespuesta = fuente;
         UltimoMovimientoDetectadoId = ultimoMovimientoDetectadoId;
         EstaCompleto = estaCompleto;
-        TieneDatosParciales = tieneDatosParciales;
         UltimoErrorConsulta = Normalizar(ultimoErrorConsulta);
     }
 

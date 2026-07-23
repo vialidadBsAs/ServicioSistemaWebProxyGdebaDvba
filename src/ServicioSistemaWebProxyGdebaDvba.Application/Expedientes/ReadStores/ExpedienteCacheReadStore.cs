@@ -86,6 +86,7 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
 
         var expedientes = await _expedienteRepository
             .Query()
+            .Include(x => x.CacheControl)
             .Where(x => numeros.Contains(x.GdebaNumeroCompleto))
             .SelectAsync(cancellationToken);
 

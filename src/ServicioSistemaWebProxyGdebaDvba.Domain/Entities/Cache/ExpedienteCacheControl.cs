@@ -33,8 +33,6 @@ public sealed class ExpedienteCacheControl : DomainEntity
 
     public bool EstaCompleto { get; private set; }
 
-    public bool TieneDatosParciales { get; private set; }
-
     public string? UltimoErrorConsulta { get; private set; }
 
     public bool PuedeResponder(DateTimeOffset fechaActual)
@@ -50,7 +48,6 @@ public sealed class ExpedienteCacheControl : DomainEntity
         DateTimeOffset? fechaVencimiento,
         FuenteRespuesta fuente,
         bool estaCompleto,
-        bool tieneDatosParciales,
         string? ultimoErrorConsulta)
     {
         MarcarComoModificada();
@@ -59,7 +56,6 @@ public sealed class ExpedienteCacheControl : DomainEntity
         FechaVencimiento = fechaVencimiento;
         FuenteUltimaRespuesta = fuente;
         EstaCompleto = estaCompleto;
-        TieneDatosParciales = tieneDatosParciales;
         UltimoErrorConsulta = Normalizar(ultimoErrorConsulta);
     }
 

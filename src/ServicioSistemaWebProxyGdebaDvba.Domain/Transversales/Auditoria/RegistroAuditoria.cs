@@ -9,13 +9,13 @@ public sealed class RegistroAuditoria : DomainEntity
     {
     }
 
-    public RegistroAuditoria(Guid aplicacionConsumidoraId, string operacionSolicitada, string operacionGdeba, string? recurso, AmbienteGdeba ambiente, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha)
+    public RegistroAuditoria(Guid aplicacionConsumidoraId, string operacionSolicitada, string? operacionGdeba, string? recurso, AmbienteGdeba ambiente, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha)
     {
         AplicacionConsumidoraId = aplicacionConsumidoraId == Guid.Empty
             ? throw new ArgumentException("La aplicacion consumidora es requerida.", nameof(aplicacionConsumidoraId))
             : aplicacionConsumidoraId;
         OperacionSolicitada = NormalizarOperacion(operacionSolicitada, nameof(operacionSolicitada));
-        OperacionGdeba = NormalizarOperacion(operacionGdeba, nameof(operacionGdeba));
+        OperacionGdeba = NormalizarOperacionOpcional(operacionGdeba);
         Recurso = recurso;
         Ambiente = ambiente;
         Fuente = fuente;
@@ -30,7 +30,7 @@ public sealed class RegistroAuditoria : DomainEntity
 
     public string OperacionSolicitada { get; private set; } = string.Empty;
 
-    public string OperacionGdeba { get; private set; } = string.Empty;
+    public string? OperacionGdeba { get; private set; }
 
     public string? Recurso { get; private set; }
 
@@ -58,5 +58,10 @@ public sealed class RegistroAuditoria : DomainEntity
     private static string NormalizarOperacion(string operacion, string parameterName)
     {
         return string.IsNullOrWhiteSpace(operacion) ? throw new ArgumentException("La operacion es requerida.", parameterName) : operacion.Trim();
+    }
+
+    private static string? NormalizarOperacionOpcional(string? operacion)
+    {
+        return string.IsNullOrWhiteSpace(operacion) ? null : operacion.Trim();
     }
 }
