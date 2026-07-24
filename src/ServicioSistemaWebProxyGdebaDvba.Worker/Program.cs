@@ -15,7 +15,10 @@ builder.Services.Configure<DescubrimientoExpedientesWorkerOptions>(
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);
-builder.Services.AddRabbitMqMessaging(builder.Configuration, includeConsumers: true);
+if (builder.Configuration.GetValue<bool>("Messaging:RabbitMq:Enabled"))
+{
+    builder.Services.AddRabbitMqMessaging(builder.Configuration, includeConsumers: true);
+}
 builder.Services.AddHostedService<DocumentoMetadataEnrichmentWorker>();
 builder.Services.AddHostedService<DescubrimientoExpedientesWorker>();
 

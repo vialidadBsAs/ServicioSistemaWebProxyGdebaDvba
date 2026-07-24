@@ -30,6 +30,8 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
         }
 
         DateOnly? fechaEjecutada = null;
+        var esperaInformada = false;
+        _logger.LogInformation("Worker de descubrimiento de expedientes iniciado. Ventana={HoraInicio:00}:00-{HoraFin:00}:00. Intervalo={IntervaloMinutos} minutos.", _options.HoraInicioLocal, _options.HoraFinLocal, _options.IntervalMinutes);
         while (!stoppingToken.IsCancellationRequested)
         {
             var ahora = DateTimeOffset.Now;
@@ -38,6 +40,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
             {
                 try
                 {
+                    _logger.LogInformation("Iniciando corrida programada de descubrimiento. Fecha={Fecha}. HoraLocal={HoraLocal}.", fecha, ahora);
                     using var scope = _scopeFactory.CreateScope();
                     var cuotas = scope.ServiceProvider.GetRequiredService<IConsultaCuotasGdeba>();
                     var expedienteService = scope.ServiceProvider.GetRequiredService<IExpedienteService>();
@@ -56,7 +59,9 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                         var presupuesto = Math.Max(0, limite - cuota.Total - reserva);
                         if (presupuesto > 0)
                         {
+                            _logger.LogInformation("Descubrimiento programado con presupuesto de {Presupuesto} invocaciones. Limite={Limite}. Registradas={Registradas}. Reserva={Reserva}.", presupuesto, limite, cuota.Total, reserva);
                             await expedienteService.DescubrirExpedientesProgramadosAsync(new DescubrirExpedientesProgramadosRequest(presupuesto, _options.ConsultasVaciasParaPausa, _options.DiasPausaSinResultados, OrigenInvocacionGdeba.WorkerProgramado), stoppingToken);
+                            _logger.LogInformation("Finalizo la corrida programada de descubrimiento para la fecha {Fecha}.", fecha);
                         }
                         else
                         {
@@ -72,6 +77,11 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                 }
 
                 fechaEjecutada = fecha;
+            }
+            else if (!esperaInformada)
+            {
+                _logger.LogInformation("Worker de descubrimiento en espera. HoraLocal={HoraLocal}. Ventana={HoraInicio:00}:00-{HoraFin:00}:00.", ahora, _options.HoraInicioLocal, _options.HoraFinLocal);
+                esperaInformada = true;
             }
             await Task.Delay(TimeSpan.FromMinutes(Math.Max(1, _options.IntervalMinutes)), stoppingToken);
         }

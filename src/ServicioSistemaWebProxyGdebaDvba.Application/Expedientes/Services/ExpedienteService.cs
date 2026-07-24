@@ -598,7 +598,7 @@ public sealed class ExpedienteService : IExpedienteService
         await this.RegistrarAuditoriaAsync(
             OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso,
             FuenteRespuesta.Gdeba, exitoso: true,
-            $"Recibidos: {datosGdeba.Count}. Habilitados: {expedientesDetectados.Count}. Descartados: {descartados}.", resolvedAt, cancellationToken);
+            $"Recibidos: {datosGdeba.Count}. Habilitados: {expedientesDetectados.Count}. Descartados: {descartados}. Creados: {creados}. Actualizados: {actualizados}. Sin cambios: {sinCambios}.", resolvedAt, cancellationToken);
         await this.ConfirmarCambiosAsync(OperacionIncorporarExpedientesPorTrata, recurso, cancellationToken);
 
         return new IncorporarExpedientesPorTrataResult(
