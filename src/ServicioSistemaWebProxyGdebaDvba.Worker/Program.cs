@@ -8,8 +8,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
-builder.Services.Configure<DocumentoMetadataEnrichmentWorkerOptions>(
-    builder.Configuration.GetSection(DocumentoMetadataEnrichmentWorkerOptions.SectionName));
+builder.Services.Configure<DocumentoDetailEnrichmentWorkerOptions>(
+    builder.Configuration.GetSection(DocumentoDetailEnrichmentWorkerOptions.SectionName));
 builder.Services.Configure<DescubrimientoExpedientesWorkerOptions>(
     builder.Configuration.GetSection(DescubrimientoExpedientesWorkerOptions.SectionName));
 builder.Services.AddApplication(builder.Configuration);
@@ -19,7 +19,7 @@ if (builder.Configuration.GetValue<bool>("Messaging:RabbitMq:Enabled"))
 {
     builder.Services.AddRabbitMqMessaging(builder.Configuration, includeConsumers: true);
 }
-builder.Services.AddHostedService<DocumentoMetadataEnrichmentWorker>();
+builder.Services.AddHostedService<DocumentoDetailEnrichmentWorker>();
 builder.Services.AddHostedService<DescubrimientoExpedientesWorker>();
 
 var host = builder.Build();

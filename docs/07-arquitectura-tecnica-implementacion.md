@@ -142,7 +142,7 @@ Partes persistidas del identificador:
 
 #### DocumentoGdeba y Enriquecimiento Documental
 
-`DocumentoGdeba` distingue entre el numero de actuacion que aparece en el expediente y el numero especial que aparece al consultar el detalle del documento.
+`DocumentoGdeba` distingue entre el numero de actuacion que aparece en el expediente y el numero especial que aparece al consultar el detalle del documento. El codigo de la actuacion se conserva en `ActuacionTipoCodigo` (`RS`, `PV`, entre otros); el acronimo documental devuelto por el detalle se conserva en `TipoDocumentoCodigo` (`RESO`, `RESFC`, entre otros). No representan el mismo dato.
 
 El numero de actuacion es el identificador detectado en listados de documentos del expediente, por ejemplo `RS-2023-33144875-GDEBA-DVMIYSPGP`. Con ese dato ya se puede registrar la existencia del documento y relacionarlo con el expediente, aunque todavia no se conozca su metadata completa.
 
@@ -246,7 +246,7 @@ Para enriquecimiento documental, el Worker conserva las decisiones operativas: s
 
 El limite diario autorizado se obtiene exclusivamente de la configuracion persistida de cada operacion GDEBA. Los Workers no mantienen un segundo limite en `appsettings`; solamente pueden reservar parte del cupo mediante `CupoReservaDiaria`. Si una operacion no existe en el control de cuotas o no tiene limite diario, el proceso se omite sin invocar GDEBA.
 
-La logica reutilizable de enriquecer un documento no vive en el Worker. Esta en Application mediante `IDocumentoMetadataEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.
+La logica reutilizable de enriquecer el detalle de un documento no vive en el Worker. Esta en Application mediante `IDocumentoDetailEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.
 
 El descubrimiento programado obtiene los temas habilitados desde `Configuracion_TemasDescubrimientoExpediente`, carga sus asignaciones de `TemaExpedienteTratas` junto con la correspondiente `TrataHabilitadaVialidad`, deduplica los codigos de trata y combina el resultado con `Configuracion_TratasDescubrimientoExpediente`. Una configuracion individual deshabilitada excluye la trata del tema; una habilitada permite priorizarla o incorporar una trata fuera de los temas. Las combinaciones trata-estado nunca consultadas y las de consulta mas antigua se procesan primero para evitar que el limite diario deje siempre pendientes las mismas tratas. El Worker no repite una combinacion ya consultada durante la fecha local actual, aunque conserve presupuesto. Esta restriccion no se aplica a las operaciones manuales de descubrimiento por trata o por estado.
 

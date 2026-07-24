@@ -1,6 +1,6 @@
 ﻿namespace ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 
-public sealed record DocumentoMetadataEnrichmentItemResult(
+public sealed record DocumentoDetailEnrichmentItemResult(
     Guid DocumentoId,
     string? NumeroDocumento,
-    DocumentoMetadataEnrichmentItemStatus Estado);
+    DocumentoDetailEnrichmentItemStatus Estado);

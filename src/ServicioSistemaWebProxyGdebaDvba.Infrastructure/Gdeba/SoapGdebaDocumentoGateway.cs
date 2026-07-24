@@ -48,10 +48,9 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         var contractOptions = this.ResolveSoapContractOptions();
         var serviceContractOptions = this.ResolveConsultaDocumentoServiceContractOptions(contractOptions);
         var serviceOptions = this.ResolveConsultaDocumentoServiceOptions();
+        var usuarioConsulta = SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
         const string operationName = "buscarDetallePorNumero";
-        var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(
-            contractOptions, serviceContractOptions, operationName,
-            numeroNormalizado);
+        var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(contractOptions, serviceContractOptions, operationName, numeroNormalizado, usuarioConsulta);
 
         var document = await this.SendSoapAsync(
             serviceOptions,
@@ -69,15 +68,13 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
             return null;
         }
 
-        var tipoDocumento = SoapGdebaDocumentoGateway.FindFirstChild(response, "tipoDocumento");
+        var tipoDocumento = SoapGdebaDocumentoGateway.MapearTipoDocumento(response);
         return new GdebaDocumentoDetalleDto(
             SoapGdebaDocumentoGateway.GetValue(response, "numeroDocumento") ?? numeroNormalizado,
             SoapGdebaDocumentoGateway.GetValue(response, "numeroEspecial"),
-            SoapGdebaDocumentoGateway.GetValue(tipoDocumento, "acronimo") ??
-                SoapGdebaDocumentoGateway.GetValue(response, "acronimo") ??
-                SoapGdebaDocumentoGateway.GetValue(response, "tipoDocumento"),
-            SoapGdebaDocumentoGateway.GetValue(tipoDocumento, "nombre"),
-            SoapGdebaDocumentoGateway.GetValue(tipoDocumento, "descripcion"),
+            tipoDocumento.Codigo,
+            tipoDocumento.Nombre,
+            tipoDocumento.Descripcion,
             SoapGdebaDocumentoGateway.GetValue(response, "referencia"),
             SoapGdebaDocumentoGateway.ParseDate(SoapGdebaDocumentoGateway.GetValue(response, "fechaCreacion")),
             SoapGdebaDocumentoGateway.JoinValues(response, "listaFirmantes"),
@@ -246,19 +243,56 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         GdebaSoapContractsOptions contractOptions,
         GdebaSoapServiceContractOptions serviceContractOptions,
         string operationName,
-        string numeroDocumento)
+        string numeroDocumento,
+        string usuarioConsulta)
     {
         return $$"""
             <Envelope xmlns="{{contractOptions.EnvelopeNamespace}}">
                 <Body>
                     <{{operationName}} xmlns="{{serviceContractOptions.Namespace}}">
-                        <Assignee xmlns="">false</Assignee>
-                        <numeroDocumento xmlns="">{{SoapGdebaDocumentoGateway.EscapeXml(numeroDocumento)}}</numeroDocumento>
-                        <usuarioConsulta xmlns=""></usuarioConsulta>
+                        <request xmlns="">
+                            <assignee>true</assignee>
+                            <numeroDocumento>{{SoapGdebaDocumentoGateway.EscapeXml(numeroDocumento)}}</numeroDocumento>
+                            <numeroEspecial></numeroEspecial>
+                            <usuarioConsulta>{{SoapGdebaDocumentoGateway.EscapeXml(usuarioConsulta)}}</usuarioConsulta>
+                        </request>
                     </{{operationName}}>
                 </Body>
             </Envelope>
             """;
+    }
+
+    private static string ResolverUsuarioConsulta(SoapServiceOptions serviceOptions)
+    {
+        return string.IsNullOrWhiteSpace(serviceOptions.UsuarioConsulta)
+            ? throw new InvalidOperationException("No esta configurado el usuario de consulta para 'ConsultaDocumento'.")
+            : serviceOptions.UsuarioConsulta.Trim();
+    }
+
+    private static (string? Codigo, string? Nombre, string? Descripcion) MapearTipoDocumento(XElement response)
+    {
+        var tipoDocumento = SoapGdebaDocumentoGateway.FindFirstChild(response, "tipoDocumento");
+        var codigo = SoapGdebaDocumentoGateway.GetValue(tipoDocumento, "acronimo") ??
+            SoapGdebaDocumentoGateway.GetValue(response, "acronimo");
+        var nombre = SoapGdebaDocumentoGateway.GetValue(tipoDocumento, "nombre");
+        var descripcion = SoapGdebaDocumentoGateway.GetValue(tipoDocumento, "descripcion");
+        var textoTipoDocumento = SoapGdebaDocumentoGateway.GetValue(response, "tipoDocumento");
+
+        if (!string.IsNullOrWhiteSpace(textoTipoDocumento) && tipoDocumento?.Elements().Any() != true)
+        {
+            var separador = textoTipoDocumento.IndexOfAny([' ', '\t', '\r', '\n']);
+            if (separador < 0)
+            {
+                codigo ??= textoTipoDocumento.Trim();
+            }
+            else
+            {
+                codigo ??= textoTipoDocumento[..separador].Trim();
+                descripcion ??= textoTipoDocumento[separador..].Trim();
+            }
+        }
+
+        return (codigo, nombre, descripcion);
     }
 
     private static IReadOnlyCollection<GdebaHistorialDocumentoDto> MapHistorial(XElement response)

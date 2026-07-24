@@ -231,10 +231,10 @@ Una respuesta real de `consultarTipoDocumento` para `RESO` confirmo que `acronim
 Decision posterior del feature `worker-cache-processing`:
 
 - Se agrego `IGdebaDocumentoGateway` para consultar detalle documental por numero.
-- `DocumentoMetadataEnrichmentService` expone una operacion unitaria para enriquecer un documento por `Id` y una operacion por lote de pendientes.
+- `DocumentoDetailEnrichmentService` expone una operacion unitaria para enriquecer el detalle de un documento por `Id` y una operacion por lote de pendientes.
 - El lote de pendientes no duplica la logica de enriquecimiento; carga documentos incompletos y reutiliza la operacion interna sobre cada `DocumentoGdeba`.
 - `DocumentoGdeba` concentra reglas de metadata e historial mediante su aggregate root.
-- El worker de enriquecimiento se configura en `Workers:DocumentoMetadataEnrichment` con habilitacion, intervalo, ventana no pico, tamanio de lote, reserva y limite operativo diario.
+- El worker de enriquecimiento se configura en `Workers:DocumentoDetailEnrichment` con habilitacion, intervalo, ventana no pico, tamanio de lote, reserva y limite operativo diario.
 
 ## 16. Auditoria y trazabilidad
 

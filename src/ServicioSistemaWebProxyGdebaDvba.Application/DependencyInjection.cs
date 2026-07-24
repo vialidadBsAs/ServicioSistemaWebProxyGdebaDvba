@@ -21,7 +21,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IDocumentoMetadataEnrichmentService, DocumentoMetadataEnrichmentService>();
+        services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
@@ -35,7 +35,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IDocumentoMetadataEnrichmentService, DocumentoMetadataEnrichmentService>();
+        services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();

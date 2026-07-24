@@ -1,8 +1,8 @@
 ﻿namespace ServicioSistemaWebProxyGdebaDvba.Worker;
 
-public sealed class DocumentoMetadataEnrichmentWorkerOptions
+public sealed class DocumentoDetailEnrichmentWorkerOptions
 {
-    public const string SectionName = "Workers:DocumentoMetadataEnrichment";
+    public const string SectionName = "Workers:DocumentoDetailEnrichment";
 
     public const string ServicioCuotaDefault = "ws_gdeba_consultaDocumento";
 
@@ -22,7 +22,7 @@ public sealed class DocumentoMetadataEnrichmentWorkerOptions
 
     public int CupoReservaDiaria { get; set; } = 10;
 
-    public string ServicioCuota { get; set; } = DocumentoMetadataEnrichmentWorkerOptions.ServicioCuotaDefault;
+    public string ServicioCuota { get; set; } = DocumentoDetailEnrichmentWorkerOptions.ServicioCuotaDefault;
 
-    public string MetodoCuota { get; set; } = DocumentoMetadataEnrichmentWorkerOptions.MetodoCuotaDefault;
+    public string MetodoCuota { get; set; } = DocumentoDetailEnrichmentWorkerOptions.MetodoCuotaDefault;
 }

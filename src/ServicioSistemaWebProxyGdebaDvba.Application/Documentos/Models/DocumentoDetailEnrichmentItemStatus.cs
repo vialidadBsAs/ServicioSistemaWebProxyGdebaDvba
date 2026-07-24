@@ -1,6 +1,6 @@
 ﻿namespace ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 
-public enum DocumentoMetadataEnrichmentItemStatus
+public enum DocumentoDetailEnrichmentItemStatus
 {
     DocumentoNoEncontrado = 0,
     SinDatos = 1,

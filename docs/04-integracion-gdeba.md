@@ -34,6 +34,8 @@ Implementaciones actuales:
 - `SoapGdebaExpedienteGateway`, para `consultarExpedienteDetallado` y `buscarHistorialPasesExpediente`.
 - `SoapGdebaDocumentoGateway`, para `buscarDetallePorNumero`.
 
+`buscarDetallePorNumero` requiere el usuario de consulta del ambiente. Se configura fuera del repositorio en `Gdeba:Environments:{ambiente}:Soap:Services:ConsultaDocumento:UsuarioConsulta`; el gateway arma el nodo `request` con `assignee`, `numeroDocumento`, `numeroEspecial` y `usuarioConsulta` segun el contrato SOAP.
+
 Los gateways SOAP registran invocaciones para control de cuotas mediante `IRegistroInvocacionesGdeba`. Una invocacion cuenta como consumo si el servidor respondio; ademas se registra origen, ambiente, estado HTTP, duracion y resultado.
 
 Requisito tecnico:

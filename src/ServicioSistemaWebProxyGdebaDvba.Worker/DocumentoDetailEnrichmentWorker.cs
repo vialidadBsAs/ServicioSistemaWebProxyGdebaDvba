@@ -6,16 +6,16 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Worker;
 
-public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
+public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<DocumentoMetadataEnrichmentWorker> _logger;
-    private readonly DocumentoMetadataEnrichmentWorkerOptions _options;
+    private readonly ILogger<DocumentoDetailEnrichmentWorker> _logger;
+    private readonly DocumentoDetailEnrichmentWorkerOptions _options;
 
-    public DocumentoMetadataEnrichmentWorker(
+    public DocumentoDetailEnrichmentWorker(
         IServiceScopeFactory scopeFactory,
-        IOptions<DocumentoMetadataEnrichmentWorkerOptions> options,
-        ILogger<DocumentoMetadataEnrichmentWorker> logger)
+        IOptions<DocumentoDetailEnrichmentWorkerOptions> options,
+        ILogger<DocumentoDetailEnrichmentWorker> logger)
     {
         _scopeFactory = scopeFactory;
         _options = options.Value;
@@ -27,7 +27,7 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
         if (!_options.Enabled)
         {
             _logger.LogInformation(
-                "Worker de enriquecimiento documental deshabilitado por configuracion.");
+                "Worker de enriquecimiento de detalle documental deshabilitado por configuracion.");
         }
 
         var intervalo = TimeSpan.FromMinutes(Math.Max(1, _options.IntervalMinutes));
@@ -39,7 +39,7 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             _logger.LogInformation(
-                "Worker en espera. Proxima iteracion de enriquecimiento documental: {time}",
+                "Worker en espera. Proxima iteracion de enriquecimiento de detalle documental: {time}",
                 DateTimeOffset.Now.Add(intervalo));
             await Task.Delay(intervalo, stoppingToken);
 
@@ -55,13 +55,13 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
         if (!this.EstaDentroDeLaVentanaNoPico())
         {
             _logger.LogInformation(
-                "Enriquecimiento documental omitido porque la hora local actual esta fuera de la ventana no pico configurada.");
+                "Enriquecimiento de detalle documental omitido porque la hora local actual esta fuera de la ventana no pico configurada.");
             return;
         }
 
         using var scope = _scopeFactory.CreateScope();
         var consultaCuotas = scope.ServiceProvider.GetRequiredService<IConsultaCuotasGdeba>();
-        var enrichmentService = scope.ServiceProvider.GetRequiredService<IDocumentoMetadataEnrichmentService>();
+        var enrichmentService = scope.ServiceProvider.GetRequiredService<IDocumentoDetailEnrichmentService>();
         var cuotas = await consultaCuotas.ConsultarCuotasAsync(
             DateOnly.FromDateTime(DateTime.Now),
             cancellationToken);
@@ -72,7 +72,7 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
         if (cuota is null)
         {
             _logger.LogWarning(
-                "No se encontro configuracion de cuota para {Servicio}.{Metodo}. Se omite el enriquecimiento documental.",
+                "No se encontro configuracion de cuota para {Servicio}.{Metodo}. Se omite el enriquecimiento de detalle documental.",
                 _options.ServicioCuota,
                 _options.MetodoCuota);
             return;
@@ -81,7 +81,7 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
         if (cuota.LimiteDiario is not int limiteDiario)
         {
             _logger.LogWarning(
-                "La operacion {Servicio}.{Metodo} no tiene limite diario configurado. Se omite el enriquecimiento documental.",
+                "La operacion {Servicio}.{Metodo} no tiene limite diario configurado. Se omite el enriquecimiento de detalle documental.",
                 _options.ServicioCuota,
                 _options.MetodoCuota);
             return;
@@ -91,7 +91,7 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
         if (loteAutorizado <= 0)
         {
             _logger.LogInformation(
-                "Enriquecimiento documental omitido por cuota. Consumido hoy: {Consumido}. Limite diario: {LimiteDiario}. Reserva diaria: {Reserva}.",
+                "Enriquecimiento de detalle documental omitido por cuota. Consumido hoy: {Consumido}. Limite diario: {LimiteDiario}. Reserva diaria: {Reserva}.",
                 cuota.Total,
                 limiteDiario,
                 Math.Max(0, _options.CupoReservaDiaria));
@@ -104,7 +104,7 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
             cancellationToken);
 
         _logger.LogInformation(
-            "Enriquecimiento documental finalizado. LoteAutorizado: {LoteAutorizado}. Procesados: {Procesados}. Enriquecidos: {Enriquecidos}. SinDatos: {SinDatos}. Errores: {Errores}.",
+            "Enriquecimiento de detalle documental finalizado. LoteAutorizado: {LoteAutorizado}. Procesados: {Procesados}. Enriquecidos: {Enriquecidos}. SinDatos: {SinDatos}. Errores: {Errores}.",
             loteAutorizado,
             result.Procesados,
             result.Enriquecidos,
@@ -122,8 +122,8 @@ public sealed class DocumentoMetadataEnrichmentWorker : BackgroundService
     private bool EstaDentroDeLaVentanaNoPico()
     {
         var horaActual = TimeOnly.FromDateTime(DateTime.Now);
-        var inicio = DocumentoMetadataEnrichmentWorker.CrearHora(_options.VentanaInicioHoraLocal);
-        var fin = DocumentoMetadataEnrichmentWorker.CrearHora(_options.VentanaFinHoraLocal);
+        var inicio = DocumentoDetailEnrichmentWorker.CrearHora(_options.VentanaInicioHoraLocal);
+        var fin = DocumentoDetailEnrichmentWorker.CrearHora(_options.VentanaFinHoraLocal);
 
         if (inicio == fin)
         {

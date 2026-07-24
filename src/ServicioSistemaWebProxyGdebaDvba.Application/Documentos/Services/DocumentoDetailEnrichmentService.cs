@@ -10,19 +10,19 @@ using URF.Core.Abstractions.Trackable;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Services;
 
-public sealed class DocumentoMetadataEnrichmentService
-    : IDocumentoMetadataEnrichmentService
+public sealed class DocumentoDetailEnrichmentService
+    : IDocumentoDetailEnrichmentService
 {
     private readonly IGdebaDocumentoGateway _gdebaDocumentoGateway;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<DocumentoMetadataEnrichmentService> _logger;
+    private readonly ILogger<DocumentoDetailEnrichmentService> _logger;
 
-    public DocumentoMetadataEnrichmentService(
+    public DocumentoDetailEnrichmentService(
         IGdebaDocumentoGateway gdebaDocumentoGateway,
         ITrackableRepository<DocumentoGdeba> documentoRepository,
         IUnitOfWork unitOfWork,
-        ILogger<DocumentoMetadataEnrichmentService> logger)
+        ILogger<DocumentoDetailEnrichmentService> logger)
     {
         _gdebaDocumentoGateway = gdebaDocumentoGateway;
         _documentoRepository = documentoRepository;
@@ -30,7 +30,7 @@ public sealed class DocumentoMetadataEnrichmentService
         _logger = logger;
     }
 
-    public async Task<DocumentoMetadataEnrichmentItemResult> EnriquecerDocumentoAsync(
+    public async Task<DocumentoDetailEnrichmentItemResult> EnriquecerDocumentoAsync(
         Guid documentoId,
         OrigenInvocacionGdeba origenInvocacion,
         CancellationToken cancellationToken)
@@ -38,10 +38,10 @@ public sealed class DocumentoMetadataEnrichmentService
         var documento = await this.CargarDocumentoAsync(documentoId, cancellationToken);
         if (documento is null)
         {
-            return new DocumentoMetadataEnrichmentItemResult(
+            return new DocumentoDetailEnrichmentItemResult(
                 documentoId,
                 null,
-                DocumentoMetadataEnrichmentItemStatus.DocumentoNoEncontrado);
+                DocumentoDetailEnrichmentItemStatus.DocumentoNoEncontrado);
         }
 
         var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
@@ -49,7 +49,7 @@ public sealed class DocumentoMetadataEnrichmentService
             documento,
             contextoInvocacion,
             cancellationToken);
-        if (resultado.Estado == DocumentoMetadataEnrichmentItemStatus.Enriquecido)
+        if (resultado.Estado == DocumentoDetailEnrichmentItemStatus.Enriquecido)
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
@@ -57,7 +57,7 @@ public sealed class DocumentoMetadataEnrichmentService
         return resultado;
     }
 
-    public async Task<DocumentoMetadataEnrichmentResult> EnriquecerPendientesAsync(
+    public async Task<DocumentoDetailEnrichmentResult> EnriquecerPendientesAsync(
         int loteMaximo,
         OrigenInvocacionGdeba origenInvocacion,
         CancellationToken cancellationToken)
@@ -75,7 +75,7 @@ public sealed class DocumentoMetadataEnrichmentService
 
         if (documentosProcesados == 0)
         {
-            return new DocumentoMetadataEnrichmentResult(0, 0, 0, 0);
+            return new DocumentoDetailEnrichmentResult(0, 0, 0, 0);
         }
 
         var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
@@ -93,11 +93,11 @@ public sealed class DocumentoMetadataEnrichmentService
                     cancellationToken);
                 switch (resultado.Estado)
                 {
-                    case DocumentoMetadataEnrichmentItemStatus.Enriquecido:
+                    case DocumentoDetailEnrichmentItemStatus.Enriquecido:
                         enriquecidos++;
                         break;
 
-                    case DocumentoMetadataEnrichmentItemStatus.SinDatos:
+                    case DocumentoDetailEnrichmentItemStatus.SinDatos:
                         sinDatos++;
                         break;
                 }
@@ -121,7 +121,7 @@ public sealed class DocumentoMetadataEnrichmentService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        return new DocumentoMetadataEnrichmentResult(
+        return new DocumentoDetailEnrichmentResult(
             documentosProcesados,
             enriquecidos,
             sinDatos,
@@ -141,7 +141,7 @@ public sealed class DocumentoMetadataEnrichmentService
             .SingleOrDefault();
     }
 
-    private async Task<DocumentoMetadataEnrichmentItemResult> EnriquecerDocumentoAsync(
+    private async Task<DocumentoDetailEnrichmentItemResult> EnriquecerDocumentoAsync(
         DocumentoGdeba documento,
         ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
@@ -152,10 +152,10 @@ public sealed class DocumentoMetadataEnrichmentService
             cancellationToken);
         if (detalle is null)
         {
-            return new DocumentoMetadataEnrichmentItemResult(
+            return new DocumentoDetailEnrichmentItemResult(
                 documento.Id,
                 documento.NumeroActuacionCompleto,
-                DocumentoMetadataEnrichmentItemStatus.SinDatos);
+                DocumentoDetailEnrichmentItemStatus.SinDatos);
         }
 
         documento.EnriquecerDesdeDetalleDocumento(
@@ -175,9 +175,9 @@ public sealed class DocumentoMetadataEnrichmentService
 
         _documentoRepository.Update(documento);
         _documentoRepository.ApplyChanges(documento);
-        return new DocumentoMetadataEnrichmentItemResult(
+        return new DocumentoDetailEnrichmentItemResult(
             documento.Id,
             documento.NumeroActuacionCompleto,
-            DocumentoMetadataEnrichmentItemStatus.Enriquecido);
+            DocumentoDetailEnrichmentItemStatus.Enriquecido);
     }
 }

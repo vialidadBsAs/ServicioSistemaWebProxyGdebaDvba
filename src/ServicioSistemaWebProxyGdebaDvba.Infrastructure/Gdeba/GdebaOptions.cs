@@ -50,6 +50,8 @@ public sealed class SoapOptions
 public sealed class SoapServiceOptions
 {
     public string Wsdl { get; set; } = string.Empty;
+
+    public string UsuarioConsulta { get; set; } = string.Empty;
 }
 
 public sealed class GdebaSoapContractsOptions
