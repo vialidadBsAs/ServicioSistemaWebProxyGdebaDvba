@@ -99,9 +99,7 @@ public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
         }
 
         var result = await enrichmentService.EnriquecerPendientesAsync(
-            loteAutorizado,
-            OrigenInvocacionGdeba.WorkerProgramado,
-            cancellationToken);
+            loteAutorizado, OrigenInvocacionGdeba.WorkerProgramado, cancellationToken);
 
         _logger.LogInformation(
             "Enriquecimiento de detalle documental finalizado. LoteAutorizado: {LoteAutorizado}. Procesados: {Procesados}. Enriquecidos: {Enriquecidos}. SinDatos: {SinDatos}. Errores: {Errores}.",

@@ -2,8 +2,12 @@
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 using URF.Core.Abstractions;
 using URF.Core.Abstractions.Trackable;
@@ -13,20 +17,35 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Services;
 public sealed class DocumentoDetailEnrichmentService
     : IDocumentoDetailEnrichmentService
 {
+    private const string OperacionEnriquecerDetalleDocumento = "EnriquecerDetalleDocumento";
+    private const string OperacionBuscarDetallePorNumero = "buscarDetallePorNumero";
+
     private readonly IGdebaDocumentoGateway _gdebaDocumentoGateway;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
+    private readonly IRepository<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> _configuracionEnriquecimientoTemaRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuditoriaService _auditoriaService;
+    private readonly IGdebaExecutionContext _gdebaExecutionContext;
+    private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly ILogger<DocumentoDetailEnrichmentService> _logger;
 
     public DocumentoDetailEnrichmentService(
         IGdebaDocumentoGateway gdebaDocumentoGateway,
         ITrackableRepository<DocumentoGdeba> documentoRepository,
+        IRepository<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> configuracionEnriquecimientoTemaRepository,
         IUnitOfWork unitOfWork,
+        IAuditoriaService auditoriaService,
+        IGdebaExecutionContext gdebaExecutionContext,
+        ICurrentApplicationAccessor currentApplicationAccessor,
         ILogger<DocumentoDetailEnrichmentService> logger)
     {
         _gdebaDocumentoGateway = gdebaDocumentoGateway;
         _documentoRepository = documentoRepository;
+        _configuracionEnriquecimientoTemaRepository = configuracionEnriquecimientoTemaRepository;
         _unitOfWork = unitOfWork;
+        _auditoriaService = auditoriaService;
+        _gdebaExecutionContext = gdebaExecutionContext;
+        _currentApplicationAccessor = currentApplicationAccessor;
         _logger = logger;
     }
 
@@ -45,32 +64,47 @@ public sealed class DocumentoDetailEnrichmentService
         }
 
         var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
-        var resultado = await this.EnriquecerDocumentoAsync(
-            documento,
-            contextoInvocacion,
-            cancellationToken);
-        if (resultado.Estado == DocumentoDetailEnrichmentItemStatus.Enriquecido)
+        try
         {
+            var resultado = await this.EnriquecerDocumentoAsync(documento, contextoInvocacion, cancellationToken);
+            await this.RegistrarAuditoriaAsync(
+                resultado.NumeroDocumento ?? documento.NumeroActuacionCompleto, origenInvocacion, exitoso: true,
+                DocumentoDetailEnrichmentService.CrearMensajeResultado(resultado.Estado), cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
 
-        return resultado;
+            return resultado;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            await this.RegistrarAuditoriaAsync(
+                documento.NumeroActuacionCompleto, origenInvocacion, exitoso: false,
+                DocumentoDetailEnrichmentService.CrearMensajeError(), cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            throw;
+        }
     }
 
-    public async Task<DocumentoDetailEnrichmentResult> EnriquecerPendientesAsync(
-        int loteMaximo,
-        OrigenInvocacionGdeba origenInvocacion,
+    public async Task<DocumentoDetailEnrichmentResult> EnriquecerPendientesAsync(int loteMaximo, OrigenInvocacionGdeba origenInvocacion,
         CancellationToken cancellationToken)
     {
         var limite = Math.Max(1, loteMaximo);
-        var documentos = await _documentoRepository
+        var configuracionesTema = await _configuracionEnriquecimientoTemaRepository
             .Query()
-            .Include(x => x.Historial)
-            .Where(x => !x.MetadataCompleta)
-            .OrderBy(x => x.FechaUltimoEnriquecimiento ?? DateTimeOffset.MinValue)
-            .ThenBy(x => x.NumeroActuacionCompleto)
-            .Take(limite)
+            .Where(x => x.Habilitado)
+            .OrderBy(x => x.Prioridad)
+            .ThenBy(x => x.TemaExpedienteId)
             .SelectAsync(cancellationToken);
+        if (!configuracionesTema.Any())
+        {
+            _logger.LogInformation("Enriquecimiento de detalle documental omitido porque no hay temas habilitados en la configuracion local.");
+            return new DocumentoDetailEnrichmentResult(0, 0, 0, 0);
+        }
+
+        var documentos = await this.CargarDocumentosPendientesPorTemaAsync(configuracionesTema, limite, cancellationToken);
         var documentosProcesados = documentos.Count();
 
         if (documentosProcesados == 0)
@@ -87,10 +121,10 @@ public sealed class DocumentoDetailEnrichmentService
         {
             try
             {
-                var resultado = await this.EnriquecerDocumentoAsync(
-                    documento,
-                    contextoInvocacion,
-                    cancellationToken);
+                var resultado = await this.EnriquecerDocumentoAsync(documento, contextoInvocacion, cancellationToken);
+                await this.RegistrarAuditoriaAsync(
+                    resultado.NumeroDocumento ?? documento.NumeroActuacionCompleto, origenInvocacion, exitoso: true,
+                    DocumentoDetailEnrichmentService.CrearMensajeResultado(resultado.Estado), cancellationToken);
                 switch (resultado.Estado)
                 {
                     case DocumentoDetailEnrichmentItemStatus.Enriquecido:
@@ -109,6 +143,9 @@ public sealed class DocumentoDetailEnrichmentService
             catch (Exception ex)
             {
                 errores++;
+                await this.RegistrarAuditoriaAsync(
+                    documento.NumeroActuacionCompleto, origenInvocacion, exitoso: false,
+                    DocumentoDetailEnrichmentService.CrearMensajeError(), cancellationToken);
                 _logger.LogWarning(
                     ex,
                     "No se pudo enriquecer el documento {NumeroDocumento}.",
@@ -116,10 +153,7 @@ public sealed class DocumentoDetailEnrichmentService
             }
         }
 
-        if (enriquecidos > 0)
-        {
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new DocumentoDetailEnrichmentResult(
             documentosProcesados,
@@ -177,7 +211,88 @@ public sealed class DocumentoDetailEnrichmentService
         _documentoRepository.ApplyChanges(documento);
         return new DocumentoDetailEnrichmentItemResult(
             documento.Id,
-            documento.NumeroActuacionCompleto,
+            detalle.NumeroDocumento ?? documento.NumeroActuacionCompleto,
             DocumentoDetailEnrichmentItemStatus.Enriquecido);
+    }
+
+    private Task RegistrarAuditoriaAsync(
+        string recurso,
+        OrigenInvocacionGdeba origenInvocacion,
+        bool exitoso,
+        string mensaje,
+        CancellationToken cancellationToken)
+    {
+        return _auditoriaService.RegistrarAsync(
+            new RegistrarAuditoriaRequest(
+                _currentApplicationAccessor.Current.ApplicationId,
+                DocumentoDetailEnrichmentService.OperacionEnriquecerDetalleDocumento,
+                DocumentoDetailEnrichmentService.OperacionBuscarDetallePorNumero,
+                recurso,
+                _gdebaExecutionContext.Ambiente,
+                FuenteRespuesta.Gdeba,
+                exitoso,
+                $"Origen: {origenInvocacion}. {mensaje}",
+                DateTimeOffset.Now),
+            cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<DocumentoGdeba>> CargarDocumentosPendientesPorTemaAsync(
+        IEnumerable<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> configuracionesTema, int limite, CancellationToken cancellationToken)
+    {
+        var documentos = new List<DocumentoGdeba>();
+        var idsDocumentosSeleccionados = new HashSet<Guid>();
+
+        foreach (var configuracionTema in configuracionesTema)
+        {
+            var cantidadRestante = limite - documentos.Count;
+            if (cantidadRestante == 0)
+            {
+                break;
+            }
+
+            IQuery<DocumentoGdeba> consultaDocumentos = _documentoRepository
+                .Query()
+                .Include(x => x.Historial)
+                .Where(x => !x.MetadataCompleta)
+                .Where(x => x.Expedientes.Any(vinculo =>
+                    vinculo.Expediente.Trata != null &&
+                    vinculo.Expediente.Trata.TemasExpediente.Any(asignacion =>
+                        asignacion.TemaExpedienteId == configuracionTema.TemaExpedienteId)));
+            if (idsDocumentosSeleccionados.Count > 0)
+            {
+                consultaDocumentos = consultaDocumentos.Where(x => !idsDocumentosSeleccionados.Contains(x.Id));
+            }
+
+            var documentosTema = await consultaDocumentos
+                .OrderBy(x => x.FechaUltimoEnriquecimiento ?? DateTimeOffset.MinValue)
+                .ThenBy(x => x.NumeroActuacionCompleto)
+                .Take(cantidadRestante)
+                .SelectAsync(cancellationToken);
+            foreach (var documento in documentosTema)
+            {
+                if (idsDocumentosSeleccionados.Add(documento.Id))
+                {
+                    documentos.Add(documento);
+                }
+            }
+        }
+
+        return documentos;
+    }
+
+    private static string CrearMensajeResultado(DocumentoDetailEnrichmentItemStatus estado)
+    {
+        return estado switch
+        {
+            DocumentoDetailEnrichmentItemStatus.Enriquecido => "Detalle documental incorporado.",
+            DocumentoDetailEnrichmentItemStatus.SinDatos => "GDEBA no devolvio detalle documental.",
+            DocumentoDetailEnrichmentItemStatus.DocumentoNoEncontrado => "El documento no existe localmente.",
+            _ => "El enriquecimiento documental finalizo con un estado no reconocido."
+        };
+    }
+
+    private static string CrearMensajeError()
+    {
+        return "No se pudo completar el enriquecimiento documental. Consulte el registro tecnico de la invocacion GDEBA.";
     }
 }

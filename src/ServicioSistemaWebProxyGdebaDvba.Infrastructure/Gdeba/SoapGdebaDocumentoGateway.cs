@@ -9,6 +9,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 
@@ -41,9 +42,10 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
-        var numeroNormalizado = string.IsNullOrWhiteSpace(numeroDocumento)
+        var numeroRecibido = string.IsNullOrWhiteSpace(numeroDocumento)
             ? throw new ArgumentException("El numero del documento es requerido.", nameof(numeroDocumento))
             : numeroDocumento.Trim();
+        var numeroNormalizado = SoapGdebaDocumentoGateway.NormalizarNumeroDocumentoParaConsulta(numeroRecibido);
 
         var contractOptions = this.ResolveSoapContractOptions();
         var serviceContractOptions = this.ResolveConsultaDocumentoServiceContractOptions(contractOptions);
@@ -267,6 +269,12 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         return string.IsNullOrWhiteSpace(serviceOptions.UsuarioConsulta)
             ? throw new InvalidOperationException("No esta configurado el usuario de consulta para 'ConsultaDocumento'.")
             : serviceOptions.UsuarioConsulta.Trim();
+    }
+
+    private static string NormalizarNumeroDocumentoParaConsulta(string numeroDocumento)
+    {
+        var numero = NumeroGdebaCompleto.Create(numeroDocumento);
+        return $"{numero.Tipo}-{numero.Anio}-{numero.Numero:D8}-{numero.Sistema}-{numero.Reparticion}";
     }
 
     private static (string? Codigo, string? Nombre, string? Descripcion) MapearTipoDocumento(XElement response)

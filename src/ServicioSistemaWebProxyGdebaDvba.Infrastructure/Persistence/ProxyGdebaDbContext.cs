@@ -24,6 +24,8 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<ConfiguracionDescubrimientoEstadoExpediente> ConfiguracionesDescubrimientoEstadosExpediente => Set<ConfiguracionDescubrimientoEstadoExpediente>();
 
+    public DbSet<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> ConfiguracionesEnriquecimientoMetadataDocumentoTemasExpediente => Set<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente>();
+
     public DbSet<ConfiguracionDescubrimientoTemaExpediente> ConfiguracionesDescubrimientoTemasExpediente => Set<ConfiguracionDescubrimientoTemaExpediente>();
 
     public DbSet<ConfiguracionDescubrimientoTrataExpediente> ConfiguracionesDescubrimientoTratasExpediente => Set<ConfiguracionDescubrimientoTrataExpediente>();
