@@ -257,11 +257,27 @@ En el estado actual la auditoria ya tiene implementacion configurable:
 
 ## 17. Seguridad interna
 
-Por ahora el proxy se considera un servicio interno consumido por aplicaciones institucionales conocidas. Aun asi, conviene distinguir entre identificacion y autorizacion.
+Se confirmo que la institucion utiliza `DVBA-Auth`, basado en ASP.NET Core
+Identity, para administrar usuarios, roles y acceso por aplicacion. La
+asignacion de roles esta contextualizada por aplicacion mediante la relacion
+`UserId`, `RoleId` y `AppAccessId` de `AspNetUserRoles`.
 
-Identificacion significa saber quien llama, por ejemplo mediante `X-Application-Id`. Autorizacion significa decidir si esa aplicacion puede ejecutar determinada operacion.
+Para la primera interfaz se utilizara el nombre exacto
+`ConsultaExpedientes`, el rol generico existente `consulta` y un usuario de
+prueba ya registrado. El proxy delegara la autenticacion al servicio
+institucional, validara el token resultante y aplicara politicas con los claims
+de aplicacion y rol. No se crearan usuarios ni contrasenas locales.
 
-El proyecto todavia no implementa autorizacion real de consumidores. Esta decision queda pendiente porque la institucion tambien evalua un servicio troncal de seguridad y roles. El proxy debe poder integrarse con esa estrategia sin duplicar innecesariamente reglas de seguridad.
+Continua siendo necesario distinguir:
+
+- Identidad humana y autorizacion: `DVBA-Auth`.
+- Identificacion tecnica, auditoria y cuotas: `AplicacionConsumidora` y
+  `X-Application-Id` en el estado actual.
+
+La implementacion esta pendiente. Antes de escribirla se debe revisar
+`ApplicationClaimsTransformation` y el codigo de emision del JWT de una
+aplicacion institucional existente. El detalle se conserva en
+`docs/09-autenticacion-consulta-expedientes.md`.
 
 ## 18. Persistencia y URF
 

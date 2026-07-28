@@ -865,6 +865,44 @@ En una etapa posterior puede evolucionar a:
 
 La decision de hacerlo primero como identificacion blanda permite avanzar con auditoria sin mezclar todavia una politica de seguridad que no esta completamente definida.
 
+### 9.3 Acceso humano mediante DVBA-Auth
+
+La identificacion tecnica de una aplicacion consumidora y la identidad de un
+usuario humano son conceptos diferentes.
+
+Para la primera interfaz de consulta se decidio integrar el proxy con el
+servicio institucional `DVBA-Auth`. Ese sistema utiliza ASP.NET Core Identity y
+mantiene usuarios, roles, aplicaciones y la asignacion contextual usuario, rol
+y aplicacion. La aplicacion se registrara como `ConsultaExpedientes` y
+reutilizara inicialmente el rol `consulta` con un usuario de prueba existente.
+
+El flujo objetivo es:
+
+```text
+Angular -> Proxy -> DVBA-Auth durante la autenticacion
+Angular -> Proxy con JWT Bearer en las consultas posteriores
+Proxy -> validacion del token y politicas de autorizacion
+```
+
+El proxy no debe crear tablas locales de Identity ni administrar contrasenas.
+Cuando necesite relacionar recientes, seguimientos o auditoria con una persona,
+utilizara el identificador institucional estable informado por el token.
+
+El codigo observado en Obras confirma validacion JWT Bearer, una politica
+global basada en `AppAccess=Obras`, `ClaimTypes.Role` y una transformacion de
+claims dependiente del nombre de aplicacion. Todavia se debe revisar el codigo
+de emision del token y `ApplicationClaimsTransformation` antes de implementar
+la integracion en el proxy.
+
+No se debe confundir:
+
+- `DVBA-Auth.Applications`: aplicaciones a las que puede acceder un usuario.
+- `AplicacionConsumidora`: consumidor tecnico identificado por el proxy para
+  auditoria, origen y cuotas.
+
+La especificacion operativa y los criterios de prueba se encuentran en
+`docs/09-autenticacion-consulta-expedientes.md`.
+
 ## 10. Auditoria
 
 La auditoria inicial se diseña como una preocupacion transversal.

@@ -163,3 +163,79 @@ Consecuencias:
 - No se crean identificadores separados para documento si el formato base es el mismo.
 - Las entidades persisten las partes relevantes para busqueda, indices y reglas futuras.
 
+## ADR-010: Centralizar el monitoreo operativo de expedientes seguidos
+
+Fecha: 2026-07-28
+
+Decision:
+
+El proxy administrara el monitoreo operativo de los expedientes seleccionados
+para seguimiento prioritario. Debe deduplicar los expedientes, planificar sus
+refrescos y consumir las cuotas GDEBA de acuerdo con la prioridad institucional.
+En la primera etapa, el proxy tambien podra conservar la asociacion entre el
+usuario institucional y los expedientes que sigue para validar la factibilidad
+de la interfaz de consulta.
+
+Contexto:
+
+La restriccion de invocaciones y la cantidad de expedientes impiden que cada
+aplicacion o usuario programe consultas GDEBA por su cuenta. El proxy es la unica
+pieza que conoce conjuntamente cache, cuotas, consultas interactivas y Workers.
+Por eso debe decidir que expedientes consultar y ejecutar una sola actualizacion
+aunque existan varios seguidores.
+
+Consecuencias:
+
+- El Worker prioritario pertenece al proxy y comparte su control de cuotas.
+- Una actualizacion del expediente se ejecuta una sola vez aunque tenga varios
+  seguidores.
+- El cambio se detecta durante la consolidacion local, independientemente de
+  quien provoco la consulta GDEBA.
+- La identidad humana proviene de `DVBA-Auth`; no se duplican usuarios ni
+  contrasenas en el proxy.
+- Las notificaciones persistentes y SignalR quedan como evolucion posterior.
+  SignalR sera un canal de entrega y no la fuente de verdad.
+- Si la interfaz demuestra viabilidad y obtiene un backend especifico, la
+  preferencia humana y la entrega de alertas podran trasladarse. La planificacion
+  GDEBA y la deteccion generica de cambios permaneceran en el proxy.
+
+## ADR-011: Integrar el acceso humano con DVBA-Auth
+
+Fecha: 2026-07-28
+
+Decision:
+
+La primera interfaz de consulta accedera directamente al backend del proxy y
+utilizara el servicio institucional `DVBA-Auth` para autenticar usuarios. La
+aplicacion se registrara con el nombre exacto `ConsultaExpedientes`, reutilizara
+el rol generico `consulta` y comenzara las pruebas con un usuario institucional
+ya existente.
+
+Contexto:
+
+`DVBA-Auth` utiliza ASP.NET Core Identity y agrega contexto de aplicacion a la
+asignacion de roles. La relacion efectiva es usuario, rol y aplicacion mediante
+`AspNetUserRoles.UserId`, `RoleId` y `AppAccessId`. El token informa las
+aplicaciones habilitadas para el usuario y los roles activos dentro de cada una.
+El backend de Obras valida JWT Bearer, exige el claim `AppAccess` de su
+aplicacion y transforma los claims segun ese contexto.
+
+Consecuencias:
+
+- El proxy no incorpora tablas locales de ASP.NET Core Identity ni administra
+  contrasenas.
+- Se debe agregar `ConsultaExpedientes` a `DVBA-Auth.Applications` y asociar el
+  usuario de prueba con el rol `consulta` para esa aplicacion.
+- El usuario debe autenticarse nuevamente despues de la asignacion para recibir
+  un token actualizado.
+- El proxy validara el token institucional y aplicara politicas basadas en
+  `AppAccess` y roles.
+- La configuracion de issuer, audience, firma y endpoints sera externa y
+  segura.
+- `DVBA-Auth.Applications` no reemplaza `AplicacionConsumidora` del proxy: la
+  primera controla acceso humano y la segunda identifica consumo tecnico para
+  auditoria y cuotas.
+- Antes de implementar se debe revisar el emisor del token y
+  `ApplicationClaimsTransformation` de una aplicacion institucional existente,
+  para reproducir el contrato real sin copiar configuracion obsoleta.
+
