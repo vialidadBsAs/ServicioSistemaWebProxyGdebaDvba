@@ -190,8 +190,8 @@ La ubicacion transversal no elimina la separacion de responsabilidades:
 
 - Los usuarios humanos se autentican mediante el servicio institucional
   `DVBA-Auth`; el proxy no crea usuarios locales ni administra contrasenas.
-- La aplicacion de acceso humano se identifica como `ConsultaExpedientes` y
-  reutiliza inicialmente el rol institucional `consulta`.
+- La aplicacion de acceso humano se identifica como `Expedientes`; el rol
+  institucional `Admin` se exige solamente en recursos administrativos.
 - La autorizacion se basa en la asociacion institucional usuario, rol y
   aplicacion, expresada en el token mediante aplicaciones habilitadas y roles
   activos para cada aplicacion.
@@ -201,8 +201,12 @@ La ubicacion transversal no elimina la separacion de responsabilidades:
 - No copiar literalmente configuraciones de seguridad de sistemas anteriores.
   Antes de implementar, verificar el flujo de emision del token y la
   transformacion institucional de claims.
-- Issuer, audience, claves y endpoints de autenticacion pertenecen a
-  configuracion segura; no se hardcodean ni se registran en logs.
+- Angular se autentica directamente en `DVBA-Auth`; el proxy no expone login,
+  no recibe credenciales y no administra sesiones humanas.
+- El proxy recibe el JWT, valida issuer, audience, vigencia y firma, y autoriza
+  cada recurso mediante los claims institucionales.
+- La clave de firma se obtiene de `ConnectionStrings:MiLLave`; nunca se registra
+  la clave ni el token en logs.
 
 ## Cache de expedientes
 

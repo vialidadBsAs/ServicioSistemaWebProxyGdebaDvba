@@ -207,9 +207,9 @@ Decision:
 
 La primera interfaz de consulta accedera directamente al backend del proxy y
 utilizara el servicio institucional `DVBA-Auth` para autenticar usuarios. La
-aplicacion se registrara con el nombre exacto `ConsultaExpedientes`, reutilizara
-el rol generico `consulta` y comenzara las pruebas con un usuario institucional
-ya existente.
+aplicacion institucional se llama exactamente `Expedientes`. El acceso general
+exige pertenecer a esa aplicacion y los recursos administrativos exigen ademas
+el rol `Admin`.
 
 Contexto:
 
@@ -224,12 +224,14 @@ Consecuencias:
 
 - El proxy no incorpora tablas locales de ASP.NET Core Identity ni administra
   contrasenas.
-- Se debe agregar `ConsultaExpedientes` a `DVBA-Auth.Applications` y asociar el
-  usuario de prueba con el rol `consulta` para esa aplicacion.
+- `Expedientes` debe existir en `DVBA-Auth.Applications` y el usuario autorizado
+  debe tener el rol `Admin` activo para esa aplicacion.
 - El usuario debe autenticarse nuevamente despues de la asignacion para recibir
   un token actualizado.
 - El proxy validara el token institucional y aplicara politicas basadas en
   `AppAccess` y roles.
+- Angular realiza el login directamente contra `DVBA-Auth`; el proxy no recibe
+  credenciales ni crea una sesion paralela.
 - La configuracion de issuer, audience, firma y endpoints sera externa y
   segura.
 - `DVBA-Auth.Applications` no reemplaza `AplicacionConsumidora` del proxy: la

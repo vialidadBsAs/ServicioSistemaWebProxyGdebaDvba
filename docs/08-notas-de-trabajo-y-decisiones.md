@@ -262,11 +262,11 @@ Identity, para administrar usuarios, roles y acceso por aplicacion. La
 asignacion de roles esta contextualizada por aplicacion mediante la relacion
 `UserId`, `RoleId` y `AppAccessId` de `AspNetUserRoles`.
 
-Para la primera interfaz se utilizara el nombre exacto
-`ConsultaExpedientes`, el rol generico existente `consulta` y un usuario de
-prueba ya registrado. El proxy delegara la autenticacion al servicio
-institucional, validara el token resultante y aplicara politicas con los claims
-de aplicacion y rol. No se crearan usuarios ni contrasenas locales.
+La aplicacion institucional se registro con el nombre exacto `Expedientes` y
+el usuario inicial tiene el rol `Admin` activo para esa aplicacion. Angular se
+autentica directamente en DVBA-Auth. El proxy recibe y valida el token resultante
+y aplica politicas con los claims de aplicacion y rol. No se crean usuarios,
+contrasenas ni sesiones locales.
 
 Continua siendo necesario distinguir:
 
@@ -274,10 +274,10 @@ Continua siendo necesario distinguir:
 - Identificacion tecnica, auditoria y cuotas: `AplicacionConsumidora` y
   `X-Application-Id` en el estado actual.
 
-La implementacion esta pendiente. Antes de escribirla se debe revisar
-`ApplicationClaimsTransformation` y el codigo de emision del JWT de una
-aplicacion institucional existente. El detalle se conserva en
-`docs/09-autenticacion-consulta-expedientes.md`.
+El proxy valida JWT para la aplicacion `Expedientes` y restringe los recursos
+administrativos mediante el rol `Admin`. Resta validar el flujo integrado con
+un token real. El detalle se conserva en
+`docs/09-autenticacion-expedientes.md`.
 
 ## 18. Persistencia y URF
 

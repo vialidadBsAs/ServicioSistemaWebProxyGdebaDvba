@@ -873,13 +873,14 @@ usuario humano son conceptos diferentes.
 Para la primera interfaz de consulta se decidio integrar el proxy con el
 servicio institucional `DVBA-Auth`. Ese sistema utiliza ASP.NET Core Identity y
 mantiene usuarios, roles, aplicaciones y la asignacion contextual usuario, rol
-y aplicacion. La aplicacion se registrara como `ConsultaExpedientes` y
-reutilizara inicialmente el rol `consulta` con un usuario de prueba existente.
+y aplicacion. La aplicacion institucional se llama `Expedientes`; los recursos
+administrativos exigen el rol `Admin`.
 
 El flujo objetivo es:
 
 ```text
-Angular -> Proxy -> DVBA-Auth durante la autenticacion
+Angular -> DVBA-Auth durante la autenticacion
+DVBA-Auth -> Angular con el JWT institucional
 Angular -> Proxy con JWT Bearer en las consultas posteriores
 Proxy -> validacion del token y politicas de autorizacion
 ```
@@ -889,10 +890,11 @@ Cuando necesite relacionar recientes, seguimientos o auditoria con una persona,
 utilizara el identificador institucional estable informado por el token.
 
 El codigo observado en Obras confirma validacion JWT Bearer, una politica
-global basada en `AppAccess=Obras`, `ClaimTypes.Role` y una transformacion de
-claims dependiente del nombre de aplicacion. Todavia se debe revisar el codigo
-de emision del token y `ApplicationClaimsTransformation` antes de implementar
-la integracion en el proxy.
+global basada en `AppAccess`, `ClaimTypes.Role` y una transformacion de claims
+dependiente del nombre de aplicacion. El proxy valida actualmente issuer,
+audience, expiracion y firma. La politica general exige `AppAccess=Expedientes`;
+la politica administrativa exige ademas el rol `Admin`. La prueba con un token
+real debe confirmar el formato efectivo de esos claims.
 
 No se debe confundir:
 
@@ -901,7 +903,7 @@ No se debe confundir:
   auditoria, origen y cuotas.
 
 La especificacion operativa y los criterios de prueba se encuentran en
-`docs/09-autenticacion-consulta-expedientes.md`.
+`docs/09-autenticacion-expedientes.md`.
 
 ## 10. Auditoria
 

@@ -1,7 +1,7 @@
-# Autenticacion de ConsultaExpedientes
+# Autenticacion institucional de Expedientes
 
-Fecha: 2026-07-28
-Estado: decision documentada, implementacion pendiente
+Fecha: 2026-07-29
+Estado: backend implementado, validacion integrada pendiente
 
 ## 1. Proposito
 
@@ -35,22 +35,21 @@ las que accede el usuario y los roles activos dentro de cada aplicacion.
 
 ## 3. Configuracion inicial
 
-La prueba inicial utilizara:
+La configuracion institucional confirmada utiliza:
 
 ```text
-Aplicacion: ConsultaExpedientes
-Rol: consulta
+Aplicacion: Expedientes
+Rol: Admin
 Usuario: usuario institucional de prueba existente
 ```
 
-En `DVBA-Auth` se debe:
+En `DVBA-Auth` ya se registro la aplicacion y se concedio el rol inicial. La
+relacion que debe conservarse es:
 
-1. Crear `ConsultaExpedientes` en `Applications` si todavia no existe.
-2. Obtener el identificador real de la aplicacion creada.
-3. Obtener el `UserId` del usuario de prueba.
-4. Obtener el `RoleId` del rol existente `consulta`.
-5. Registrar la asociacion usuario, rol y aplicacion sin duplicarla.
-6. Volver a autenticar al usuario para emitir un token actualizado.
+1. Aplicacion `Expedientes` en `Applications`.
+2. Usuario institucional autorizado.
+3. Rol `Admin` activo dentro de `Expedientes`.
+4. Nueva autenticacion del usuario para emitir un token actualizado.
 
 Se debe utilizar la funcionalidad administrativa de `DVBA-Auth` cuando exista.
 No se deben asumir identificadores numericos ni insertar datos sin revisar las
@@ -58,22 +57,19 @@ restricciones del modelo institucional.
 
 ## 4. Flujo objetivo
 
-El backend de la aplicacion es quien integra el servicio institucional. En esta
-primera etapa ese backend es el proxy.
+DVBA-Auth centraliza la autenticacion y la sesion institucional. Angular conoce
+el endpoint del hub y realiza el login directamente. El proxy no interviene en
+el intercambio de credenciales.
 
 ```text
 Angular
-  -> endpoint de autenticacion del proxy
-Proxy
-  -> DVBA-Auth mediante el contrato institucional
+  -> DVBA-Auth /api/Account/Login
 DVBA-Auth
-  -> identidad, aplicaciones y roles autorizados
-Proxy
-  -> token o respuesta de sesion prevista por el contrato
+  -> Angular con identidad, aplicaciones, roles y token
 Angular
   -> API del proxy con Authorization: Bearer <token>
 Proxy
-  -> valida el token y aplica las politicas de ConsultaExpedientes
+  -> valida el token y aplica las politicas de Expedientes
 ```
 
 El codigo revisado de Obras confirma la segunda parte del flujo:
@@ -85,18 +81,18 @@ El codigo revisado de Obras confirma la segunda parte del flujo:
 - `ApplicationClaimsTransformation` parametrizada con el nombre de la
   aplicacion.
 
-Todavia no se reviso el codigo que emite el token ni la implementacion de
-`ApplicationClaimsTransformation`. Esos archivos son requisitos de analisis
-antes de implementar la integracion.
+El contrato de entrada de `POST /api/Account/Login` fue confirmado mediante el
+OpenAPI institucional: recibe `userName` y `password`. Ese contrato pertenece a
+la comunicacion entre Angular y DVBA-Auth, no a la API del proxy.
 
 ## 5. Responsabilidades del proxy
 
 Durante esta primera etapa el proxy:
 
-- Expone el punto de entrada utilizado por Angular para autenticarse.
-- Delega la validacion inicial al servicio institucional.
-- Valida el JWT en las peticiones posteriores.
-- Exige acceso a `ConsultaExpedientes`.
+- Recibe el JWT en cada peticion protegida.
+- Valida issuer, audience, vigencia y firma.
+- Exige acceso a `Expedientes` para los recursos generales.
+- Exige ademas el rol `Admin` para los recursos administrativos.
 - Aplica roles y politicas de autorizacion.
 - Usa el identificador institucional estable del usuario para auditoria,
   consultas recientes y seguimientos.
@@ -104,6 +100,9 @@ Durante esta primera etapa el proxy:
 
 El proxy no:
 
+- Expone un endpoint de login.
+- Recibe ni reenvia credenciales humanas.
+- Administra o duplica la sesion institucional.
 - Crea usuarios institucionales.
 - Administra contrasenas.
 - Replica tablas de ASP.NET Core Identity.
@@ -116,7 +115,7 @@ No se deben unificar estos modelos:
 ### Aplicacion de seguridad
 
 `DVBA-Auth.Applications` representa una aplicacion a la que puede acceder un
-usuario humano. `ConsultaExpedientes` pertenece a este catalogo.
+usuario humano. `Expedientes` pertenece a este catalogo.
 
 ### Aplicacion consumidora del proxy
 
@@ -124,33 +123,33 @@ usuario humano. `ConsultaExpedientes` pertenece a este catalogo.
 aplicar auditoria, origen y control de cuotas. No representa una identidad
 humana ni reemplaza el modelo de `DVBA-Auth`.
 
-## 7. Configuracion tecnica pendiente
+## 7. Configuracion tecnica
 
 La implementacion debe externalizar como opciones, de acuerdo con el contrato
 real de `DVBA-Auth`:
 
-- Nombre de aplicacion: `ConsultaExpedientes`.
-- Endpoint institucional de autenticacion.
+- Nombre de aplicacion: `Expedientes`.
 - Issuer.
 - Audience.
-- Material de validacion de firma.
+- Clave de validacion de firma en `ConnectionStrings:MiLLave`.
 - Nombres y formato de claims.
 - Politica de expiracion y renovacion.
 
-Endpoints, claves, tokens y credenciales deben permanecer en user secrets,
-variables de entorno o el mecanismo institucional correspondiente. No se
-hardcodean ni se registran en logs.
+La clave y los tokens no se registran en logs. El endpoint de login configurado
+por Angular usa actualmente HTTP; antes de un uso fuera de la red institucional
+debe confirmarse si existe una variante HTTPS para evitar transmitir
+credenciales sin cifrado de transporte.
 
-La configuracion del sistema Obras sirve como referencia funcional, no como
-codigo para copiar literalmente. En particular, el nuevo codigo no debe copiar
-valores `Localhost`, CORS abierto ni claves ubicadas semanticamente como cadenas
-de conexion.
+La configuracion del sistema Obras sirve como referencia funcional. La
+compatibilidad institucional mantiene issuer y audience `Localhost` y la clave
+en `ConnectionStrings:MiLLave`; esos valores deben confirmarse con un token real.
 
 ## 8. Contrato con Angular
 
-Angular conocera solamente la API del proxy. Debe:
+Angular conoce DVBA-Auth para autenticarse y la API del proxy para consultar
+recursos. Debe:
 
-- Enviar las credenciales por el flujo institucional que se defina.
+- Enviar las credenciales directamente a DVBA-Auth.
 - Conservar el token con el mecanismo seguro acordado.
 - Enviar `Authorization: Bearer <token>` en las llamadas protegidas.
 - Resolver navegacion y visibilidad de opciones segun claims, sin reemplazar la
@@ -180,25 +179,28 @@ seguira siendo responsable de planificar consultas GDEBA y detectar cambios.
 La primera integracion se considerara valida cuando:
 
 1. El usuario de prueba pueda autenticarse mediante `DVBA-Auth`.
-2. El token incluya acceso a `ConsultaExpedientes` y el rol `consulta` para esa
+2. El token incluya acceso a `Expedientes` y el rol `Admin` para esa
    aplicacion.
 3. Una llamada sin token reciba `401 Unauthorized`.
-4. Un usuario autenticado sin acceso a `ConsultaExpedientes` reciba
+4. Un usuario autenticado sin acceso a `Expedientes` reciba
    `403 Forbidden`.
 5. El usuario de prueba pueda ejecutar una consulta de expediente autorizada.
-6. Un rol de otra aplicacion no otorgue permisos en `ConsultaExpedientes`.
+6. Un rol de otra aplicacion no otorgue permisos en `Expedientes`.
 7. Ninguna credencial o token quede registrado en auditoria o logs.
 
-## 11. Trabajo previo a la implementacion
+## 11. Implementacion actual
 
-Antes de modificar el pipeline de seguridad del proxy se debe obtener y revisar:
+El proxy implementa:
 
-- `ApplicationClaimsTransformation` de Obras.
-- Controller o servicio de autenticacion utilizado por Obras.
-- Codigo de emision del JWT en `DVBA-Auth`.
-- DTOs de autenticacion y estructura real de claims.
-- Configuracion sin secretos de issuer, audience y endpoint.
-- Flujo Angular existente de login, interceptor y guards.
+- Autenticacion `JwtBearer` para recibir el token institucional.
+- Lectura de la clave mediante `ConnectionStrings:MiLLave`.
+- Politica `Expedientes-Acceso`: exige token valido y
+  `AppAccess=Expedientes`.
+- Politica `Expedientes-Admin`: exige ademas el rol `Admin`.
+- Proteccion administrativa de cuotas, consulta sin cache y descubrimiento
+  manual por trata.
+- `GET /api/health` anonimo para monitoreo tecnico.
 
-Esta revision determinara el contrato concreto. No se debe completar esa
-informacion por inferencia.
+No existen endpoints de login o sesion en el proxy. Antes de la prueba
+integrada se deben confirmar con un token real los valores efectivos de issuer,
+audience y claims.
