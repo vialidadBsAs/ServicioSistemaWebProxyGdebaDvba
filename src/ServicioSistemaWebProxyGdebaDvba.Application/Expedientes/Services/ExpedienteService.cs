@@ -34,6 +34,7 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionObtenerPases = "ObtenerPases";
     private const string OperacionObtenerRelaciones = "ObtenerRelaciones";
     private const string OperacionObtenerCompleto = "ObtenerCompleto";
+    private const string CodigoActuacionPase = "PV";
 
     private readonly IExpedienteCacheReadStore _expedienteCacheReadStore;
     private readonly IGdebaExpedienteGateway _gdebaExpedienteGateway;
@@ -108,7 +109,7 @@ public sealed class ExpedienteService : IExpedienteService
         if (!request.ForceRefresh && expediente?.PuedeResponderDetalleDesdeCache(resolvedAt) == true)
         {
             // Responde desde cache cuando el expediente esta completo y dentro de su vigencia.
-            expedienteDto = ExpedienteService.Mapear(expediente!);
+            expedienteDto = await this.MapearAsync(expediente!, cancellationToken);
             fuente = FuenteRespuesta.Cache;
             exitoso = true;
             cachedAt = expediente!.CacheControl?.FechaUltimaActualizacionLocal;
@@ -147,7 +148,7 @@ public sealed class ExpedienteService : IExpedienteService
                     this.MarcarDetalleConsultadoConError(expediente, resolvedAt, resolvedAt, "GDEBA no devolvio detalle del expediente.");
                     this.RegistrarCambiosExpediente(expediente, esNuevo: false);
 
-                    expedienteDto = ExpedienteService.Mapear(expediente);
+                    expedienteDto = await this.MapearAsync(expediente, cancellationToken);
                     fuente = FuenteRespuesta.FallbackCache;
                     exitoso = true;
                     cachedAt = expediente.CacheControl?.FechaUltimaActualizacionLocal;
@@ -345,7 +346,7 @@ public sealed class ExpedienteService : IExpedienteService
         var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var documentos = expediente is null
             ? null
-            : ExpedienteService.Mapear(expediente).Documentos;
+            : (await this.MapearAsync(expediente, cancellationToken)).Documentos;
 
         return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, documentos, historial.Source, historial.Exitoso && documentos is not null, historial.ResolvedAt, historial.CachedAt);
     }
@@ -358,7 +359,7 @@ public sealed class ExpedienteService : IExpedienteService
         var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var adjuntos = expediente is null
             ? null
-            : ExpedienteService.Mapear(expediente).ArchivosAdjuntos;
+            : (await this.MapearAsync(expediente, cancellationToken)).ArchivosAdjuntos;
 
         return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, adjuntos, detalle.Fuente, detalle.Expediente is not null && adjuntos is not null, detalle.ResolvedAt, detalle.CachedAt);
     }
@@ -380,7 +381,7 @@ public sealed class ExpedienteService : IExpedienteService
         var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
         var relaciones = expediente is null
             ? null
-            : ExpedienteService.Mapear(expediente).Relaciones;
+            : (await this.MapearAsync(expediente, cancellationToken)).Relaciones;
 
         return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, relaciones, historial.Source, historial.Exitoso && relaciones is not null, historial.ResolvedAt, historial.CachedAt);
     }
@@ -396,9 +397,13 @@ public sealed class ExpedienteService : IExpedienteService
         ExpedienteCompletoDto? completo = null;
         if (expediente is not null)
         {
-            var expedienteDto = ExpedienteService.Mapear(expediente);
+            var expedienteDto = await this.MapearAsync(expediente, cancellationToken);
             completo = new ExpedienteCompletoDto(
-                ExpedienteService.MapearCabecera(expedienteDto), expedienteDto.Documentos, expedienteDto.ArchivosAdjuntos, ExpedienteService.MapearMovimientos(expediente), expedienteDto.Relaciones);
+                ExpedienteService.MapearCabecera(expedienteDto),
+                ExpedienteService.MapearDocumentos(expediente, request.MostrarPases),
+                expedienteDto.ArchivosAdjuntos,
+                ExpedienteService.MapearMovimientos(expediente),
+                expedienteDto.Relaciones);
         }
 
         return ExpedienteService.CrearResultadoRecurso(
@@ -995,10 +1000,48 @@ public sealed class ExpedienteService : IExpedienteService
     /// </summary>
     /// <param name="expediente">Expediente local que se desea exponer como DTO.</param>
     /// <returns>DTO detallado del expediente.</returns>
-    private static ExpedienteDetalladoDto Mapear(Expediente expediente)
+    private async Task<ExpedienteDetalladoDto> MapearAsync(Expediente expediente, CancellationToken cancellationToken)
+    {
+        var descripcionesTrata = await _expedienteCacheReadStore.CargarDescripcionesTrataAsync(
+            expediente.Relaciones.Select(x => x.CodigoTrataRelacionado ?? string.Empty), cancellationToken);
+
+        return ExpedienteService.Mapear(expediente, descripcionesTrata);
+    }
+
+    private static ExpedienteDetalladoDto Mapear(Expediente expediente, IReadOnlyDictionary<string, string> descripcionesTrata)
     {
         return new ExpedienteDetalladoDto(
-            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, expediente.Documentos.OrderByDescending(x => x.OrdenRespuesta ?? 0).ThenByDescending(x => x.FechaVinculacion ?? x.Documento.FechaCreacion ?? DateTimeOffset.MinValue).ThenByDescending(x => x.Documento.NumeroActuacionCompleto).Select(x => new DocumentoExpedienteDto(x.Documento.NumeroActuacionCompleto, x.Documento.TipoDocumentoCodigo, x.Documento.Referencia, x.Documento.FechaCreacion, x.FechaVinculacion, x.UsuarioAsociacion, x.UsuarioGenerador, x.OrdenRespuesta)).ToArray(), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado, x.FechaRelacion, x.UsuarioRelacion)).ToArray());
+            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, ExpedienteService.MapearDocumentos(expediente, mostrarPases: true), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado ?? ExpedienteService.BuscarDescripcionTrata(x.CodigoTrataRelacionado, descripcionesTrata), x.FechaRelacion, x.UsuarioRelacion)).ToArray());
+    }
+
+    private static string? BuscarDescripcionTrata(string? codigoTrata, IReadOnlyDictionary<string, string> descripcionesTrata)
+    {
+        if (string.IsNullOrWhiteSpace(codigoTrata))
+        {
+            return null;
+        }
+
+        return descripcionesTrata.TryGetValue(codigoTrata, out var descripcion) ? descripcion : null;
+    }
+
+    private static IReadOnlyCollection<DocumentoExpedienteDto> MapearDocumentos(Expediente expediente, bool mostrarPases)
+    {
+        return expediente.Documentos
+            .Where(x => mostrarPases || !string.Equals(x.Documento.ActuacionTipoCodigo, CodigoActuacionPase, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.OrdenRespuesta ?? 0)
+            .ThenByDescending(x => x.FechaVinculacion ?? x.Documento.FechaCreacion ?? DateTimeOffset.MinValue)
+            .ThenByDescending(x => x.Documento.NumeroActuacionCompleto)
+            .Select(x => new DocumentoExpedienteDto(
+                x.Documento.NumeroActuacionCompleto,
+                x.Documento.TipoDocumentoCodigo,
+                x.Documento.TipoDocumento?.Nombre,
+                x.Documento.Referencia,
+                x.Documento.FechaCreacion,
+                x.FechaVinculacion,
+                x.UsuarioAsociacion,
+                x.UsuarioGenerador,
+                x.OrdenRespuesta))
+            .ToArray();
     }
 
     /// <summary>

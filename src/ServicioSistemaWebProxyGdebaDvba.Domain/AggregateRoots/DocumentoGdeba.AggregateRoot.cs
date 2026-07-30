@@ -8,7 +8,7 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
     {
         this.ActualizarMetadata(
             NumeroEspecialCompleto, tipoDocumentoCodigo ?? TipoDocumentoCodigo,
-            TipoDocumentoNombre, TipoDocumentoDescripcion,
+            tipoDocumentoNombre: null, tipoDocumentoDescripcion: null,
             referencia ?? Referencia, fechaCreacion ?? FechaCreacion,
             ListaFirmantes, UrlArchivo, PuedeVerDocumento,
             FechaUltimoEnriquecimiento,
@@ -17,14 +17,13 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
 
     public void EnriquecerDesdeDetalleDocumento(
         string? numeroEspecial, string? tipoDocumentoCodigo,
-        string? tipoDocumentoNombre, string? tipoDocumentoDescripcion,
         string? referencia, DateTimeOffset? fechaCreacion,
         string? listaFirmantes, string? urlArchivo,
         bool? puedeVerDocumento, DateTimeOffset fechaEnriquecimiento)
     {
         this.ActualizarMetadata(
             numeroEspecial, tipoDocumentoCodigo,
-            tipoDocumentoNombre, tipoDocumentoDescripcion,
+            tipoDocumentoNombre: null, tipoDocumentoDescripcion: null,
             referencia, fechaCreacion, listaFirmantes, urlArchivo,
             puedeVerDocumento, fechaEnriquecimiento,
             metadataCompleta: true);

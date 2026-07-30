@@ -8,18 +8,20 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
 {
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
+    private readonly IRepository<TrataGdeba> _trataGdebaRepository;
     private readonly IRepository<TrataHabilitadaVialidad> _trataRepository;
     private readonly IRepository<MovimientoExpediente> _movimientoRepository;
     private readonly IRepository<ExpedienteDocumento> _expedienteDocumentoRepository;
     private readonly IRepository<ExpedienteRelacion> _expedienteRelacionRepository;
     private readonly IRepository<ArchivoAdjuntoExpediente> _archivoAdjuntoRepository;
 
-    public ExpedienteCacheReadStore( IRepository<Expediente> expedienteRepository, IRepository<DocumentoGdeba> documentoRepository, IRepository<TrataHabilitadaVialidad> trataRepository,
+    public ExpedienteCacheReadStore( IRepository<Expediente> expedienteRepository, IRepository<DocumentoGdeba> documentoRepository, IRepository<TrataGdeba> trataGdebaRepository, IRepository<TrataHabilitadaVialidad> trataRepository,
         IRepository<MovimientoExpediente> movimientoRepository, IRepository<ExpedienteDocumento> expedienteDocumentoRepository, IRepository<ExpedienteRelacion> expedienteRelacionRepository,
         IRepository<ArchivoAdjuntoExpediente> archivoAdjuntoRepository)
     {
         _expedienteRepository = expedienteRepository;
         _documentoRepository = documentoRepository;
+        _trataGdebaRepository = trataGdebaRepository;
         _trataRepository = trataRepository;
         _movimientoRepository = movimientoRepository;
         _expedienteDocumentoRepository = expedienteDocumentoRepository;
@@ -52,7 +54,7 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
 
         await _expedienteDocumentoRepository
             .Query()
-            .Include(x => x.Documento)
+            .Include($"{nameof(ExpedienteDocumento.Documento)}.{nameof(DocumentoGdeba.TipoDocumento)}")
             .Where(x => x.ExpedienteId == expediente.Id)
             .SelectAsync(cancellationToken);
 
@@ -120,6 +122,35 @@ public sealed class ExpedienteCacheReadStore : IExpedienteCacheReadStore
 
         return tratas.FirstOrDefault(x => string.Equals(x.CodigoReparticion, reparticionNormalizada, StringComparison.OrdinalIgnoreCase))
             ?? tratas.FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> CargarDescripcionesTrataAsync(
+        IEnumerable<string> codigosTrata,
+        CancellationToken cancellationToken)
+    {
+        var codigos = codigosTrata
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (codigos.Length == 0)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var tratasGdeba = await _trataGdebaRepository
+            .Query()
+            .Where(x => codigos.Contains(x.Codigo) && x.Descripcion != null)
+            .SelectAsync(cancellationToken);
+        var descripciones = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var trata in tratasGdeba)
+        {
+            descripciones[trata.Codigo] = trata.Descripcion!;
+        }
+
+        return descripciones;
     }
 
     public async Task<IReadOnlyDictionary<string, DocumentoGdeba>> BuscarDocumentosPorNumeroActuacionAsync(

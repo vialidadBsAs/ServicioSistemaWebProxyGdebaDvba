@@ -532,7 +532,7 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
                 SoapGdebaExpedienteGateway.GetValue(x, "codigoTrata") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "trataExpedienteASociado") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "trataExpedienteVinculado"),
-                SoapGdebaExpedienteGateway.GetValue(x, "descripcionTrata"),
+                null,
                 SoapGdebaExpedienteGateway.ParseDate(
                     SoapGdebaExpedienteGateway.GetValue(x, "fechaAsociacion") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "fechaVinculacion")),

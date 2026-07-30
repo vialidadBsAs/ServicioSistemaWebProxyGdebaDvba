@@ -19,6 +19,7 @@ public sealed record ExpedienteDetalladoDto(
 public sealed record DocumentoExpedienteDto(
     string NumeroActuacionCompleto,
     string? TipoDocumentoCodigo,
+    string? NombreTipoDocumento,
     string? Referencia,
     DateTimeOffset? FechaCreacion,
     DateTimeOffset? FechaVinculacion,

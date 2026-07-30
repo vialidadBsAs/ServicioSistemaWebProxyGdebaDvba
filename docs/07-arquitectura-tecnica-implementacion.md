@@ -154,7 +154,7 @@ El tipo documental se separa en codigo, codigo GDEBA, nombre, descripcion, famil
 
 Una respuesta real de `consultarTipoDocumento` para `RESO` mostro que `acronimo` y `codigoTipoDocumentoGDEBA` no significan lo mismo: `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo atributos booleanos como `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
 
-En esta primera etapa `TipoDocumentoGdeba` se mantiene como catalogo consultable por codigo, pero no se fuerza una clave foranea desde `DocumentoGdeba`. La razon es permitir cache progresiva: un documento puede enriquecerse con `TipoDocumentoCodigo` antes de que el catalogo haya sido sincronizado.
+`TipoDocumentoGdeba` se mantiene como catalogo local por acronimo. Al enriquecer un documento, el proxy primero busca el tipo local; si no existe y queda cuota disponible, invoca `consultarTipoDocumento`, incorpora el catalogo completo y asigna `DocumentoGdeba.TipoDocumentoId`. `DocumentoGdeba` no repite nombre ni descripcion del tipo: conserva el codigo detectado y el vinculo opcional, para permitir que el resto de su metadata se guarde aunque GDEBA no devuelva el catalogo del tipo.
 
 El tipo (`EX`, `IF`, etc.) diferencia si el identificador corresponde a expediente, informe/documento u otro elemento. Por eso no corresponde tener value objects separados solo por llamarse expediente o documento si el formato base es el mismo.
 
@@ -312,6 +312,12 @@ GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
 GET /api/gdeba/estadisticas/expedientes-por-trata
 GET /api/gdeba/cuotas?fecha=YYYY-MM-DD
 ```
+
+`GET /api/gdeba/expedientes/{numeroExpediente}/completo` acepta
+`mostrarPases` como parametro opcional. Por defecto es `false` y omite de la
+coleccion documental las actuaciones `PV`, que se presentan separadamente como
+pases. El filtro afecta solamente la proyeccion HTTP; no excluye datos de la
+consolidacion local del expediente.
 
 El endpoint `/sin-cache` es una consulta directa contra GDEBA y no representa la consulta funcional normal del proxy con politica de cache.
 

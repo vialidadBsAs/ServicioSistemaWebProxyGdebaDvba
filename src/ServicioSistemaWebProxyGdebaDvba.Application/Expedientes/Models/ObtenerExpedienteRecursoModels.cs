@@ -4,7 +4,8 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
 public sealed record ObtenerExpedienteRecursoRequest(
     string NumeroGdebaCompleto,
-    bool ForceRefresh = false);
+    bool ForceRefresh = false,
+    bool MostrarPases = false);
 
 public sealed record ObtenerExpedienteRecursoResult<T>(
     string NumeroGdebaCompleto,

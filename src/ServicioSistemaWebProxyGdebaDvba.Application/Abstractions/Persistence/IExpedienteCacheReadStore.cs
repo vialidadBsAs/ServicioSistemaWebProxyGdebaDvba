@@ -20,6 +20,10 @@ public interface IExpedienteCacheReadStore
         string? codigoReparticion,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyDictionary<string, string>> CargarDescripcionesTrataAsync(
+        IEnumerable<string> codigosTrata,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyDictionary<string, DocumentoGdeba>> BuscarDocumentosPorNumeroActuacionAsync(
         IEnumerable<string> numerosActuacionCompletos,
         CancellationToken cancellationToken);

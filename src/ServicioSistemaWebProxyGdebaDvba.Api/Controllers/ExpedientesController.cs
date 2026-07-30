@@ -86,10 +86,11 @@ public sealed class ExpedientesController : ControllerBase
     public async Task<ActionResult<ObtenerExpedienteRecursoResult<ExpedienteCompletoDto>>> ObtenerCompleto(
         string numeroGdebaCompleto,
         [FromQuery] bool forceRefresh,
+        [FromQuery] bool mostrarPases,
         CancellationToken cancellationToken)
     {
         var result = await _expedienteService.ObtenerCompletoAsync(
-            new ObtenerExpedienteRecursoRequest(numeroGdebaCompleto, forceRefresh),
+            new ObtenerExpedienteRecursoRequest(numeroGdebaCompleto, forceRefresh, mostrarPases),
             cancellationToken);
 
         return result.Exitoso ? Ok(result) : NotFound(result);

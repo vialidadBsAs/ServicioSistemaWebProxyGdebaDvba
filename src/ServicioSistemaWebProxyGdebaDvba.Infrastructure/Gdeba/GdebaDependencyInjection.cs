@@ -21,11 +21,13 @@ public static class GdebaDependencyInjection
             case GdebaGatewayModes.Fake:
                 services.AddScoped<IGdebaExpedienteGateway, FakeGdebaExpedienteGateway>();
                 services.AddScoped<IGdebaDocumentoGateway, FakeGdebaDocumentoGateway>();
+                services.AddScoped<IGdebaTipoDocumentoGateway, FakeGdebaTipoDocumentoGateway>();
                 break;
 
             case GdebaGatewayModes.Soap:
                 services.AddHttpClient<IGdebaExpedienteGateway, SoapGdebaExpedienteGateway>();
                 services.AddHttpClient<IGdebaDocumentoGateway, SoapGdebaDocumentoGateway>();
+                services.AddHttpClient<IGdebaTipoDocumentoGateway, SoapGdebaTipoDocumentoGateway>();
                 break;
 
             case GdebaGatewayModes.Rest:
