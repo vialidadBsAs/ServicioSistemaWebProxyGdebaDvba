@@ -1063,7 +1063,7 @@ public sealed class ExpedienteService : IExpedienteService
     private static IReadOnlyCollection<MovimientoExpedienteDto> MapearMovimientos(Expediente expediente)
     {
         return expediente.Movimientos
-            .OrderBy(x => x.Orden)
+            .OrderByDescending(x => x.Orden)
             .Select(x => new MovimientoExpedienteDto(x.Orden, x.FechaOperacion, x.EstadoOrigen, x.EstadoDestino, x.UsuarioOrigen, x.UsuarioDestino, x.Motivo, x.ReparticionOrigen, x.ReparticionDestino, x.EsUltimoConocido))
             .ToArray();
     }
@@ -1094,7 +1094,7 @@ public sealed class ExpedienteService : IExpedienteService
             ? movimientos
                 .Where(x => x.FechaOperacion.HasValue)
                 .MaxBy(x => x.FechaOperacion)
-            : movimientos.MinBy(x => x.Orden);
+            : movimientos.MaxBy(x => x.Orden);
     }
 
     private static ObtenerExpedienteRecursoResult<T> CrearResultadoRecurso<T>(

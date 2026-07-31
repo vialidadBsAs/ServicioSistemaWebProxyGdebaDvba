@@ -172,9 +172,8 @@ public sealed partial class Expediente : IAggregateRoot
                 movimiento = new MovimientoExpediente(Id, movimientoDetectado.Orden);
                 movimiento.TrackingState = TrackingState.Added;
                 _movimientos.Add(movimiento);
+                movimiento.ActualizarDesde(movimientoDetectado);
             }
-
-            movimiento.ActualizarDesde(movimientoDetectado);
         }
 
         var ultimoMovimiento = ResolverUltimoMovimientoConocido();
@@ -208,7 +207,7 @@ public sealed partial class Expediente : IAggregateRoot
             ? _movimientos
                 .Where(x => x.FechaOperacion.HasValue)
                 .MaxBy(x => x.FechaOperacion)!
-            : _movimientos.MinBy(x => x.Orden)!;
+            : _movimientos.MaxBy(x => x.Orden)!;
     }
 
     public void RegistrarRespuestaExpedienteCorrecta(
