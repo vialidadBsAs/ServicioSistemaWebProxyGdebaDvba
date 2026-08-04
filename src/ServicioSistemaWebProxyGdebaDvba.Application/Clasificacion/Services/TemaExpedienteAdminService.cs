@@ -1,0 +1,140 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Models;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
+using URF.Core.Abstractions;
+using URF.Core.Abstractions.Trackable;
+
+namespace ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Services;
+
+public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
+{
+    private readonly ITrackableRepository<TemaExpediente> _temaRepository;
+    private readonly ITrackableRepository<TemaExpedienteTrata> _temaTrataRepository;
+    private readonly IRepository<TrataHabilitadaVialidad> _trataRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public TemaExpedienteAdminService(ITrackableRepository<TemaExpediente> temaRepository, ITrackableRepository<TemaExpedienteTrata> temaTrataRepository, IRepository<TrataHabilitadaVialidad> trataRepository, IUnitOfWork unitOfWork)
+    {
+        _temaRepository = temaRepository;
+        _temaTrataRepository = temaTrataRepository;
+        _trataRepository = trataRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<IReadOnlyCollection<TemaExpedienteDto>> ObtenerTemasAsync(CancellationToken cancellationToken)
+    {
+        var temas = await _temaRepository.Query()
+            .Include($"{nameof(TemaExpediente.Tratas)}.{nameof(TemaExpedienteTrata.TrataHabilitadaVialidad)}")
+            .OrderBy(x => x.Nombre)
+            .SelectAsync(cancellationToken);
+
+        return temas.Select(TemaExpedienteAdminService.MapearTema).ToArray();
+    }
+
+    public async Task<IReadOnlyCollection<TrataHabilitadaVialidadDto>> ObtenerTratasHabilitadasAsync(CancellationToken cancellationToken)
+    {
+        var tratas = await _trataRepository.Query()
+            .OrderBy(x => x.CodigoTrata)
+            .ThenBy(x => x.CodigoReparticion)
+            .SelectAsync(cancellationToken);
+
+        return tratas.Select(TemaExpedienteAdminService.MapearTrata).ToArray();
+    }
+
+    public async Task<TemaExpedienteDto> CrearTemaAsync(GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)
+    {
+        await this.ValidarCodigoUnicoAsync(request.Codigo, temaIdExcluido: null, cancellationToken);
+        var tema = new TemaExpediente(request.Codigo, request.Nombre, request.Descripcion);
+        await this.AsignarTratasAsync(tema, request.TratasHabilitadasVialidadIds, cancellationToken);
+
+        _temaRepository.Insert(tema);
+        _temaRepository.ApplyChanges(tema);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return TemaExpedienteAdminService.MapearTema(tema);
+    }
+
+    public async Task<TemaExpedienteDto> ActualizarTemaAsync(Guid temaId, GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)
+    {
+        var tema = await _temaRepository.Query()
+            .Include($"{nameof(TemaExpediente.Tratas)}.{nameof(TemaExpedienteTrata.TrataHabilitadaVialidad)}")
+            .FirstOrDefaultAsync(x => x.Id == temaId, cancellationToken);
+        if (tema is null) throw new KeyNotFoundException("No existe el tema solicitado.");
+
+        await this.ValidarCodigoUnicoAsync(request.Codigo, tema.Id, cancellationToken);
+        tema.Actualizar(request.Codigo, request.Nombre, request.Descripcion);
+        await this.ReemplazarTratasAsync(tema, request.TratasHabilitadasVialidadIds, cancellationToken);
+
+        _temaRepository.Update(tema);
+        _temaRepository.ApplyChanges(tema);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return TemaExpedienteAdminService.MapearTema(tema);
+    }
+
+    public async Task EliminarTemaAsync(Guid temaId, CancellationToken cancellationToken)
+    {
+        var tema = await _temaRepository.Query().FirstOrDefaultAsync(x => x.Id == temaId, cancellationToken);
+        if (tema is null) return;
+
+        _temaRepository.Delete(tema);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task AsignarTratasAsync(TemaExpediente tema, IReadOnlyCollection<Guid>? tratasIds, CancellationToken cancellationToken)
+    {
+        var tratas = await this.CargarTratasSeleccionadasAsync(tratasIds, cancellationToken);
+        foreach (var trata in tratas)
+        {
+            tema.AsignarTrata(trata);
+        }
+    }
+
+    private async Task ReemplazarTratasAsync(TemaExpediente tema, IReadOnlyCollection<Guid>? tratasIds, CancellationToken cancellationToken)
+    {
+        var idsSeleccionados = (tratasIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToHashSet();
+        var asignacionesARemover = tema.Tratas.Where(x => !idsSeleccionados.Contains(x.TrataHabilitadaVialidadId)).ToArray();
+        foreach (var asignacion in asignacionesARemover)
+        {
+            tema.QuitarTrata(asignacion.TrataHabilitadaVialidadId);
+            _temaTrataRepository.Delete(asignacion);
+        }
+
+        await this.AsignarTratasAsync(tema, idsSeleccionados.ToArray(), cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<TrataHabilitadaVialidad>> CargarTratasSeleccionadasAsync(IEnumerable<Guid>? tratasIds, CancellationToken cancellationToken)
+    {
+        var ids = (tratasIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
+        if (ids.Length == 0) return Array.Empty<TrataHabilitadaVialidad>();
+
+        var tratas = await _trataRepository.Query().Where(x => ids.Contains(x.Id)).SelectAsync(cancellationToken);
+        if (tratas.Count() != ids.Length) throw new InvalidOperationException("Una o más tratas seleccionadas no están habilitadas.");
+
+        return tratas.ToArray();
+    }
+
+    private async Task ValidarCodigoUnicoAsync(string codigo, Guid? temaIdExcluido, CancellationToken cancellationToken)
+    {
+        var codigoNormalizado = string.IsNullOrWhiteSpace(codigo) ? string.Empty : codigo.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(codigoNormalizado)) return;
+
+        var existe = await _temaRepository.Query()
+            .AnyAsync(x => x.Codigo == codigoNormalizado && (!temaIdExcluido.HasValue || x.Id != temaIdExcluido.Value), cancellationToken);
+        if (existe) throw new InvalidOperationException($"Ya existe un tema con el código '{codigoNormalizado}'.");
+    }
+
+    private static TemaExpedienteDto MapearTema(TemaExpediente tema)
+    {
+        return new TemaExpedienteDto(tema.Id, tema.Codigo, tema.Nombre, tema.Descripcion, tema.Tratas
+            .OrderBy(x => x.TrataHabilitadaVialidad.CodigoTrata)
+            .ThenBy(x => x.TrataHabilitadaVialidad.CodigoReparticion)
+            .Select(x => TemaExpedienteAdminService.MapearTrata(x.TrataHabilitadaVialidad))
+            .ToArray());
+    }
+
+    private static TrataHabilitadaVialidadDto MapearTrata(TrataHabilitadaVialidad trata)
+    {
+        return new TrataHabilitadaVialidadDto(trata.Id, trata.CodigoTrata, trata.DescripcionTrata, trata.CodigoReparticion, trata.NombreReparticion);
+    }
+}

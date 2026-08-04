@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
+using ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Contracts;
@@ -21,6 +23,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddScoped<ITemaExpedienteAdminService, TemaExpedienteAdminService>();
         services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
@@ -35,6 +38,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<ITemaExpedienteAdminService, TemaExpedienteAdminService>();
         services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();

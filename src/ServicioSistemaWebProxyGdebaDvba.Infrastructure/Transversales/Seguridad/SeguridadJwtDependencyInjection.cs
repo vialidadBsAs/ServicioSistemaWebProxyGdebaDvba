@@ -33,7 +33,7 @@ public static class SeguridadJwtDependencyInjection
                 ValidAudience = options.ValidAudience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey!)),
                 NameClaimType = ClaimTypes.Name,
-                RoleClaimType = ClaimTypes.Role,
+                RoleClaimType = $"role_{options.ApplicationName}",
                 ClockSkew = TimeSpan.FromSeconds(options.ClockSkewSeconds)
             };
         });
@@ -47,11 +47,17 @@ public static class SeguridadJwtDependencyInjection
             .RequireAssertion(context => SeguridadJwtDependencyInjection.TieneAccesoAplicacion(context.User, options.ApplicationName))
             .RequireRole(options.AdministratorRole)
             .Build();
+        var topicManagementPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser()
+            .RequireAssertion(context => SeguridadJwtDependencyInjection.TieneAccesoAplicacion(context.User, options.ApplicationName))
+            .RequireRole(SeguridadInstitucional.RolSuper, SeguridadInstitucional.RolAdministrador)
+            .Build();
 
         services.AddAuthorization(authorizationOptions =>
         {
             authorizationOptions.AddPolicy(SeguridadInstitucional.PoliticaAccesoExpedientes, accessPolicy);
             authorizationOptions.AddPolicy(SeguridadInstitucional.PoliticaAdministracionExpedientes, administratorPolicy);
+            authorizationOptions.AddPolicy(SeguridadInstitucional.PoliticaGestionTemasExpedientes, topicManagementPolicy);
             authorizationOptions.FallbackPolicy = accessPolicy;
         });
 
