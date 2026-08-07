@@ -227,10 +227,18 @@ public sealed class DocumentoDetailEnrichmentService
 
         _documentoRepository.Update(documento);
         _documentoRepository.ApplyChanges(documento);
+        var ultimaActividad = documento.Historial
+            .OrderByDescending(x => x.FechaFin ?? x.FechaInicio)
+            .ThenByDescending(x => x.IdGdeba)
+            .FirstOrDefault();
         return new DocumentoDetailEnrichmentItemResult(
             documento.Id,
             detalle.NumeroDocumento ?? documento.NumeroActuacionCompleto,
-            DocumentoDetailEnrichmentItemStatus.Enriquecido);
+            DocumentoDetailEnrichmentItemStatus.Enriquecido,
+            ultimaActividad?.Actividad,
+            ultimaActividad?.FechaFin ?? ultimaActividad?.FechaInicio,
+            documento.UrlArchivo,
+            documento.PuedeVerDocumento);
     }
 
     private async Task<TipoDocumentoGdeba?> ResolverTipoDocumentoAsync(string? codigoTipoDocumento,

@@ -34,7 +34,6 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionObtenerPases = "ObtenerPases";
     private const string OperacionObtenerRelaciones = "ObtenerRelaciones";
     private const string OperacionObtenerCompleto = "ObtenerCompleto";
-    private const string CodigoActuacionPase = "PV";
 
     private readonly IExpedienteCacheReadStore _expedienteCacheReadStore;
     private readonly IGdebaExpedienteGateway _gdebaExpedienteGateway;
@@ -49,6 +48,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IRepository<TemaExpedienteTrata> _temaExpedienteTrataRepository;
     private readonly ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> _procesoDescubrimientoRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
+    private readonly IRepository<TipoDocumentoGdeba> _tipoDocumentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
 
@@ -61,7 +61,8 @@ public sealed class ExpedienteService : IExpedienteService
                               IRepository<ConfiguracionDescubrimientoTrataExpediente> configuracionDescubrimientoTrataRepository,
                               IRepository<TemaExpedienteTrata> temaExpedienteTrataRepository,
                               ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> procesoDescubrimientoRepository,
-                              ITrackableRepository<DocumentoGdeba> documentoRepository, 
+                              ITrackableRepository<DocumentoGdeba> documentoRepository,
+                              IRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
     {
         _expedienteCacheReadStore = expedienteCacheReadStore;
@@ -77,6 +78,7 @@ public sealed class ExpedienteService : IExpedienteService
         _temaExpedienteTrataRepository = temaExpedienteTrataRepository;
         _procesoDescubrimientoRepository = procesoDescubrimientoRepository;
         _documentoRepository = documentoRepository;
+        _tipoDocumentoRepository = tipoDocumentoRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -400,7 +402,7 @@ public sealed class ExpedienteService : IExpedienteService
             var expedienteDto = await this.MapearAsync(expediente, cancellationToken);
             completo = new ExpedienteCompletoDto(
                 ExpedienteService.MapearCabecera(expedienteDto),
-                ExpedienteService.MapearDocumentos(expediente, request.MostrarPases),
+                expedienteDto.Documentos,
                 expedienteDto.ArchivosAdjuntos,
                 ExpedienteService.MapearMovimientos(expediente),
                 expedienteDto.Relaciones);
@@ -1004,14 +1006,39 @@ public sealed class ExpedienteService : IExpedienteService
     {
         var descripcionesTrata = await _expedienteCacheReadStore.CargarDescripcionesTrataAsync(
             expediente.Relaciones.Select(x => x.CodigoTrataRelacionado ?? string.Empty), cancellationToken);
+        var nombresTiposDocumento = await this.CargarNombresTiposDocumentoAsync(expediente, cancellationToken);
 
-        return ExpedienteService.Mapear(expediente, descripcionesTrata);
+        return ExpedienteService.Mapear(expediente, descripcionesTrata, nombresTiposDocumento);
     }
 
-    private static ExpedienteDetalladoDto Mapear(Expediente expediente, IReadOnlyDictionary<string, string> descripcionesTrata)
+    private async Task<IReadOnlyDictionary<string, string>> CargarNombresTiposDocumentoAsync(Expediente expediente, CancellationToken cancellationToken)
+    {
+        var codigosTipoDocumento = expediente.Documentos
+            .Select(x => x.Documento.TipoDocumentoCodigo)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (codigosTipoDocumento.Length == 0)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var tiposDocumento = await _tipoDocumentoRepository.Query()
+            .Where(x => codigosTipoDocumento.Contains(x.Codigo))
+            .SelectAsync(cancellationToken);
+
+        return tiposDocumento.ToDictionary(x => x.Codigo, x => x.Nombre, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static ExpedienteDetalladoDto Mapear(
+        Expediente expediente,
+        IReadOnlyDictionary<string, string> descripcionesTrata,
+        IReadOnlyDictionary<string, string> nombresTiposDocumento)
     {
         return new ExpedienteDetalladoDto(
-            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, ExpedienteService.MapearDocumentos(expediente, mostrarPases: true), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado ?? ExpedienteService.BuscarDescripcionTrata(x.CodigoTrataRelacionado, descripcionesTrata), x.FechaRelacion, x.UsuarioRelacion)).ToArray());
+            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, ExpedienteService.MapearDocumentos(expediente, nombresTiposDocumento), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado ?? ExpedienteService.BuscarDescripcionTrata(x.CodigoTrataRelacionado, descripcionesTrata), x.FechaRelacion, x.UsuarioRelacion)).ToArray());
     }
 
     private static string? BuscarDescripcionTrata(string? codigoTrata, IReadOnlyDictionary<string, string> descripcionesTrata)
@@ -1024,17 +1051,16 @@ public sealed class ExpedienteService : IExpedienteService
         return descripcionesTrata.TryGetValue(codigoTrata, out var descripcion) ? descripcion : null;
     }
 
-    private static IReadOnlyCollection<DocumentoExpedienteDto> MapearDocumentos(Expediente expediente, bool mostrarPases)
+    private static IReadOnlyCollection<DocumentoExpedienteDto> MapearDocumentos(Expediente expediente, IReadOnlyDictionary<string, string> nombresTiposDocumento)
     {
         return expediente.Documentos
-            .Where(x => mostrarPases || !string.Equals(x.Documento.ActuacionTipoCodigo, CodigoActuacionPase, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(x => x.OrdenRespuesta ?? 0)
             .ThenByDescending(x => x.FechaVinculacion ?? x.Documento.FechaCreacion ?? DateTimeOffset.MinValue)
             .ThenByDescending(x => x.Documento.NumeroActuacionCompleto)
             .Select(x => new DocumentoExpedienteDto(
                 x.Documento.NumeroActuacionCompleto,
                 x.Documento.TipoDocumentoCodigo,
-                x.Documento.TipoDocumento?.Nombre,
+                x.Documento.TipoDocumento?.Nombre ?? ExpedienteService.BuscarNombreTipoDocumento(x.Documento.TipoDocumentoCodigo, nombresTiposDocumento),
                 x.Documento.Referencia,
                 x.Documento.FechaCreacion,
                 x.FechaVinculacion,
@@ -1042,6 +1068,16 @@ public sealed class ExpedienteService : IExpedienteService
                 x.UsuarioGenerador,
                 x.OrdenRespuesta))
             .ToArray();
+    }
+
+    private static string? BuscarNombreTipoDocumento(string? codigoTipoDocumento, IReadOnlyDictionary<string, string> nombresTiposDocumento)
+    {
+        if (string.IsNullOrWhiteSpace(codigoTipoDocumento))
+        {
+            return null;
+        }
+
+        return nombresTiposDocumento.TryGetValue(codigoTipoDocumento, out var nombre) ? nombre : null;
     }
 
     /// <summary>

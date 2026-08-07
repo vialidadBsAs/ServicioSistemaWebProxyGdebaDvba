@@ -41,4 +41,10 @@ public sealed class FakeGdebaDocumentoGateway : IGdebaDocumentoGateway
 
         return Task.FromResult<GdebaDocumentoDetalleDto?>(detalle);
     }
+
+    public Task<GdebaDocumentoPdfDto?> BuscarPdfPorNumeroAsync(string numeroDocumento, ContextoInvocacionGdeba contextoInvocacion, CancellationToken cancellationToken)
+    {
+        var contenido = System.Text.Encoding.ASCII.GetBytes("%PDF-1.4\n% Documento simulado GDEBA\n");
+        return Task.FromResult<GdebaDocumentoPdfDto?>(new GdebaDocumentoPdfDto(numeroDocumento, contenido));
+    }
 }

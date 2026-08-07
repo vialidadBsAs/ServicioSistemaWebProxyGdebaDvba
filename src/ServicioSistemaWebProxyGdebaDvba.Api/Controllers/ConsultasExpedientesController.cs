@@ -33,4 +33,12 @@ public sealed class ConsultasExpedientesController : ControllerBase
 
         return Ok(await _consultaExpedientesService.ObtenerValoresFiltroAsync(new ConsultaExpedientesValoresFiltroRequest(trataIds, campo), cancellationToken));
     }
+
+    [HttpGet("documentos")]
+    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, CancellationToken cancellationToken = default)
+    {
+        if (trataIds is null || trataIds.Length == 0) return BadRequest("Debe seleccionar al menos una trata.");
+
+        return Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataRequest(trataIds, pagina, tamanioPagina, codigoTipoDocumento), cancellationToken));
+    }
 }

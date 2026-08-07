@@ -34,5 +34,16 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         return await _consultaExpedientesReadStore.ObtenerValoresFiltroAsync(trataIds, campo, DateTimeOffset.Now, cancellationToken);
     }
 
+    public async Task<ConsultaDocumentosPorTrataResult> ConsultarDocumentosAsync(ConsultaDocumentosPorTrataRequest request, CancellationToken cancellationToken)
+    {
+        var trataIds = (request.TrataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
+        if (trataIds.Length == 0) throw new ArgumentException("Debe seleccionar al menos una trata.", nameof(request));
+
+        var pagina = Math.Max(request.Pagina, 1);
+        var tamanioPagina = Math.Clamp(request.TamanioPagina, 1, 100);
+        var codigoTipoDocumento = string.IsNullOrWhiteSpace(request.CodigoTipoDocumento) ? null : request.CodigoTipoDocumento.Trim().ToUpperInvariant();
+        return await _consultaExpedientesReadStore.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataFiltro(trataIds, pagina, tamanioPagina, codigoTipoDocumento), cancellationToken);
+    }
+
     private static IReadOnlyCollection<string> Normalizar(IEnumerable<string>? valores) => (valores ?? Array.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 }

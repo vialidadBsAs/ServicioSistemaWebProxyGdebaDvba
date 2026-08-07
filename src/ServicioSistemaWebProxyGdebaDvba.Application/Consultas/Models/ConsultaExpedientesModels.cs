@@ -9,3 +9,44 @@ public sealed record ConsultaExpedientesResult(int TotalRegistros, int Pagina, i
 public sealed record ConsultaExpedienteDto(Guid Id, string NumeroGdebaCompleto, string CodigoTrata, string? DescripcionTrata, string? EstadoActual, DateTimeOffset? FechaUltimoMovimiento, string EstadoDetalle);
 
 public sealed record ConsultaExpedientesValoresFiltroRequest(IReadOnlyCollection<Guid>? TrataIds, string Campo);
+
+public sealed record ConsultaDocumentosPorTrataRequest(IReadOnlyCollection<Guid>? TrataIds, int Pagina = 1, int TamanioPagina = 50, string? CodigoTipoDocumento = null);
+
+public sealed record ConsultaDocumentosPorTrataFiltro(IReadOnlyCollection<Guid> TrataIds, int Pagina, int TamanioPagina, string? CodigoTipoDocumento);
+
+public sealed record ConsultaDocumentosPorTrataResult(
+    int TotalRegistros,
+    int Pagina,
+    int TamanioPagina,
+    int TotalDocumentos,
+    int TotalExpedientes,
+    int DocumentosConMetadata,
+    IReadOnlyCollection<ConsultaTipoDocumentoResumenDto> TiposDocumento,
+    IReadOnlyCollection<ConsultaDocumentoPorTrataDto> Items);
+
+public sealed record ConsultaTipoDocumentoResumenDto(
+    string? CodigoTipoDocumento,
+    string? NombreTipoDocumento,
+    string? FamiliaTipoDocumento,
+    int CantidadDocumentos,
+    int CantidadExpedientes,
+    int CantidadDocumentosConMetadata);
+
+public sealed record ConsultaDocumentoPorTrataDto(
+    Guid ExpedienteId,
+    string NumeroExpediente,
+    string CodigoTrata,
+    string? DescripcionTrata,
+    Guid DocumentoId,
+    string NumeroActuacionCompleto,
+    string CodigoActuacion,
+    string? CodigoTipoDocumento,
+    string? NombreTipoDocumento,
+    string? FamiliaTipoDocumento,
+    string? Referencia,
+    DateTimeOffset? FechaCreacion,
+    bool MetadataCompleta,
+    string? UrlArchivo,
+    bool? PuedeVerDocumento,
+    string? UltimaActividad,
+    DateTimeOffset? FechaUltimaActividad);

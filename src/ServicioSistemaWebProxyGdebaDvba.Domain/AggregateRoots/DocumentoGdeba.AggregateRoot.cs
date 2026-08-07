@@ -12,7 +12,7 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
             referencia ?? Referencia, fechaCreacion ?? FechaCreacion,
             ListaFirmantes, UrlArchivo, PuedeVerDocumento,
             FechaUltimoEnriquecimiento,
-            metadataCompleta: false);
+            metadataCompleta: MetadataCompleta);
     }
 
     public void EnriquecerDesdeDetalleDocumento(

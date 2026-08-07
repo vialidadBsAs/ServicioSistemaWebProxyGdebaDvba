@@ -52,7 +52,7 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         var serviceOptions = this.ResolveConsultaDocumentoServiceOptions();
         var usuarioConsulta = SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
         const string operationName = "buscarDetallePorNumero";
-        var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(contractOptions, serviceContractOptions, operationName, numeroNormalizado, usuarioConsulta);
+        var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(contractOptions, serviceContractOptions, operationName, numeroNormalizado, usuarioConsulta, assignee: true);
 
         var document = await this.SendSoapAsync(
             serviceOptions,
@@ -83,6 +83,45 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
             SoapGdebaDocumentoGateway.GetValue(response, "urlArchivo"),
             SoapGdebaDocumentoGateway.ParseBool(SoapGdebaDocumentoGateway.GetValue(response, "puedeVerDocumento")),
             SoapGdebaDocumentoGateway.MapHistorial(response));
+    }
+
+    public async Task<GdebaDocumentoPdfDto?> BuscarPdfPorNumeroAsync(
+        string numeroDocumento,
+        ContextoInvocacionGdeba contextoInvocacion,
+        CancellationToken cancellationToken)
+    {
+        var numeroRecibido = string.IsNullOrWhiteSpace(numeroDocumento)
+            ? throw new ArgumentException("El numero del documento es requerido.", nameof(numeroDocumento))
+            : numeroDocumento.Trim();
+        var numeroNormalizado = SoapGdebaDocumentoGateway.NormalizarNumeroDocumentoParaConsulta(numeroRecibido);
+        var contractOptions = this.ResolveSoapContractOptions();
+        var serviceContractOptions = this.ResolveConsultaDocumentoServiceContractOptions(contractOptions);
+        var serviceOptions = this.ResolveConsultaDocumentoServiceOptions();
+        var usuarioConsulta = SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
+        const string operationName = "buscarPDFPorNumero";
+        var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(contractOptions, serviceContractOptions, operationName, numeroNormalizado, usuarioConsulta, assignee: false);
+        var document = await this.SendSoapAsync(
+            serviceOptions,
+            SoapGdebaDocumentoGateway.ResolveSoapOperationContractOptions(serviceContractOptions, operationName),
+            operationName,
+            envelope,
+            contextoInvocacion,
+            cancellationToken);
+        var contenidoBase64 = SoapGdebaDocumentoGateway.FindFirstElement(document, "response")?.Value?.Trim() ??
+            SoapGdebaDocumentoGateway.FindFirstElement(document, "return")?.Value?.Trim();
+        if (string.IsNullOrWhiteSpace(contenidoBase64))
+        {
+            return null;
+        }
+
+        try
+        {
+            return new GdebaDocumentoPdfDto(numeroNormalizado, Convert.FromBase64String(contenidoBase64));
+        }
+        catch (FormatException ex)
+        {
+            throw new GdebaOperationException(operationName, "GDEBA devolvio un PDF con contenido Base64 invalido.", innerException: ex);
+        }
     }
 
     private async Task<XDocument> SendSoapAsync(
@@ -246,14 +285,15 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         GdebaSoapServiceContractOptions serviceContractOptions,
         string operationName,
         string numeroDocumento,
-        string usuarioConsulta)
+        string usuarioConsulta,
+        bool assignee)
     {
         return $$"""
             <Envelope xmlns="{{contractOptions.EnvelopeNamespace}}">
                 <Body>
                     <{{operationName}} xmlns="{{serviceContractOptions.Namespace}}">
                         <request xmlns="">
-                            <assignee>true</assignee>
+                            <assignee>{{assignee.ToString().ToLowerInvariant()}}</assignee>
                             <numeroDocumento>{{SoapGdebaDocumentoGateway.EscapeXml(numeroDocumento)}}</numeroDocumento>
                             <numeroEspecial></numeroEspecial>
                             <usuarioConsulta>{{SoapGdebaDocumentoGateway.EscapeXml(usuarioConsulta)}}</usuarioConsulta>
@@ -267,7 +307,9 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
     private static string ResolverUsuarioConsulta(SoapServiceOptions serviceOptions)
     {
         return string.IsNullOrWhiteSpace(serviceOptions.UsuarioConsulta)
-            ? throw new InvalidOperationException("No esta configurado el usuario de consulta para 'ConsultaDocumento'.")
+            ? throw new GdebaOperationException(
+                "ConsultaDocumento",
+                "El proxy no tiene configurado un usuario GDEBA para la consulta documental.")
             : serviceOptions.UsuarioConsulta.Trim();
     }
 

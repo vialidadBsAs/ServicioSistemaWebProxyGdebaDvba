@@ -3,4 +3,8 @@
 public sealed record DocumentoDetailEnrichmentItemResult(
     Guid DocumentoId,
     string? NumeroDocumento,
-    DocumentoDetailEnrichmentItemStatus Estado);
+    DocumentoDetailEnrichmentItemStatus Estado,
+    string? UltimaActividad = null,
+    DateTimeOffset? FechaUltimaActividad = null,
+    string? UrlArchivo = null,
+    bool? PuedeVerDocumento = null);
