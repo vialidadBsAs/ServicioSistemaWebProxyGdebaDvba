@@ -238,7 +238,13 @@ public sealed class DocumentoDetailEnrichmentService
             ultimaActividad?.Actividad,
             ultimaActividad?.FechaFin ?? ultimaActividad?.FechaInicio,
             documento.UrlArchivo,
-            documento.PuedeVerDocumento);
+            documento.PuedeVerDocumento,
+            documento.TipoDocumentoCodigo,
+            tipoDocumento?.Nombre,
+            tipoDocumento?.Familia,
+            documento.Referencia,
+            documento.FechaCreacion,
+            documento.MetadataCompleta);
     }
 
     private async Task<TipoDocumentoGdeba?> ResolverTipoDocumentoAsync(string? codigoTipoDocumento,

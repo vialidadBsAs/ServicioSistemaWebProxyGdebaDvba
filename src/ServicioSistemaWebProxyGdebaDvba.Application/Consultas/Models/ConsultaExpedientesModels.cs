@@ -10,9 +10,9 @@ public sealed record ConsultaExpedienteDto(Guid Id, string NumeroGdebaCompleto, 
 
 public sealed record ConsultaExpedientesValoresFiltroRequest(IReadOnlyCollection<Guid>? TrataIds, string Campo);
 
-public sealed record ConsultaDocumentosPorTrataRequest(IReadOnlyCollection<Guid>? TrataIds, int Pagina = 1, int TamanioPagina = 50, string? CodigoTipoDocumento = null);
+public sealed record ConsultaDocumentosPorTrataRequest(IReadOnlyCollection<Guid>? TrataIds, int Pagina = 1, int TamanioPagina = 50, string? CodigoTipoDocumento = null, string? CampoOrden = null, string? DireccionOrden = null, IReadOnlyCollection<string>? NumerosExpediente = null, IReadOnlyCollection<string>? CodigosTrata = null, IReadOnlyCollection<string>? NumerosActuacion = null, IReadOnlyCollection<string>? Referencias = null);
 
-public sealed record ConsultaDocumentosPorTrataFiltro(IReadOnlyCollection<Guid> TrataIds, int Pagina, int TamanioPagina, string? CodigoTipoDocumento);
+public sealed record ConsultaDocumentosPorTrataFiltro(IReadOnlyCollection<Guid> TrataIds, int Pagina, int TamanioPagina, string? CodigoTipoDocumento, string CampoOrden, bool OrdenDescendente, IReadOnlyCollection<string> NumerosExpediente, IReadOnlyCollection<string> CodigosTrata, IReadOnlyCollection<string> NumerosActuacion, IReadOnlyCollection<string> Referencias);
 
 public sealed record ConsultaDocumentosPorTrataResult(
     int TotalRegistros,
@@ -21,6 +21,8 @@ public sealed record ConsultaDocumentosPorTrataResult(
     int TotalDocumentos,
     int TotalExpedientes,
     int DocumentosConMetadata,
+    int TotalDocumentosFiltrados,
+    int TotalExpedientesFiltrados,
     IReadOnlyCollection<ConsultaTipoDocumentoResumenDto> TiposDocumento,
     IReadOnlyCollection<ConsultaDocumentoPorTrataDto> Items);
 
@@ -33,10 +35,7 @@ public sealed record ConsultaTipoDocumentoResumenDto(
     int CantidadDocumentosConMetadata);
 
 public sealed record ConsultaDocumentoPorTrataDto(
-    Guid ExpedienteId,
-    string NumeroExpediente,
-    string CodigoTrata,
-    string? DescripcionTrata,
+    IReadOnlyCollection<ConsultaDocumentoExpedienteDto> Expedientes,
     Guid DocumentoId,
     string NumeroActuacionCompleto,
     string CodigoActuacion,
@@ -50,3 +49,5 @@ public sealed record ConsultaDocumentoPorTrataDto(
     bool? PuedeVerDocumento,
     string? UltimaActividad,
     DateTimeOffset? FechaUltimaActividad);
+
+public sealed record ConsultaDocumentoExpedienteDto(Guid Id, string Numero, string CodigoTrata);

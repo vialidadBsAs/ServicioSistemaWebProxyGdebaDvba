@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
@@ -29,10 +30,10 @@ public sealed class DocumentosController : ControllerBase
             documentoId, OrigenInvocacionGdeba.Interactiva, cancellationToken);
         if (resultado.Estado == DocumentoDetailEnrichmentItemStatus.DocumentoNoEncontrado)
         {
-            return NotFound();
+            return this.NotFound();
         }
 
-        return Ok(resultado);
+        return this.Ok(resultado);
     }
 
     [HttpGet("{documentoId:guid}/pdf")]
@@ -41,14 +42,14 @@ public sealed class DocumentosController : ControllerBase
         var resultado = await _documentoPdfDownloadService.DescargarPdfAsync(documentoId, OrigenInvocacionGdeba.Interactiva, cancellationToken);
         if (!resultado.DocumentoEncontrado)
         {
-            return NotFound();
+            return this.NotFound();
         }
 
         if (!resultado.DisponibleParaDescarga || resultado.Contenido is null || string.IsNullOrWhiteSpace(resultado.NumeroDocumento))
         {
-            return Conflict("El archivo PDF no esta disponible para este documento.");
+            return this.Conflict("El archivo PDF no esta disponible para este documento.");
         }
 
-        return File(resultado.Contenido, "application/pdf", $"{resultado.NumeroDocumento}.pdf");
+        return this.File(resultado.Contenido, "application/pdf", $"{resultado.NumeroDocumento}.pdf");
     }
 }

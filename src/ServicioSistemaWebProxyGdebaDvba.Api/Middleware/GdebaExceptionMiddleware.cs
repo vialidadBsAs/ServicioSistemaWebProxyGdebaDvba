@@ -53,5 +53,22 @@ public sealed class GdebaExceptionMiddleware
                 problem,
                 cancellationToken: context.RequestAborted);
         }
+        catch (GdebaConfigurationException ex)
+        {
+            _logger.LogError(ex, "La configuracion GDEBA requerida para procesar la solicitud esta incompleta.");
+
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status503ServiceUnavailable,
+                Title = ex.PublicTitle,
+                Detail = ex.PublicMessage,
+                Instance = context.Request.Path
+            };
+
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await context.Response.WriteAsJsonAsync(
+                problem,
+                cancellationToken: context.RequestAborted);
+        }
     }
 }

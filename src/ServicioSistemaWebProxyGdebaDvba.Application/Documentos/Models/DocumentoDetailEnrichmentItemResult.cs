@@ -7,4 +7,10 @@ public sealed record DocumentoDetailEnrichmentItemResult(
     string? UltimaActividad = null,
     DateTimeOffset? FechaUltimaActividad = null,
     string? UrlArchivo = null,
-    bool? PuedeVerDocumento = null);
+    bool? PuedeVerDocumento = null,
+    string? CodigoTipoDocumento = null,
+    string? NombreTipoDocumento = null,
+    string? FamiliaTipoDocumento = null,
+    string? Referencia = null,
+    DateTimeOffset? FechaCreacion = null,
+    bool MetadataCompleta = false);
