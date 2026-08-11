@@ -83,6 +83,7 @@ Ejemplos actuales:
 - `ExpedienteDocumento`
 - `TipoDocumentoGdeba`
 - `TrataGdeba`
+- `EjecucionWorker`
 - `TrataHabilitadaVialidad`
 - `TemaExpediente`
 

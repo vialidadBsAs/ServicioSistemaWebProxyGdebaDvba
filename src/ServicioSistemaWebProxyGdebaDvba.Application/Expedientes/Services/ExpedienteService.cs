@@ -41,6 +41,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IAuditoriaService _auditoriaService;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
+    private readonly IRepository<TrataHabilitadaVialidad> _trataHabilitadaVialidadRepository;
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
     private readonly IRepository<ConfiguracionDescubrimientoEstadoExpediente> _configuracionDescubrimientoEstadoRepository;
     private readonly IRepository<ConfiguracionDescubrimientoTemaExpediente> _configuracionDescubrimientoTemaRepository;
@@ -55,6 +56,7 @@ public sealed class ExpedienteService : IExpedienteService
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor, 
                               ITrackableRepository<Expediente> expedienteRepository,
+                              IRepository<TrataHabilitadaVialidad> trataHabilitadaVialidadRepository,
                               IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
                               IRepository<ConfiguracionDescubrimientoEstadoExpediente> configuracionDescubrimientoEstadoRepository,
                               IRepository<ConfiguracionDescubrimientoTemaExpediente> configuracionDescubrimientoTemaRepository,
@@ -71,6 +73,7 @@ public sealed class ExpedienteService : IExpedienteService
         _auditoriaService = auditoriaService;
         _currentApplicationAccessor = currentApplicationAccessor;
         _expedienteRepository = expedienteRepository;
+        _trataHabilitadaVialidadRepository = trataHabilitadaVialidadRepository;
         _estadoExpedienteGdebaRepository = estadoExpedienteGdebaRepository;
         _configuracionDescubrimientoEstadoRepository = configuracionDescubrimientoEstadoRepository;
         _configuracionDescubrimientoTemaRepository = configuracionDescubrimientoTemaRepository;
@@ -569,11 +572,13 @@ public sealed class ExpedienteService : IExpedienteService
             }
         }
 
-        var expedientesLocales = await _expedienteCacheReadStore.CargarExpedientesPorNumeroAsync(
-            expedientesDetectados.Select(x => x.Numero.Valor), cancellationToken);
+        var expedientesLocales = (await _expedienteCacheReadStore.CargarExpedientesPorNumeroAsync(
+            expedientesDetectados.Select(x => x.Numero.Valor), cancellationToken))
+            .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
         var creados = 0;
         var actualizados = 0;
         var sinCambios = 0;
+        var expedientesNuevosIds = new List<Guid>();
 
         foreach (var (numero, datos) in expedientesDetectados)
         {
@@ -591,6 +596,8 @@ public sealed class ExpedienteService : IExpedienteService
             if (expedienteEsNuevo)
             {
                 creados++;
+                expedientesNuevosIds.Add(expediente.Id);
+                expedientesLocales[numero.Valor] = expediente;
             }
             else if (datosCambiaron)
             {
@@ -609,7 +616,8 @@ public sealed class ExpedienteService : IExpedienteService
         await this.ConfirmarCambiosAsync(OperacionIncorporarExpedientesPorTrata, recurso, cancellationToken);
 
         return new IncorporarExpedientesPorTrataResult(
-            codigoTrata, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados, creados, actualizados, sinCambios);
+            codigoTrata, trata.Id, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados,
+            creados, actualizados, sinCambios, expedientesNuevosIds);
     }
 
     public async Task<DescubrirExpedientesPorTrataResult> DescubrirExpedientesPorTrataAsync(
@@ -660,7 +668,7 @@ public sealed class ExpedienteService : IExpedienteService
             resultadosPorEstado.Sum(x => x.SinCambios));
     }
 
-    public async Task DescubrirExpedientesProgramadosAsync(DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
+    public async Task<DescubrirExpedientesProgramadosResult> DescubrirExpedientesProgramadosAsync(DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
     {
         var fecha = DateTimeOffset.Now;
         var fechaLocal = DateOnly.FromDateTime(fecha.LocalDateTime);
@@ -673,6 +681,8 @@ public sealed class ExpedienteService : IExpedienteService
         var procesos = await _procesoDescubrimientoRepository.Query().SelectAsync(cancellationToken);
         var procesosPorClave = procesos.ToDictionary(x => (x.CodigoTrata.Trim().ToUpperInvariant(), x.EstadoExpedienteGdebaId));
         var candidatos = new List<CandidatoDescubrimientoProgramado>();
+        var omitidasPorConsultaDelDia = 0;
+        var omitidasPorPausa = 0;
 
         foreach (var trata in tratas)
         {
@@ -680,8 +690,18 @@ public sealed class ExpedienteService : IExpedienteService
             {
                 if (!estados.TryGetValue(configuracionEstado.EstadoExpedienteGdebaId, out var estado)) continue;
                 procesosPorClave.TryGetValue((trata.CodigoTrata, estado.Id), out var proceso);
-                if (proceso?.FechaUltimaConsulta is DateTimeOffset fechaUltimaConsulta && DateOnly.FromDateTime(fechaUltimaConsulta.LocalDateTime) == fechaLocal) continue;
-                if (proceso?.OmitirHasta > fecha) continue;
+                if (request.OmitirConsultasRealizadasEnElDia && proceso?.FechaUltimaConsulta is DateTimeOffset fechaUltimaConsulta && DateOnly.FromDateTime(fechaUltimaConsulta.LocalDateTime) == fechaLocal)
+                {
+                    omitidasPorConsultaDelDia++;
+                    continue;
+                }
+
+                if (proceso?.OmitirHasta > fecha)
+                {
+                    omitidasPorPausa++;
+                    continue;
+                }
+
                 candidatos.Add(new CandidatoDescubrimientoProgramado(trata, configuracionEstado.Prioridad, estado, proceso));
             }
         }
@@ -696,10 +716,15 @@ public sealed class ExpedienteService : IExpedienteService
             .Take(Math.Max(0, request.MaximoInvocaciones))
             .ToArray();
 
+        var resultados = new List<IncorporarExpedientesPorTrataResult>();
+        var resultadosPorTrataEstado = new List<ResultadoDescubrimientoProgramadoTrataEstado>();
         foreach (var candidato in seleccionados)
         {
             var resultado = await this.IncorporarExpedientesPorTrataAsync(
                 new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion), cancellationToken);
+            resultados.Add(resultado);
+            resultadosPorTrataEstado.Add(new ResultadoDescubrimientoProgramadoTrataEstado(
+                candidato.Trata.Id, candidato.Estado.Id, resultado));
             var procesoEsNuevo = candidato.Proceso is null;
             var proceso = candidato.Proceso ?? new ProcesoDescubrimientoTrataEstadoExpediente(candidato.Trata.CodigoTrata, candidato.Estado.Id);
             proceso.RegistrarResultado(resultado.ResolvedAt, resultado.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
@@ -707,6 +732,19 @@ public sealed class ExpedienteService : IExpedienteService
             else _procesoDescubrimientoRepository.Update(proceso);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
+        return new DescubrirExpedientesProgramadosResult(
+            resultados.Count,
+            resultados.Sum(x => x.RecibidosGdeba),
+            resultados.Sum(x => x.Habilitados),
+            resultados.Sum(x => x.Descartados),
+            resultados.Sum(x => x.Creados),
+            resultados.Sum(x => x.Actualizados),
+            resultados.Sum(x => x.SinCambios),
+            omitidasPorConsultaDelDia,
+            omitidasPorPausa,
+            Math.Max(0, candidatos.Count - seleccionados.Length),
+            resultadosPorTrataEstado);
     }
 
     public async Task RegistrarDescubrimientoProgramadoOmitidoAsync(RegistrarDescubrimientoProgramadoOmitidoRequest request, CancellationToken cancellationToken)
@@ -733,6 +771,14 @@ public sealed class ExpedienteService : IExpedienteService
         var asignacionesTemas = idsTemas.Length == 0
             ? Array.Empty<TemaExpedienteTrata>()
             : (await _temaExpedienteTrataRepository.Query().Include(x => x.TrataHabilitadaVialidad).Where(x => idsTemas.Contains(x.TemaExpedienteId)).SelectAsync(cancellationToken)).ToArray();
+        var codigosTrataConfigurados = configuracionesTratas
+            .Select(x => x.CodigoTrata.Trim().ToUpperInvariant())
+            .Concat(asignacionesTemas.Select(x => x.TrataHabilitadaVialidad.CodigoTrata.Trim().ToUpperInvariant()))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var tratasHabilitadasPorCodigo = (await _trataHabilitadaVialidadRepository.Query()
+                .Where(x => codigosTrataConfigurados.Contains(x.CodigoTrata)).SelectAsync(cancellationToken))
+            .ToDictionary(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase);
         var tratasPorCodigo = new Dictionary<string, TrataDescubrimientoProgramado>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var asignacion in asignacionesTemas)
@@ -749,20 +795,25 @@ public sealed class ExpedienteService : IExpedienteService
             }
             else
             {
-                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(codigoTrata, prioridadTema, prioridadTrata));
+                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(asignacion.TrataHabilitadaVialidad.Id, codigoTrata, prioridadTema, prioridadTrata));
             }
         }
 
         foreach (var configuracionTrata in configuracionesTratas.Where(x => x.Habilitada))
         {
             var codigoTrata = configuracionTrata.CodigoTrata.Trim().ToUpperInvariant();
+            if (!tratasHabilitadasPorCodigo.TryGetValue(codigoTrata, out var trataHabilitada))
+            {
+                throw new InvalidOperationException($"La configuracion de descubrimiento referencia la trata '{codigoTrata}', que no esta habilitada localmente.");
+            }
+
             if (tratasPorCodigo.TryGetValue(codigoTrata, out var existente))
             {
                 tratasPorCodigo[codigoTrata] = existente with { PrioridadTrata = Math.Min(existente.PrioridadTrata, configuracionTrata.Prioridad) };
             }
             else
             {
-                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(codigoTrata, int.MaxValue, configuracionTrata.Prioridad));
+                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(trataHabilitada.Id, codigoTrata, int.MaxValue, configuracionTrata.Prioridad));
             }
         }
 
@@ -1248,7 +1299,7 @@ public sealed class ExpedienteService : IExpedienteService
         }
     }
 
-    private sealed record TrataDescubrimientoProgramado(string CodigoTrata, int PrioridadTema, int PrioridadTrata);
+    private sealed record TrataDescubrimientoProgramado(Guid Id, string CodigoTrata, int PrioridadTema, int PrioridadTrata);
 
     private sealed record CandidatoDescubrimientoProgramado(TrataDescubrimientoProgramado Trata, int PrioridadEstado, EstadoExpedienteGdeba Estado, ProcesoDescubrimientoTrataEstadoExpediente? Proceso);
 

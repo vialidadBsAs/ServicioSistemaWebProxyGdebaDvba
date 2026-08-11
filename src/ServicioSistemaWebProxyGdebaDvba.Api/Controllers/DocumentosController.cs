@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServicioSistemaWebProxyGdebaDvba.Api.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad;
@@ -33,7 +34,7 @@ public sealed class DocumentosController : ControllerBase
             return this.NotFound();
         }
 
-        return this.Ok(resultado);
+        return this.Ok(DocumentoDetalleEnriquecidoResponse.Create(resultado));
     }
 
     [HttpGet("{documentoId:guid}/pdf")]

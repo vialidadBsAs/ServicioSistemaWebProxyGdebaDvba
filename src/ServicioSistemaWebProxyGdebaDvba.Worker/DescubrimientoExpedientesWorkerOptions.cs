@@ -10,6 +10,7 @@ public sealed class DescubrimientoExpedientesWorkerOptions
     public int CupoReservaDiaria { get; set; } = 20;
     public int ConsultasVaciasParaPausa { get; set; } = 3;
     public int DiasPausaSinResultados { get; set; } = 7;
+    public bool OmitirConsultasRealizadasEnElDia { get; set; } = true;
     public string ServicioCuota { get; set; } = "ws_gdeba_consultaExpediente";
     public string MetodoCuota { get; set; } = "buscarDatosExpedientePorCodigosTrata";
 }

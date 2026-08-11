@@ -2,4 +2,4 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 
-public sealed record DescubrirExpedientesProgramadosRequest(int MaximoInvocaciones, int ConsultasVaciasParaPausa, int DiasPausaSinResultados, OrigenInvocacionGdeba OrigenInvocacion);
+public sealed record DescubrirExpedientesProgramadosRequest(int MaximoInvocaciones, int ConsultasVaciasParaPausa, int DiasPausaSinResultados, bool OmitirConsultasRealizadasEnElDia, OrigenInvocacionGdeba OrigenInvocacion);

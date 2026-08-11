@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProxyGdebaDbContext))]
-    partial class ProxyGdebaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811200055_AgregaResultadosEjecucionWorkerDescubrimiento")]
+    partial class AgregaResultadosEjecucionWorkerDescubrimiento
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1360,9 +1363,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("Creados")
-                        .HasColumnType("int");
 
                     b.Property<int?>("Enriquecidos")
                         .HasColumnType("int");

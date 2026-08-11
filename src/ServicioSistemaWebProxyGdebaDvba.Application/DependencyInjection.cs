@@ -19,6 +19,8 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contr
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Services;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application;
 
@@ -38,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
         services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
+        services.AddScoped<IWorkerExecutionService, WorkerExecutionService>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
@@ -56,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
         services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
+        services.AddScoped<IWorkerExecutionService, WorkerExecutionService>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

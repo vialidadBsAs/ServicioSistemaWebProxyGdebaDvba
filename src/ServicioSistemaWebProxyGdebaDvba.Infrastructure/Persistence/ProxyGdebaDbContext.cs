@@ -2,6 +2,7 @@
 using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -31,6 +32,14 @@ public sealed class ProxyGdebaDbContext : DbContext
     public DbSet<ConfiguracionDescubrimientoTrataExpediente> ConfiguracionesDescubrimientoTratasExpediente => Set<ConfiguracionDescubrimientoTrataExpediente>();
 
     public DbSet<ProcesoDescubrimientoTrataEstadoExpediente> ProcesosDescubrimientoTratasEstadosExpediente => Set<ProcesoDescubrimientoTrataEstadoExpediente>();
+
+    public DbSet<EjecucionWorker> EjecucionesWorker => Set<EjecucionWorker>();
+
+    public DbSet<EjecucionWorkerDescubrimientoTrataEstado> EjecucionesWorkerDescubrimientoTrataEstado => Set<EjecucionWorkerDescubrimientoTrataEstado>();
+
+    public DbSet<EjecucionWorkerExpedienteDescubierto> ExpedientesDescubiertosPorEjecucionWorker => Set<EjecucionWorkerExpedienteDescubierto>();
+
+    public DbSet<SolicitudEjecucionWorker> SolicitudesEjecucionWorker => Set<SolicitudEjecucionWorker>();
 
     public DbSet<Expediente> Expedientes => Set<Expediente>();
 
