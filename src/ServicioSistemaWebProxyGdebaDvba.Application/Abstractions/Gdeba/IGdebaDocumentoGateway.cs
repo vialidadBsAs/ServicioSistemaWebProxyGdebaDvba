@@ -6,4 +6,5 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 public interface IGdebaDocumentoGateway
 {
     Task<GdebaDocumentoDetalleDto?> BuscarDetallePorNumeroAsync(string numeroDocumento, ContextoInvocacionGdeba contextoInvocacion, CancellationToken cancellationToken);
+    Task<GdebaDocumentoPdfDto?> BuscarPdfPorNumeroAsync(string numeroDocumento, ContextoInvocacionGdeba contextoInvocacion, CancellationToken cancellationToken);
 }

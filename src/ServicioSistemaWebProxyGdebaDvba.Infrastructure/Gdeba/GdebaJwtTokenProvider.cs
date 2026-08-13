@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 
@@ -23,12 +24,18 @@ internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
 
         if (string.IsNullOrWhiteSpace(jwtOptions.Endpoint))
         {
-            throw new InvalidOperationException("No esta configurado el endpoint JWT de GDEBA.");
+            throw new GdebaConfigurationException(
+                "Configuracion de GDEBA incompleta",
+                "El proxy no tiene configurado el acceso JWT de GDEBA para completar la operacion.",
+                "No esta configurado el endpoint JWT de GDEBA para el ambiente activo.");
         }
 
         if (string.IsNullOrWhiteSpace(jwtOptions.Username) || string.IsNullOrWhiteSpace(jwtOptions.Password))
         {
-            throw new InvalidOperationException("No estan configuradas las credenciales JWT de GDEBA.");
+            throw new GdebaConfigurationException(
+                "Credenciales GDEBA no configuradas",
+                "El proxy no tiene configuradas las credenciales de GDEBA necesarias para completar la operacion.",
+                "No estan configuradas las credenciales JWT de GDEBA para el ambiente activo.");
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, jwtOptions.Endpoint);
@@ -59,7 +66,10 @@ internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
 
         return options.Environments.TryGetValue(environmentName, out var environmentOptions)
             ? environmentOptions
-            : throw new InvalidOperationException($"No existe configuracion GDEBA para el ambiente '{environmentName}'.");
+            : throw new GdebaConfigurationException(
+                "Configuracion de GDEBA incompleta",
+                "El proxy no tiene configurado el ambiente GDEBA necesario para completar la operacion.",
+                $"No existe configuracion GDEBA para el ambiente activo '{environmentName}'.");
     }
 
     private static string ExtraerToken(string content)

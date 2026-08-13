@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
+using Microsoft.AspNetCore.Authorization;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
 [ApiController]
+[Authorize(Policy = SeguridadInstitucional.PoliticaAdministracionExpedientes)]
 [Route("api/gdeba/cuotas")]
 public sealed class CuotasGdebaController : ControllerBase
 {

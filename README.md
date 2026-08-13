@@ -148,8 +148,13 @@ Los documentos mas relevantes para retomar el trabajo son:
 - `docs/06-pendientes-gdeba.md`
 - `docs/07-arquitectura-tecnica-implementacion.md`
 - `docs/08-notas-de-trabajo-y-decisiones.md`
+- `docs/09-autenticacion-expedientes.md`
 
 El archivo `docs/08-notas-de-trabajo-y-decisiones.md` funciona como memoria de continuidad: resume decisiones tomadas durante el trabajo inicial, problemas resueltos y criterios para seguir desde otra maquina o desde otra sesion de Codex.
+
+El archivo `docs/09-autenticacion-expedientes.md` define la integracion con
+`DVBA-Auth`, la politica institucional y el contrato de seguridad utilizado por
+la primera interfaz Angular.
 
 ## Estado pendiente
 

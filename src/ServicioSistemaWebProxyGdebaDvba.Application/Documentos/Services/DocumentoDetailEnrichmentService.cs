@@ -4,6 +4,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
@@ -19,10 +20,15 @@ public sealed class DocumentoDetailEnrichmentService
 {
     private const string OperacionEnriquecerDetalleDocumento = "EnriquecerDetalleDocumento";
     private const string OperacionBuscarDetallePorNumero = "buscarDetallePorNumero";
+    private const string ServicioConsultaTipoDocumento = "ws_gdeba_consultaTipoDocumento";
+    private const string OperacionConsultarTipoDocumento = "consultarTipoDocumento";
 
     private readonly IGdebaDocumentoGateway _gdebaDocumentoGateway;
+    private readonly IGdebaTipoDocumentoGateway _gdebaTipoDocumentoGateway;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
+    private readonly ITrackableRepository<TipoDocumentoGdeba> _tipoDocumentoRepository;
     private readonly IRepository<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> _configuracionEnriquecimientoTemaRepository;
+    private readonly IConsultaCuotasGdeba _consultaCuotasGdeba;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IGdebaExecutionContext _gdebaExecutionContext;
@@ -31,8 +37,11 @@ public sealed class DocumentoDetailEnrichmentService
 
     public DocumentoDetailEnrichmentService(
         IGdebaDocumentoGateway gdebaDocumentoGateway,
+        IGdebaTipoDocumentoGateway gdebaTipoDocumentoGateway,
         ITrackableRepository<DocumentoGdeba> documentoRepository,
+        ITrackableRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
         IRepository<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> configuracionEnriquecimientoTemaRepository,
+        IConsultaCuotasGdeba consultaCuotasGdeba,
         IUnitOfWork unitOfWork,
         IAuditoriaService auditoriaService,
         IGdebaExecutionContext gdebaExecutionContext,
@@ -40,8 +49,11 @@ public sealed class DocumentoDetailEnrichmentService
         ILogger<DocumentoDetailEnrichmentService> logger)
     {
         _gdebaDocumentoGateway = gdebaDocumentoGateway;
+        _gdebaTipoDocumentoGateway = gdebaTipoDocumentoGateway;
         _documentoRepository = documentoRepository;
+        _tipoDocumentoRepository = tipoDocumentoRepository;
         _configuracionEnriquecimientoTemaRepository = configuracionEnriquecimientoTemaRepository;
+        _consultaCuotasGdeba = consultaCuotasGdeba;
         _unitOfWork = unitOfWork;
         _auditoriaService = auditoriaService;
         _gdebaExecutionContext = gdebaExecutionContext;
@@ -64,9 +76,10 @@ public sealed class DocumentoDetailEnrichmentService
         }
 
         var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
+        var catalogoTiposDocumento = new CatalogoTiposDocumento();
         try
         {
-            var resultado = await this.EnriquecerDocumentoAsync(documento, contextoInvocacion, cancellationToken);
+            var resultado = await this.EnriquecerDocumentoAsync(documento, contextoInvocacion, catalogoTiposDocumento, cancellationToken);
             await this.RegistrarAuditoriaAsync(
                 resultado.NumeroDocumento ?? documento.NumeroActuacionCompleto, origenInvocacion, exitoso: true,
                 DocumentoDetailEnrichmentService.CrearMensajeResultado(resultado.Estado), cancellationToken);
@@ -113,6 +126,7 @@ public sealed class DocumentoDetailEnrichmentService
         }
 
         var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
+        var catalogoTiposDocumento = new CatalogoTiposDocumento();
         var enriquecidos = 0;
         var sinDatos = 0;
         var errores = 0;
@@ -121,7 +135,7 @@ public sealed class DocumentoDetailEnrichmentService
         {
             try
             {
-                var resultado = await this.EnriquecerDocumentoAsync(documento, contextoInvocacion, cancellationToken);
+                var resultado = await this.EnriquecerDocumentoAsync(documento, contextoInvocacion, catalogoTiposDocumento, cancellationToken);
                 await this.RegistrarAuditoriaAsync(
                     resultado.NumeroDocumento ?? documento.NumeroActuacionCompleto, origenInvocacion, exitoso: true,
                     DocumentoDetailEnrichmentService.CrearMensajeResultado(resultado.Estado), cancellationToken);
@@ -178,6 +192,7 @@ public sealed class DocumentoDetailEnrichmentService
     private async Task<DocumentoDetailEnrichmentItemResult> EnriquecerDocumentoAsync(
         DocumentoGdeba documento,
         ContextoInvocacionGdeba contextoInvocacion,
+        CatalogoTiposDocumento catalogoTiposDocumento,
         CancellationToken cancellationToken)
     {
         var detalle = await _gdebaDocumentoGateway.BuscarDetallePorNumeroAsync(
@@ -192,12 +207,15 @@ public sealed class DocumentoDetailEnrichmentService
                 DocumentoDetailEnrichmentItemStatus.SinDatos);
         }
 
+        var tipoDocumento = await this.ResolverTipoDocumentoAsync(detalle.TipoDocumentoCodigo, contextoInvocacion, catalogoTiposDocumento, cancellationToken);
         documento.EnriquecerDesdeDetalleDocumento(
             detalle.NumeroEspecial, detalle.TipoDocumentoCodigo,
-            detalle.TipoDocumentoNombre, detalle.TipoDocumentoDescripcion,
-            detalle.Referencia, detalle.FechaCreacion,
-            detalle.ListaFirmantes, detalle.UrlArchivo,
+            detalle.Referencia, detalle.FechaCreacion, detalle.ListaFirmantes, detalle.UrlArchivo,
             detalle.PuedeVerDocumento, DateTimeOffset.Now);
+        if (tipoDocumento is not null)
+        {
+            documento.AsignarTipoDocumento(tipoDocumento);
+        }
 
         foreach (var actividad in detalle.Historial)
         {
@@ -209,10 +227,121 @@ public sealed class DocumentoDetailEnrichmentService
 
         _documentoRepository.Update(documento);
         _documentoRepository.ApplyChanges(documento);
+        var ultimaActividad = documento.Historial
+            .OrderByDescending(x => x.FechaFin ?? x.FechaInicio)
+            .ThenByDescending(x => x.IdGdeba)
+            .FirstOrDefault();
         return new DocumentoDetailEnrichmentItemResult(
             documento.Id,
             detalle.NumeroDocumento ?? documento.NumeroActuacionCompleto,
-            DocumentoDetailEnrichmentItemStatus.Enriquecido);
+            DocumentoDetailEnrichmentItemStatus.Enriquecido,
+            ultimaActividad?.Actividad,
+            ultimaActividad?.FechaFin ?? ultimaActividad?.FechaInicio,
+            documento.UrlArchivo,
+            documento.PuedeVerDocumento,
+            documento.TipoDocumentoCodigo,
+            tipoDocumento?.Nombre,
+            tipoDocumento?.Familia,
+            documento.Referencia,
+            documento.FechaCreacion,
+            documento.MetadataCompleta);
+    }
+
+    private async Task<TipoDocumentoGdeba?> ResolverTipoDocumentoAsync(string? codigoTipoDocumento,
+        ContextoInvocacionGdeba contextoInvocacion, CatalogoTiposDocumento catalogoTiposDocumento,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(codigoTipoDocumento))
+        {
+            return null;
+        }
+
+        var codigoNormalizado = codigoTipoDocumento.Trim().ToUpperInvariant();
+        if (catalogoTiposDocumento.TiposPorCodigo.TryGetValue(codigoNormalizado, out var tipoEnMemoria))
+        {
+            return tipoEnMemoria;
+        }
+
+        var tipoDocumento = (await _tipoDocumentoRepository
+            .Query()
+            .Where(x => x.Codigo == codigoNormalizado)
+            .Take(1)
+            .SelectAsync(cancellationToken))
+            .SingleOrDefault();
+        if (tipoDocumento is not null)
+        {
+            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = tipoDocumento;
+            return tipoDocumento;
+        }
+
+        var consultasDisponibles = await this.ResolverConsultasTipoDocumentoDisponiblesAsync(catalogoTiposDocumento, cancellationToken);
+        if (consultasDisponibles <= 0)
+        {
+            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = null;
+            _logger.LogInformation(
+                "No se consulta el tipo documental {CodigoTipoDocumento} porque se alcanzo la cuota diaria de consultarTipoDocumento.",
+                codigoNormalizado);
+            return null;
+        }
+
+        catalogoTiposDocumento.ConsultasDisponibles--;
+        var detalleTipoDocumento = await _gdebaTipoDocumentoGateway.ConsultarTipoDocumentoAsync(
+            codigoNormalizado, contextoInvocacion, cancellationToken);
+        if (detalleTipoDocumento is null)
+        {
+            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = null;
+            return null;
+        }
+
+        var codigoCatalogo = string.IsNullOrWhiteSpace(detalleTipoDocumento.Acronimo)
+            ? codigoNormalizado
+            : detalleTipoDocumento.Acronimo.Trim().ToUpperInvariant();
+        var nombre = string.IsNullOrWhiteSpace(detalleTipoDocumento.Nombre)
+            ? detalleTipoDocumento.Descripcion ?? codigoCatalogo
+            : detalleTipoDocumento.Nombre;
+        tipoDocumento = new TipoDocumentoGdeba(codigoCatalogo, nombre);
+        tipoDocumento.ActualizarMetadata(
+            nombre,
+            detalleTipoDocumento.CodigoTipoDocumentoGdeba,
+            detalleTipoDocumento.Descripcion,
+            detalleTipoDocumento.Familia,
+            detalleTipoDocumento.TipoProduccion,
+            detalleTipoDocumento.Estado,
+            detalleTipoDocumento.EsAutomatica,
+            detalleTipoDocumento.EsComunicable,
+            detalleTipoDocumento.EsConfidencial,
+            detalleTipoDocumento.EsEmbebido,
+            detalleTipoDocumento.EsEspecial,
+            detalleTipoDocumento.EsFirmaConjunta,
+            detalleTipoDocumento.EsFirmaExterna,
+            detalleTipoDocumento.EsManual,
+            detalleTipoDocumento.EsNotificable,
+            detalleTipoDocumento.TieneTemplate,
+            detalleTipoDocumento.TieneToken,
+            esResolucion: false,
+            activo: !string.Equals(detalleTipoDocumento.Estado, "BAJA", StringComparison.OrdinalIgnoreCase));
+        _tipoDocumentoRepository.Insert(tipoDocumento);
+        catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = tipoDocumento;
+        catalogoTiposDocumento.TiposPorCodigo[codigoCatalogo] = tipoDocumento;
+        return tipoDocumento;
+    }
+
+    private async Task<int> ResolverConsultasTipoDocumentoDisponiblesAsync(CatalogoTiposDocumento catalogoTiposDocumento,
+        CancellationToken cancellationToken)
+    {
+        if (catalogoTiposDocumento.ConsultasDisponibles.HasValue)
+        {
+            return catalogoTiposDocumento.ConsultasDisponibles.Value;
+        }
+
+        var cuotas = await _consultaCuotasGdeba.ConsultarCuotasAsync(DateOnly.FromDateTime(DateTime.Now), cancellationToken);
+        var cuotaTipoDocumento = cuotas.Operaciones.FirstOrDefault(x =>
+            string.Equals(x.Servicio, DocumentoDetailEnrichmentService.ServicioConsultaTipoDocumento, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.Operacion, DocumentoDetailEnrichmentService.OperacionConsultarTipoDocumento, StringComparison.OrdinalIgnoreCase));
+        catalogoTiposDocumento.ConsultasDisponibles = cuotaTipoDocumento?.LimiteDiario is int limiteDiario
+            ? Math.Max(0, limiteDiario - cuotaTipoDocumento.Total)
+            : 0;
+        return catalogoTiposDocumento.ConsultasDisponibles.Value;
     }
 
     private Task RegistrarAuditoriaAsync(
@@ -294,5 +423,12 @@ public sealed class DocumentoDetailEnrichmentService
     private static string CrearMensajeError()
     {
         return "No se pudo completar el enriquecimiento documental. Consulte el registro tecnico de la invocacion GDEBA.";
+    }
+
+    private sealed class CatalogoTiposDocumento
+    {
+        public Dictionary<string, TipoDocumentoGdeba?> TiposPorCodigo { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public int? ConsultasDisponibles { get; set; }
     }
 }

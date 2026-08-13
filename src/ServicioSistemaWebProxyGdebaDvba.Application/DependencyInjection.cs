@@ -1,6 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
+using ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Clasificacion.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.ReadStores;
+using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Contracts;
@@ -14,6 +19,8 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contr
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Services;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application;
 
@@ -21,7 +28,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddScoped<ITemaExpedienteAdminService, TemaExpedienteAdminService>();
+        services.AddScoped<IConsultaExpedientesService, ConsultaExpedientesService>();
+        services.AddScoped<IConsultaExpedientesReadStore, ConsultaExpedientesReadStore>();
         services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
+        services.AddScoped<IDocumentoPdfDownloadService, DocumentoPdfDownloadService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
@@ -29,13 +40,18 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
         services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
+        services.AddScoped<IWorkerExecutionService, WorkerExecutionService>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
 
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<ITemaExpedienteAdminService, TemaExpedienteAdminService>();
+        services.AddScoped<IConsultaExpedientesService, ConsultaExpedientesService>();
+        services.AddScoped<IConsultaExpedientesReadStore, ConsultaExpedientesReadStore>();
         services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
+        services.AddScoped<IDocumentoPdfDownloadService, DocumentoPdfDownloadService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
@@ -43,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
         services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
+        services.AddScoped<IWorkerExecutionService, WorkerExecutionService>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

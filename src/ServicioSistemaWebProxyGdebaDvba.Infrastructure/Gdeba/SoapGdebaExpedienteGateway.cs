@@ -481,12 +481,14 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
 
     private static IReadOnlyCollection<GdebaMovimientoExpedienteDto> MapMovimientosHistorial(XElement response)
     {
-        var orden = 0;
-        return response
+        var movimientos = response
             .Descendants()
             .Where(x => SoapGdebaExpedienteGateway.IsElement(x, "historialDeOperacion"))
-            .Select(x => new GdebaMovimientoExpedienteDto(
-                ++orden,
+            .ToArray();
+
+        return movimientos
+            .Select((x, index) => new GdebaMovimientoExpedienteDto(
+                movimientos.Length - index,
                 SoapGdebaExpedienteGateway.ParseDate(SoapGdebaExpedienteGateway.GetValue(x, "fechaOperacion")),
                 EstadoOrigen: null,
                 EstadoDestino: SoapGdebaExpedienteGateway.GetValue(x, "estado"),
@@ -532,7 +534,7 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
                 SoapGdebaExpedienteGateway.GetValue(x, "codigoTrata") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "trataExpedienteASociado") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "trataExpedienteVinculado"),
-                SoapGdebaExpedienteGateway.GetValue(x, "descripcionTrata"),
+                null,
                 SoapGdebaExpedienteGateway.ParseDate(
                     SoapGdebaExpedienteGateway.GetValue(x, "fechaAsociacion") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "fechaVinculacion")),

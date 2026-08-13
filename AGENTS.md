@@ -186,6 +186,28 @@ La ubicacion transversal no elimina la separacion de responsabilidades:
 - Infrastructure contiene mecanismos tecnicos y configuraciones persistentes.
 - API contiene controladores y middleware.
 
+## Seguridad institucional
+
+- Los usuarios humanos se autentican mediante el servicio institucional
+  `DVBA-Auth`; el proxy no crea usuarios locales ni administra contrasenas.
+- La aplicacion de acceso humano se identifica como `Expedientes`; el rol
+  institucional `Admin` se exige solamente en recursos administrativos.
+- La autorizacion se basa en la asociacion institucional usuario, rol y
+  aplicacion, expresada en el token mediante aplicaciones habilitadas y roles
+  activos para cada aplicacion.
+- No confundir `DVBA-Auth.Applications`, que controla acceso humano a sistemas,
+  con `AplicacionConsumidora`, que identifica consumidores tecnicos del proxy
+  para auditoria y cuotas.
+- No copiar literalmente configuraciones de seguridad de sistemas anteriores.
+  Antes de implementar, verificar el flujo de emision del token y la
+  transformacion institucional de claims.
+- Angular se autentica directamente en `DVBA-Auth`; el proxy no expone login,
+  no recibe credenciales y no administra sesiones humanas.
+- El proxy recibe el JWT, valida issuer, audience, vigencia y firma, y autoriza
+  cada recurso mediante los claims institucionales.
+- La clave de firma se obtiene de `ConnectionStrings:MiLLave`; nunca se registra
+  la clave ni el token en logs.
+
 ## Cache de expedientes
 
 - `ExpedienteCacheControl` controla la vigencia del detalle del expediente.

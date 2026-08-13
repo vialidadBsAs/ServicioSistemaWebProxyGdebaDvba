@@ -83,6 +83,7 @@ Ejemplos actuales:
 - `ExpedienteDocumento`
 - `TipoDocumentoGdeba`
 - `TrataGdeba`
+- `EjecucionWorker`
 - `TrataHabilitadaVialidad`
 - `TemaExpediente`
 
@@ -154,7 +155,7 @@ El tipo documental se separa en codigo, codigo GDEBA, nombre, descripcion, famil
 
 Una respuesta real de `consultarTipoDocumento` para `RESO` mostro que `acronimo` y `codigoTipoDocumentoGDEBA` no significan lo mismo: `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo atributos booleanos como `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
 
-En esta primera etapa `TipoDocumentoGdeba` se mantiene como catalogo consultable por codigo, pero no se fuerza una clave foranea desde `DocumentoGdeba`. La razon es permitir cache progresiva: un documento puede enriquecerse con `TipoDocumentoCodigo` antes de que el catalogo haya sido sincronizado.
+`TipoDocumentoGdeba` se mantiene como catalogo local por acronimo. Al enriquecer un documento, el proxy primero busca el tipo local; si no existe y queda cuota disponible, invoca `consultarTipoDocumento`, incorpora el catalogo completo y asigna `DocumentoGdeba.TipoDocumentoId`. `DocumentoGdeba` no repite nombre ni descripcion del tipo: conserva el codigo detectado y el vinculo opcional, para permitir que el resto de su metadata se guarde aunque GDEBA no devuelva el catalogo del tipo.
 
 El tipo (`EX`, `IF`, etc.) diferencia si el identificador corresponde a expediente, informe/documento u otro elemento. Por eso no corresponde tener value objects separados solo por llamarse expediente o documento si el formato base es el mismo.
 
@@ -312,6 +313,12 @@ GET /api/gdeba/expedientes/{numeroExpediente}/sin-cache
 GET /api/gdeba/estadisticas/expedientes-por-trata
 GET /api/gdeba/cuotas?fecha=YYYY-MM-DD
 ```
+
+`GET /api/gdeba/expedientes/{numeroExpediente}/completo` acepta
+`mostrarPases` como parametro opcional. Por defecto es `false` y omite de la
+coleccion documental las actuaciones `PV`, que se presentan separadamente como
+pases. El filtro afecta solamente la proyeccion HTTP; no excluye datos de la
+consolidacion local del expediente.
 
 El endpoint `/sin-cache` es una consulta directa contra GDEBA y no representa la consulta funcional normal del proxy con politica de cache.
 
@@ -864,6 +871,46 @@ En una etapa posterior puede evolucionar a:
 - Integrar con un servicio troncal de seguridad.
 
 La decision de hacerlo primero como identificacion blanda permite avanzar con auditoria sin mezclar todavia una politica de seguridad que no esta completamente definida.
+
+### 9.3 Acceso humano mediante DVBA-Auth
+
+La identificacion tecnica de una aplicacion consumidora y la identidad de un
+usuario humano son conceptos diferentes.
+
+Para la primera interfaz de consulta se decidio integrar el proxy con el
+servicio institucional `DVBA-Auth`. Ese sistema utiliza ASP.NET Core Identity y
+mantiene usuarios, roles, aplicaciones y la asignacion contextual usuario, rol
+y aplicacion. La aplicacion institucional se llama `Expedientes`; los recursos
+administrativos exigen el rol `Admin`.
+
+El flujo objetivo es:
+
+```text
+Angular -> DVBA-Auth durante la autenticacion
+DVBA-Auth -> Angular con el JWT institucional
+Angular -> Proxy con JWT Bearer en las consultas posteriores
+Proxy -> validacion del token y politicas de autorizacion
+```
+
+El proxy no debe crear tablas locales de Identity ni administrar contrasenas.
+Cuando necesite relacionar recientes, seguimientos o auditoria con una persona,
+utilizara el identificador institucional estable informado por el token.
+
+El codigo observado en Obras confirma validacion JWT Bearer, una politica
+global basada en `AppAccess`, `ClaimTypes.Role` y una transformacion de claims
+dependiente del nombre de aplicacion. El proxy valida actualmente issuer,
+audience, expiracion y firma. La politica general exige `AppAccess=Expedientes`;
+la politica administrativa exige ademas el rol `Admin`. La prueba con un token
+real debe confirmar el formato efectivo de esos claims.
+
+No se debe confundir:
+
+- `DVBA-Auth.Applications`: aplicaciones a las que puede acceder un usuario.
+- `AplicacionConsumidora`: consumidor tecnico identificado por el proxy para
+  auditoria, origen y cuotas.
+
+La especificacion operativa y los criterios de prueba se encuentran en
+`docs/09-autenticacion-expedientes.md`.
 
 ## 10. Auditoria
 

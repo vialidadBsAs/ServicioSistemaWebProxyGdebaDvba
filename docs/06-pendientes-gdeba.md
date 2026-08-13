@@ -1,5 +1,21 @@
 # Pendientes y Consultas a GDEBA
 
+## Historial y estado actual de documentos GEDO
+
+Pendiente de diagnóstico:
+
+- Obtener la respuesta SOAP real de `buscarDetallePorNumero` para un documento conocido en `Iniciación` o `Confeccionar`.
+- Comparar cada entrada de `listaHistorial` con las filas persistidas en `HistorialDocumentosGdeba`.
+- Verificar que el parser soporte la estructura real de la colección y no descarte entradas anidadas.
+- Confirmar si `FechaFin`, `FechaInicio` o un campo específico de estado representa el estado actual del documento.
+
+Motivo:
+
+- La grilla muestra la actividad de mayor fecha como “Última actividad”. Actualmente predominan `Firmar Documento` y la ausencia de filas se presenta como “Sin historial local”.
+- No se puede concluir si todos los documentos enriquecidos están firmados, si GDEBA devuelve solo la actividad final o si el historial se está capturando de forma incompleta.
+
+No registrar XML SOAP completo ni datos sensibles en logs. Para la comparación, usar una muestra controlada y conservar solo los campos funcionales necesarios.
+
 ## Filtros para buscarDatosExpedientePorCodigosTrata
 
 Solicitud planteada:

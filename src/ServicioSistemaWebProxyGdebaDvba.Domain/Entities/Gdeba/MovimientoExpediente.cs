@@ -76,12 +76,22 @@ public sealed class MovimientoExpediente : DomainEntity
 
     public void MarcarComoUltimo()
     {
+        if (EsUltimoConocido)
+        {
+            return;
+        }
+
         MarcarComoModificada();
         EsUltimoConocido = true;
     }
 
     public void MarcarComoNoUltimo()
     {
+        if (!EsUltimoConocido)
+        {
+            return;
+        }
+
         MarcarComoModificada();
         EsUltimoConocido = false;
     }

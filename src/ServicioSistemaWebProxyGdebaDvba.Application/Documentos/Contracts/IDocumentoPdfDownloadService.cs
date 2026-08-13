@@ -1,0 +1,9 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
+
+namespace ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
+
+public interface IDocumentoPdfDownloadService
+{
+    Task<DocumentoPdfDescargaResult> DescargarPdfAsync(Guid documentoId, OrigenInvocacionGdeba origenInvocacion, CancellationToken cancellationToken);
+}

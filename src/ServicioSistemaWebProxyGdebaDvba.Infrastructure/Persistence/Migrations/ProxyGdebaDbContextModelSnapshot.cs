@@ -155,31 +155,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.ToTable("Configuracion_TemasDescubrimientoExpediente", (string)null);
                 });
 
-            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("Habilitado")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Prioridad")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TemaExpedienteId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TemaExpedienteId")
-                        .IsUnique();
-
-                    b.HasIndex("Habilitado", "Prioridad");
-
-                    b.ToTable("Configuracion_TemasEnriquecimientoMetadataDocumento", (string)null);
-                });
-
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionDescubrimientoTrataExpediente", b =>
                 {
                     b.Property<Guid>("Id")
@@ -205,6 +180,31 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.HasIndex("Habilitada", "Prioridad");
 
                     b.ToTable("Configuracion_TratasDescubrimientoExpediente", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Habilitado")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Prioridad")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TemaExpedienteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemaExpedienteId")
+                        .IsUnique();
+
+                    b.HasIndex("Habilitado", "Prioridad");
+
+                    b.ToTable("Configuracion_TemasEnriquecimientoMetadataDocumento", (string)null);
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ProcesoDescubrimientoTrataEstadoExpediente", b =>
@@ -1355,6 +1355,176 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.ToTable("TratasHabilitadasVialidad", (string)null);
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorker", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Creados")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Enriquecidos")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Errores")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("FechaFinalizacion")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("FechaInicio")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Origen")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Procesados")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Proceso")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Resumen")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("SinDatos")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SolicitudEjecucionWorkerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SolicitudEjecucionWorkerId")
+                        .IsUnique()
+                        .HasFilter("[SolicitudEjecucionWorkerId] IS NOT NULL");
+
+                    b.HasIndex("Proceso", "FechaInicio");
+
+                    b.ToTable("Worker_Ejecuciones", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorkerDescubrimientoTrataEstado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Actualizados")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Creados")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Descartados")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("EjecucionWorkerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EstadoExpedienteGdebaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("FechaResolucion")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Habilitados")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecibidosGdeba")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SinCambios")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TrataHabilitadaVialidadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EjecucionWorkerId");
+
+                    b.HasIndex("EstadoExpedienteGdebaId");
+
+                    b.HasIndex("TrataHabilitadaVialidadId");
+
+                    b.HasIndex("EjecucionWorkerId", "TrataHabilitadaVialidadId", "EstadoExpedienteGdebaId")
+                        .IsUnique();
+
+                    b.ToTable("WorkerDescubrimiento_EjecucionesPorTrataEstado", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorkerExpedienteDescubierto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EjecucionWorkerDescubrimientoTrataEstadoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExpedienteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpedienteId");
+
+                    b.HasIndex("EjecucionWorkerDescubrimientoTrataEstadoId", "ExpedienteId")
+                        .IsUnique();
+
+                    b.ToTable("WorkerDescubrimiento_ExpedientesDescubiertosPorEjecucionTrataEstado", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.SolicitudEjecucionWorker", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("EjecucionWorkerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("FechaFinalizacion")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FechaInicio")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("FechaSolicitud")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Mensaje")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Proceso")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SolicitadaPor")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EjecucionWorkerId")
+                        .IsUnique()
+                        .HasFilter("[EjecucionWorkerId] IS NOT NULL");
+
+                    b.HasIndex("Proceso", "Estado", "FechaSolicitud");
+
+                    b.ToTable("Worker_SolicitudesEjecucion", (string)null);
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.ArchivoAdjuntoExpediente", b =>
                 {
                     b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Expediente", "Expediente")
@@ -1581,6 +1751,52 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("Trata");
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorkerDescubrimientoTrataEstado", b =>
+                {
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorker", "EjecucionWorker")
+                        .WithMany("ResultadosDescubrimientoTrataEstado")
+                        .HasForeignKey("EjecucionWorkerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.EstadoExpedienteGdeba", "EstadoExpedienteGdeba")
+                        .WithMany()
+                        .HasForeignKey("EstadoExpedienteGdebaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", "TrataHabilitadaVialidad")
+                        .WithMany()
+                        .HasForeignKey("TrataHabilitadaVialidadId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EjecucionWorker");
+
+                    b.Navigation("EstadoExpedienteGdeba");
+
+                    b.Navigation("TrataHabilitadaVialidad");
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorkerExpedienteDescubierto", b =>
+                {
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorkerDescubrimientoTrataEstado", "EjecucionWorkerDescubrimientoTrataEstado")
+                        .WithMany("ExpedientesDescubiertos")
+                        .HasForeignKey("EjecucionWorkerDescubrimientoTrataEstadoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Expediente", "Expediente")
+                        .WithMany()
+                        .HasForeignKey("ExpedienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EjecucionWorkerDescubrimientoTrataEstado");
+
+                    b.Navigation("Expediente");
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AplicacionConsumidora", b =>
                 {
                     b.Navigation("RegistrosAuditoria");
@@ -1629,6 +1845,16 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("Expedientes");
 
                     b.Navigation("TemasExpediente");
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorker", b =>
+                {
+                    b.Navigation("ResultadosDescubrimientoTrataEstado");
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker.EjecucionWorkerDescubrimientoTrataEstado", b =>
+                {
+                    b.Navigation("ExpedientesDescubiertos");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+using Microsoft.AspNetCore.Authorization;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
@@ -119,6 +121,7 @@ public sealed class ExpedientesController : ControllerBase
         return result.Exitoso ? Ok(result) : NotFound(result);
     }
     [HttpGet("{numeroGdebaCompleto}/sin-cache")]
+    [Authorize(Policy = SeguridadInstitucional.PoliticaAdministracionExpedientes)]
     public async Task<ActionResult<ConsultarExpedienteSinCacheResult>> ConsultarSinCache(
        string numeroGdebaCompleto,
        CancellationToken cancellationToken)
@@ -131,6 +134,7 @@ public sealed class ExpedientesController : ControllerBase
     }
 
     [HttpPost("por-trata")]
+    [Authorize(Policy = SeguridadInstitucional.PoliticaAdministracionExpedientes)]
     public async Task<ActionResult<IncorporarExpedientesPorTrataResult>> IncorporarPorTrata(
         [FromQuery] string codigoTrata,
         [FromQuery] string estadoDestino,
@@ -143,6 +147,7 @@ public sealed class ExpedientesController : ControllerBase
     }
 
     [HttpPost("por-trata/descubrir")]
+    [Authorize(Policy = SeguridadInstitucional.PoliticaAdministracionExpedientes)]
     public async Task<ActionResult<DescubrirExpedientesPorTrataResult>> DescubrirPorTrata(
         [FromQuery] string codigoTrata,
         CancellationToken cancellationToken)
