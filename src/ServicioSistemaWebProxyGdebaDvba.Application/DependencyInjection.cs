@@ -36,11 +36,15 @@ public static class DependencyInjection
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
+        services.AddScoped<IIncorporacionExpedientesPorTrataService, IncorporacionExpedientesPorTrataService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
         services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
         services.AddScoped<IWorkerExecutionService, WorkerExecutionService>();
+        services.AddScoped<IDescubrimientoExpedientesWorkerService, DescubrimientoExpedientesWorkerService>();
+        services.AddScoped<IConfiguracionProgramadaWorkerService, ConfiguracionProgramadaWorkerService>();
+        services.AddScoped<IConfiguracionDatosWorkerService, ConfiguracionDatosWorkerService>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
@@ -55,11 +59,15 @@ public static class DependencyInjection
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
+        services.AddScoped<IIncorporacionExpedientesPorTrataService, IncorporacionExpedientesPorTrataService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
         services.AddScoped<IRegistroInvocacionesGdeba, RegistroInvocacionesGdeba>();
         services.AddScoped<IConsultaCuotasGdeba, ConsultaCuotasGdeba>();
         services.AddScoped<IWorkerExecutionService, WorkerExecutionService>();
+        services.AddScoped<IDescubrimientoExpedientesWorkerService, DescubrimientoExpedientesWorkerService>();
+        services.AddScoped<IConfiguracionProgramadaWorkerService, ConfiguracionProgramadaWorkerService>();
+        services.AddScoped<IConfiguracionDatosWorkerService, ConfiguracionDatosWorkerService>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

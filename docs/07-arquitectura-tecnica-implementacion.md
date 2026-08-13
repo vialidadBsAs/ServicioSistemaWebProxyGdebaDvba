@@ -247,6 +247,8 @@ Para enriquecimiento documental, el Worker conserva las decisiones operativas: s
 
 El limite diario autorizado se obtiene exclusivamente de la configuracion persistida de cada operacion GDEBA. Los Workers no mantienen un segundo limite en `appsettings`; solamente pueden reservar parte del cupo mediante `CupoReservaDiaria`. Si una operacion no existe en el control de cuotas o no tiene limite diario, el proceso se omite sin invocar GDEBA.
 
+La planificacion operativa de cada Worker se guarda en `Worker_ConfiguracionesProgramadas`: hay una fila por proceso tecnico y una estructura comun de datos. Incluye habilitacion, ventana horaria, reserva diaria y los parametros particulares que correspondan; los no aplicables permanecen nulos. Los nombres tecnicos de los procesos siguen definidos por `ProcesoWorker`, porque determinan la implementacion que se ejecuta. La API administrativa permite actualizar la configuracion y cada Worker la relee al comenzar su ciclo de un minuto, sin reiniciar el host.
+
 La logica reutilizable de enriquecer el detalle de un documento no vive en el Worker. Esta en Application mediante `IDocumentoDetailEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.
 
 El descubrimiento programado obtiene los temas habilitados desde `Configuracion_TemasDescubrimientoExpediente`, carga sus asignaciones de `TemaExpedienteTratas` junto con la correspondiente `TrataHabilitadaVialidad`, deduplica los codigos de trata y combina el resultado con `Configuracion_TratasDescubrimientoExpediente`. Una configuracion individual deshabilitada excluye la trata del tema; una habilitada permite priorizarla o incorporar una trata fuera de los temas. Las combinaciones trata-estado nunca consultadas y las de consulta mas antigua se procesan primero para evitar que el limite diario deje siempre pendientes las mismas tratas. El Worker no repite una combinacion ya consultada durante la fecha local actual, aunque conserve presupuesto. Esta restriccion no se aplica a las operaciones manuales de descubrimiento por trata o por estado.
@@ -1305,3 +1307,29 @@ La filosofia tecnica de esta solucion puede resumirse asi:
 > La auditoria y la identificacion de aplicacion deben ser transversales.
 
 Si se respeta esa regla, el proxy podra crecer sin convertirse en una mezcla de controladores, XML, credenciales, SQL y reglas funcionales ajenas.
+
+## 18. Alcance de Datos de Workers
+
+La planificacion comun de los Workers reside en `Worker_ConfiguracionesProgramadas`.
+El alcance de datos no duplica esa tabla: utiliza las configuraciones existentes
+por tema y por trata. Para descubrimiento de expedientes, un tema habilitado
+aporta sus tratas; una configuracion individual de trata habilitada la incluye
+con su prioridad y una configuracion individual deshabilitada la excluye aun
+cuando pertenezca a un tema habilitado. Al eliminar esa configuracion individual,
+la trata vuelve a heredar la resolucion de sus temas. El enriquecimiento
+documental se configura por temas mediante su tabla especifica.
+
+### 18.1 Persistencia De Descubrimiento Por Trata Y Estado
+
+Una ejecucion de descubrimiento de expedientes es el contenedor operativo de la
+corrida. Sus unidades de persistencia son las combinaciones `trata + estado`.
+Cada combinacion que obtiene respuesta de GDEBA confirma en una unica unidad de
+trabajo los expedientes locales, su control operativo, la auditoria funcional y
+el resultado asociado al aggregate `EjecucionWorker`, incluidos los expedientes
+nuevos de esa combinacion.
+
+La cabecera de `Worker_Ejecuciones` se finaliza despues como resumen. Si una
+combinacion posterior falla, las unidades anteriores permanecen completas y
+consultables; la cabecera queda en estado `Fallida` para expresar que la corrida
+no se completo. El registro tecnico de la invocacion GDEBA permanece separado,
+porque describe una llamada externa ya realizada.

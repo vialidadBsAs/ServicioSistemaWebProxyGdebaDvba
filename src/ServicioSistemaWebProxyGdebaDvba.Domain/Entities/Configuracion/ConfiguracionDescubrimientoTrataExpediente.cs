@@ -21,6 +21,13 @@ public sealed class ConfiguracionDescubrimientoTrataExpediente : DomainEntity
 
     public int Prioridad { get; private set; }
 
+    public void Actualizar(bool habilitada, int prioridad)
+    {
+        Habilitada = habilitada;
+        Prioridad = prioridad;
+        this.MarcarComoModificada();
+    }
+
     private static string NormalizarRequerido(string value, string parameterName)
     {
         return string.IsNullOrWhiteSpace(value)

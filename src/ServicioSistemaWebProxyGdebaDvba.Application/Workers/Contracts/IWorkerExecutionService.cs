@@ -20,5 +20,5 @@ public interface IWorkerExecutionService
 
     Task FinalizarEjecucionAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string? resumen, int? procesados, int? enriquecidos, int? sinDatos, int? errores, CancellationToken cancellationToken);
 
-    Task FinalizarEjecucionDescubrimientoAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string? resumen, int? procesados, int? creados, IReadOnlyCollection<ResultadoDescubrimientoProgramadoTrataEstado> resultadosPorTrataEstado, CancellationToken cancellationToken);
+    Task FinalizarEjecucionDescubrimientoAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string? resumen, int? procesados, int? creados, CancellationToken cancellationToken);
 }

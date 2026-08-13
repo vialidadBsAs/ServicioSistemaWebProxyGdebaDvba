@@ -21,7 +21,6 @@ public sealed class ExpedienteService : IExpedienteService
     private const string OperacionDetalle = "consultarExpedienteDetallado";
     private const string OperacionHistorial = "buscarHistorialPasesExpediente";
     private const string OperacionExpediente = "expediente";
-    private const string OperacionBuscarDatosExpedientePorCodigosTrata = "buscarDatosExpedientePorCodigosTrata";
     private const string OperacionConsultarDetalle = "ConsultarDetalle";
     private const string OperacionConsultarMovimientos = "ConsultarMovimientos";
     private const string OperacionConsultarSinCache = "ConsultarSinCache";
@@ -40,29 +39,23 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IGdebaExecutionContext _gdebaExecutionContext;
     private readonly IAuditoriaService _auditoriaService;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
+    private readonly IIncorporacionExpedientesPorTrataService _incorporacionExpedientesPorTrataService;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
     private readonly IRepository<TrataHabilitadaVialidad> _trataHabilitadaVialidadRepository;
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
     private readonly IRepository<ConfiguracionDescubrimientoEstadoExpediente> _configuracionDescubrimientoEstadoRepository;
-    private readonly IRepository<ConfiguracionDescubrimientoTemaExpediente> _configuracionDescubrimientoTemaRepository;
-    private readonly IRepository<ConfiguracionDescubrimientoTrataExpediente> _configuracionDescubrimientoTrataRepository;
-    private readonly IRepository<TemaExpedienteTrata> _temaExpedienteTrataRepository;
-    private readonly ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> _procesoDescubrimientoRepository;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IRepository<TipoDocumentoGdeba> _tipoDocumentoRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ExpedienteService> _logger;
 
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
-                              IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor, 
+                              IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor,
+                              IIncorporacionExpedientesPorTrataService incorporacionExpedientesPorTrataService,
                               ITrackableRepository<Expediente> expedienteRepository,
                               IRepository<TrataHabilitadaVialidad> trataHabilitadaVialidadRepository,
                               IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
                               IRepository<ConfiguracionDescubrimientoEstadoExpediente> configuracionDescubrimientoEstadoRepository,
-                              IRepository<ConfiguracionDescubrimientoTemaExpediente> configuracionDescubrimientoTemaRepository,
-                              IRepository<ConfiguracionDescubrimientoTrataExpediente> configuracionDescubrimientoTrataRepository,
-                              IRepository<TemaExpedienteTrata> temaExpedienteTrataRepository,
-                              ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> procesoDescubrimientoRepository,
                               ITrackableRepository<DocumentoGdeba> documentoRepository,
                               IRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
                               IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
@@ -72,14 +65,11 @@ public sealed class ExpedienteService : IExpedienteService
         _gdebaExecutionContext = gdebaExecutionContext;
         _auditoriaService = auditoriaService;
         _currentApplicationAccessor = currentApplicationAccessor;
+        _incorporacionExpedientesPorTrataService = incorporacionExpedientesPorTrataService;
         _expedienteRepository = expedienteRepository;
         _trataHabilitadaVialidadRepository = trataHabilitadaVialidadRepository;
         _estadoExpedienteGdebaRepository = estadoExpedienteGdebaRepository;
         _configuracionDescubrimientoEstadoRepository = configuracionDescubrimientoEstadoRepository;
-        _configuracionDescubrimientoTemaRepository = configuracionDescubrimientoTemaRepository;
-        _configuracionDescubrimientoTrataRepository = configuracionDescubrimientoTrataRepository;
-        _temaExpedienteTrataRepository = temaExpedienteTrataRepository;
-        _procesoDescubrimientoRepository = procesoDescubrimientoRepository;
         _documentoRepository = documentoRepository;
         _tipoDocumentoRepository = tipoDocumentoRepository;
         _unitOfWork = unitOfWork;
@@ -511,113 +501,10 @@ public sealed class ExpedienteService : IExpedienteService
         IncorporarExpedientesPorTrataRequest request,
         CancellationToken cancellationToken)
     {
-        var codigoTrata = ExpedienteService.NormalizarRequerido(request.CodigoTrata, nameof(request.CodigoTrata));
-        var estadoDestino = ExpedienteService.NormalizarRequerido(request.EstadoDestino, nameof(request.EstadoDestino));
-        var recurso = $"{codigoTrata}|{estadoDestino}";
-        var resolvedAt = DateTimeOffset.Now;
-        var trata = await this.BuscarTrataHabilitadaLocalAsync(codigoTrata, codigoReparticion: null, cancellationToken);
-        if (trata is null)
-        {
-            throw new InvalidOperationException($"La trata '{codigoTrata}' no esta habilitada localmente.");
-        }
-
-        var codigosReparticionHabilitados = await _expedienteCacheReadStore.CargarCodigosReparticionHabilitadosAsync(cancellationToken);
-        if (codigosReparticionHabilitados.Count == 0)
-        {
-            throw new InvalidOperationException("No hay reparticiones habilitadas localmente para incorporar expedientes por trata.");
-        }
-
-        IReadOnlyCollection<GdebaExpedientePorTrataDto> datosGdeba;
-
-        try
-        {
-            datosGdeba = await _gdebaExpedienteGateway.BuscarDatosExpedientePorCodigosTrataAsync(
-                codigoTrata, estadoDestino, usuario: null,
-                ContextoInvocacionGdeba.Crear(request.OrigenInvocacion), cancellationToken);
-        }
-        catch (GdebaOperationException ex)
-        {
-            await this.RegistrarFalloGdebaAsync(OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso, ex.Message, resolvedAt, cancellationToken);
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            await this.RegistrarFalloGdebaAsync(OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            await this.RegistrarFalloGdebaAsync(OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso, ex.Message, resolvedAt, cancellationToken);
-            throw new GdebaOperationException(OperacionBuscarDatosExpedientePorCodigosTrata, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
-        }
-
-        var expedientesDetectados = new List<(NumeroGdebaCompleto Numero, GdebaExpedientePorTrataDto Datos)>();
-        var descartados = 0;
-        foreach (var datos in datosGdeba)
-        {
-            try
-            {
-                var numero = NumeroGdebaCompleto.Create(datos.NumeroExpediente);
-                if (!codigosReparticionHabilitados.Contains(numero.Reparticion))
-                {
-                    descartados++;
-                    continue;
-                }
-
-                expedientesDetectados.Add((numero, datos));
-            }
-            catch (ArgumentException)
-            {
-                descartados++;
-            }
-        }
-
-        var expedientesLocales = (await _expedienteCacheReadStore.CargarExpedientesPorNumeroAsync(
-            expedientesDetectados.Select(x => x.Numero.Valor), cancellationToken))
-            .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
-        var creados = 0;
-        var actualizados = 0;
-        var sinCambios = 0;
-        var expedientesNuevosIds = new List<Guid>();
-
-        foreach (var (numero, datos) in expedientesDetectados)
-        {
-            var expedienteEsNuevo = !expedientesLocales.TryGetValue(numero.Valor, out var expediente);
-            expediente ??= this.CrearExpediente(numero);
-            var datosCambiaron = expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
-            var cacheDebeRegistrarse = expedienteEsNuevo || datosCambiaron || expediente.CacheControl is null;
-
-            if (cacheDebeRegistrarse)
-            {
-                this.RegistrarRespuestaExpedienteCorrecta(expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), estaCompleto: false);
-                this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
-            }
-
-            if (expedienteEsNuevo)
-            {
-                creados++;
-                expedientesNuevosIds.Add(expediente.Id);
-                expedientesLocales[numero.Valor] = expediente;
-            }
-            else if (datosCambiaron)
-            {
-                actualizados++;
-            }
-            else
-            {
-                sinCambios++;
-            }
-        }
-
-        await this.RegistrarAuditoriaAsync(
-            OperacionIncorporarExpedientesPorTrata, OperacionBuscarDatosExpedientePorCodigosTrata, recurso,
-            FuenteRespuesta.Gdeba, exitoso: true,
-            $"Recibidos: {datosGdeba.Count}. Habilitados: {expedientesDetectados.Count}. Descartados: {descartados}. Creados: {creados}. Actualizados: {actualizados}. Sin cambios: {sinCambios}.", resolvedAt, cancellationToken);
+        var resultado = await _incorporacionExpedientesPorTrataService.PrepararAsync(request, cancellationToken);
+        var recurso = $"{resultado.CodigoTrata}|{resultado.EstadoDestino}";
         await this.ConfirmarCambiosAsync(OperacionIncorporarExpedientesPorTrata, recurso, cancellationToken);
-
-        return new IncorporarExpedientesPorTrataResult(
-            codigoTrata, trata.Id, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados,
-            creados, actualizados, sinCambios, expedientesNuevosIds);
+        return resultado;
     }
 
     public async Task<DescubrirExpedientesPorTrataResult> DescubrirExpedientesPorTrataAsync(
@@ -668,85 +555,6 @@ public sealed class ExpedienteService : IExpedienteService
             resultadosPorEstado.Sum(x => x.SinCambios));
     }
 
-    public async Task<DescubrirExpedientesProgramadosResult> DescubrirExpedientesProgramadosAsync(DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
-    {
-        var fecha = DateTimeOffset.Now;
-        var fechaLocal = DateOnly.FromDateTime(fecha.LocalDateTime);
-        var tratas = await this.CargarTratasDescubrimientoProgramadoAsync(cancellationToken);
-        var configuracionesEstados = await _configuracionDescubrimientoEstadoRepository.Query()
-            .Where(x => x.Habilitado).OrderBy(x => x.Prioridad).SelectAsync(cancellationToken);
-        var estados = (await _estadoExpedienteGdebaRepository.Query()
-                .Where(x => configuracionesEstados.Select(y => y.EstadoExpedienteGdebaId).Contains(x.Id)).SelectAsync(cancellationToken))
-            .ToDictionary(x => x.Id);
-        var procesos = await _procesoDescubrimientoRepository.Query().SelectAsync(cancellationToken);
-        var procesosPorClave = procesos.ToDictionary(x => (x.CodigoTrata.Trim().ToUpperInvariant(), x.EstadoExpedienteGdebaId));
-        var candidatos = new List<CandidatoDescubrimientoProgramado>();
-        var omitidasPorConsultaDelDia = 0;
-        var omitidasPorPausa = 0;
-
-        foreach (var trata in tratas)
-        {
-            foreach (var configuracionEstado in configuracionesEstados)
-            {
-                if (!estados.TryGetValue(configuracionEstado.EstadoExpedienteGdebaId, out var estado)) continue;
-                procesosPorClave.TryGetValue((trata.CodigoTrata, estado.Id), out var proceso);
-                if (request.OmitirConsultasRealizadasEnElDia && proceso?.FechaUltimaConsulta is DateTimeOffset fechaUltimaConsulta && DateOnly.FromDateTime(fechaUltimaConsulta.LocalDateTime) == fechaLocal)
-                {
-                    omitidasPorConsultaDelDia++;
-                    continue;
-                }
-
-                if (proceso?.OmitirHasta > fecha)
-                {
-                    omitidasPorPausa++;
-                    continue;
-                }
-
-                candidatos.Add(new CandidatoDescubrimientoProgramado(trata, configuracionEstado.Prioridad, estado, proceso));
-            }
-        }
-
-        var seleccionados = candidatos
-            .OrderBy(x => x.Proceso?.FechaUltimaConsulta is not null)
-            .ThenBy(x => x.Proceso?.FechaUltimaConsulta)
-            .ThenBy(x => x.Trata.PrioridadTema)
-            .ThenBy(x => x.Trata.PrioridadTrata)
-            .ThenBy(x => x.PrioridadEstado)
-            .ThenBy(x => x.Trata.CodigoTrata)
-            .Take(Math.Max(0, request.MaximoInvocaciones))
-            .ToArray();
-
-        var resultados = new List<IncorporarExpedientesPorTrataResult>();
-        var resultadosPorTrataEstado = new List<ResultadoDescubrimientoProgramadoTrataEstado>();
-        foreach (var candidato in seleccionados)
-        {
-            var resultado = await this.IncorporarExpedientesPorTrataAsync(
-                new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion), cancellationToken);
-            resultados.Add(resultado);
-            resultadosPorTrataEstado.Add(new ResultadoDescubrimientoProgramadoTrataEstado(
-                candidato.Trata.Id, candidato.Estado.Id, resultado));
-            var procesoEsNuevo = candidato.Proceso is null;
-            var proceso = candidato.Proceso ?? new ProcesoDescubrimientoTrataEstadoExpediente(candidato.Trata.CodigoTrata, candidato.Estado.Id);
-            proceso.RegistrarResultado(resultado.ResolvedAt, resultado.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
-            if (procesoEsNuevo) _procesoDescubrimientoRepository.Insert(proceso);
-            else _procesoDescubrimientoRepository.Update(proceso);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-
-        return new DescubrirExpedientesProgramadosResult(
-            resultados.Count,
-            resultados.Sum(x => x.RecibidosGdeba),
-            resultados.Sum(x => x.Habilitados),
-            resultados.Sum(x => x.Descartados),
-            resultados.Sum(x => x.Creados),
-            resultados.Sum(x => x.Actualizados),
-            resultados.Sum(x => x.SinCambios),
-            omitidasPorConsultaDelDia,
-            omitidasPorPausa,
-            Math.Max(0, candidatos.Count - seleccionados.Length),
-            resultadosPorTrataEstado);
-    }
-
     public async Task RegistrarDescubrimientoProgramadoOmitidoAsync(RegistrarDescubrimientoProgramadoOmitidoRequest request, CancellationToken cancellationToken)
     {
         var fecha = DateTimeOffset.Now;
@@ -759,66 +567,6 @@ public sealed class ExpedienteService : IExpedienteService
     #endregion
 
     #region Metodos privados del servicio
-
-    private async Task<IReadOnlyCollection<TrataDescubrimientoProgramado>> CargarTratasDescubrimientoProgramadoAsync(CancellationToken cancellationToken)
-    {
-        var configuracionesTemas = await _configuracionDescubrimientoTemaRepository.Query()
-            .Where(x => x.Habilitado).OrderBy(x => x.Prioridad).SelectAsync(cancellationToken);
-        var configuracionesTratas = await _configuracionDescubrimientoTrataRepository.Query().SelectAsync(cancellationToken);
-        var configuracionesTrataPorCodigo = configuracionesTratas.ToDictionary(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase);
-        var prioridadesTemaPorId = configuracionesTemas.ToDictionary(x => x.TemaExpedienteId, x => x.Prioridad);
-        var idsTemas = prioridadesTemaPorId.Keys.ToArray();
-        var asignacionesTemas = idsTemas.Length == 0
-            ? Array.Empty<TemaExpedienteTrata>()
-            : (await _temaExpedienteTrataRepository.Query().Include(x => x.TrataHabilitadaVialidad).Where(x => idsTemas.Contains(x.TemaExpedienteId)).SelectAsync(cancellationToken)).ToArray();
-        var codigosTrataConfigurados = configuracionesTratas
-            .Select(x => x.CodigoTrata.Trim().ToUpperInvariant())
-            .Concat(asignacionesTemas.Select(x => x.TrataHabilitadaVialidad.CodigoTrata.Trim().ToUpperInvariant()))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        var tratasHabilitadasPorCodigo = (await _trataHabilitadaVialidadRepository.Query()
-                .Where(x => codigosTrataConfigurados.Contains(x.CodigoTrata)).SelectAsync(cancellationToken))
-            .ToDictionary(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase);
-        var tratasPorCodigo = new Dictionary<string, TrataDescubrimientoProgramado>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var asignacion in asignacionesTemas)
-        {
-            var codigoTrata = asignacion.TrataHabilitadaVialidad.CodigoTrata.Trim().ToUpperInvariant();
-            configuracionesTrataPorCodigo.TryGetValue(codigoTrata, out var configuracionTrata);
-            if (configuracionTrata is { Habilitada: false }) continue;
-            var prioridadTema = prioridadesTemaPorId[asignacion.TemaExpedienteId];
-            var prioridadTrata = configuracionTrata?.Prioridad ?? int.MaxValue;
-
-            if (tratasPorCodigo.TryGetValue(codigoTrata, out var existente))
-            {
-                tratasPorCodigo[codigoTrata] = existente with { PrioridadTema = Math.Min(existente.PrioridadTema, prioridadTema), PrioridadTrata = Math.Min(existente.PrioridadTrata, prioridadTrata) };
-            }
-            else
-            {
-                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(asignacion.TrataHabilitadaVialidad.Id, codigoTrata, prioridadTema, prioridadTrata));
-            }
-        }
-
-        foreach (var configuracionTrata in configuracionesTratas.Where(x => x.Habilitada))
-        {
-            var codigoTrata = configuracionTrata.CodigoTrata.Trim().ToUpperInvariant();
-            if (!tratasHabilitadasPorCodigo.TryGetValue(codigoTrata, out var trataHabilitada))
-            {
-                throw new InvalidOperationException($"La configuracion de descubrimiento referencia la trata '{codigoTrata}', que no esta habilitada localmente.");
-            }
-
-            if (tratasPorCodigo.TryGetValue(codigoTrata, out var existente))
-            {
-                tratasPorCodigo[codigoTrata] = existente with { PrioridadTrata = Math.Min(existente.PrioridadTrata, configuracionTrata.Prioridad) };
-            }
-            else
-            {
-                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(trataHabilitada.Id, codigoTrata, int.MaxValue, configuracionTrata.Prioridad));
-            }
-        }
-
-        return tratasPorCodigo.Values.ToArray();
-    }
 
     private static ContextoInvocacionGdeba CrearContextoInvocacion(bool forceRefresh)
     {
@@ -1298,10 +1046,6 @@ public sealed class ExpedienteService : IExpedienteService
             throw new InvalidOperationException($"No se pudieron persistir los cambios de la operacion '{operacion}' para el recurso '{recurso}'.", ex);
         }
     }
-
-    private sealed record TrataDescubrimientoProgramado(Guid Id, string CodigoTrata, int PrioridadTema, int PrioridadTrata);
-
-    private sealed record CandidatoDescubrimientoProgramado(TrataDescubrimientoProgramado Trata, int PrioridadEstado, EstadoExpedienteGdeba Estado, ProcesoDescubrimientoTrataEstadoExpediente? Proceso);
 
     #endregion
 }

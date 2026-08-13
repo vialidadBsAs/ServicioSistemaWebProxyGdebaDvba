@@ -31,7 +31,10 @@ public sealed partial class EjecucionWorker : IAggregateRoot
 
         var resultado = new EjecucionWorkerDescubrimientoTrataEstado(
             Id, trataHabilitadaVialidadId, estadoExpedienteGdebaId, fechaResolucion,
-            recibidosGdeba, habilitados, descartados, creados, actualizados, sinCambios);
+            recibidosGdeba, habilitados, descartados, creados, actualizados, sinCambios)
+        {
+            TrackingState = TrackableEntities.Common.Core.TrackingState.Added
+        };
         foreach (var expedienteId in expedientesNuevosIds.Distinct())
         {
             resultado.RegistrarExpedienteDescubierto(expedienteId);

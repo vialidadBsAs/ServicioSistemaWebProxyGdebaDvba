@@ -215,7 +215,6 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         string? resumen,
         int? procesados,
         int? creados,
-        IReadOnlyCollection<ResultadoDescubrimientoProgramadoTrataEstado> resultadosPorTrataEstado,
         CancellationToken cancellationToken)
     {
         var ejecucion = (await _ejecucionWorkerRepository.Query()
@@ -226,23 +225,6 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         if (ejecucion is null)
         {
             throw new InvalidOperationException("No existe la ejecucion de descubrimiento de expedientes a finalizar.");
-        }
-
-        foreach (var resultadoPorTrataEstado in resultadosPorTrataEstado)
-        {
-            var resultado = resultadoPorTrataEstado.Resultado;
-            var resultadoPersistido = ejecucion.RegistrarResultadoDescubrimiento(
-                resultadoPorTrataEstado.TrataHabilitadaVialidadId,
-                resultadoPorTrataEstado.EstadoExpedienteGdebaId,
-                resultado.ResolvedAt,
-                resultado.RecibidosGdeba,
-                resultado.Habilitados,
-                resultado.Descartados,
-                resultado.Creados,
-                resultado.Actualizados,
-                resultado.SinCambios,
-                resultado.ExpedientesNuevosIds);
-            _ejecucionWorkerDescubrimientoTrataEstadoRepository.Insert(resultadoPersistido);
         }
 
         ejecucion.Finalizar(estado, resumen, procesados, creados, null, null, null, DateTimeOffset.Now);

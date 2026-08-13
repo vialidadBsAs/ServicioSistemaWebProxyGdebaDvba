@@ -23,4 +23,11 @@ public sealed class ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente 
     public bool Habilitado { get; private set; }
 
     public int Prioridad { get; private set; }
+
+    public void Actualizar(bool habilitado, int prioridad)
+    {
+        Habilitado = habilitado;
+        Prioridad = prioridad;
+        this.MarcarComoModificada();
+    }
 }

@@ -56,6 +56,10 @@ public sealed class EjecucionWorkerDescubrimientoTrataEstado : DomainEntity
             return;
         }
 
-        _expedientesDescubiertos.Add(new EjecucionWorkerExpedienteDescubierto(Id, expedienteId));
+        var expedienteDescubierto = new EjecucionWorkerExpedienteDescubierto(Id, expedienteId)
+        {
+            TrackingState = TrackableEntities.Common.Core.TrackingState.Added
+        };
+        _expedientesDescubiertos.Add(expedienteDescubierto);
     }
 }

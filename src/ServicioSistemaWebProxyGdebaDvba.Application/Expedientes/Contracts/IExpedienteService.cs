@@ -53,7 +53,5 @@ public interface IExpedienteService
         DescubrirExpedientesPorTrataRequest request,
         CancellationToken cancellationToken);
 
-    Task<DescubrirExpedientesProgramadosResult> DescubrirExpedientesProgramadosAsync(DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken);
-
     Task RegistrarDescubrimientoProgramadoOmitidoAsync(RegistrarDescubrimientoProgramadoOmitidoRequest request, CancellationToken cancellationToken);
 }
