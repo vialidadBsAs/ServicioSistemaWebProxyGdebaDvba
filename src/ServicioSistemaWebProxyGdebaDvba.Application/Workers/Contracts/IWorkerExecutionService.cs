@@ -6,15 +6,19 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
 
 public interface IWorkerExecutionService
 {
-    Task<ConsultaMonitoreoWorkersResult> ConsultarAsync(int cantidadEjecuciones, CancellationToken cancellationToken);
-
     Task<ConsultaDetalleEjecucionDescubrimientoResult> ConsultarDetalleDescubrimientoAsync(Guid ejecucionId, CancellationToken cancellationToken);
 
     Task<SolicitudEjecucionWorkerDto> SolicitarEjecucionManualAsync(SolicitarEjecucionManualWorkerRequest request, CancellationToken cancellationToken);
 
     Task<SolicitudEjecucionWorkerDto> IniciarSolicitudManualAsync(Guid solicitudId, CancellationToken cancellationToken);
 
+    Task<SolicitudEjecucionWorkerDto> CancelarSolicitudManualAsync(Guid solicitudId, string? canceladaPor, CancellationToken cancellationToken);
+
     Task<EjecucionWorkerIniciada> IniciarEjecucionProgramadaAsync(ProcesoWorker proceso, CancellationToken cancellationToken);
+
+    Task<DateTimeOffset?> ObtenerUltimaEjecucionProgramadaAsync(ProcesoWorker proceso, CancellationToken cancellationToken);
+
+    Task<int> CerrarEjecucionesInterrumpidasAsync(ProcesoWorker proceso, CancellationToken cancellationToken);
 
     Task<EjecucionWorkerIniciada?> TomarSolicitudManualAsync(ProcesoWorker proceso, CancellationToken cancellationToken);
 

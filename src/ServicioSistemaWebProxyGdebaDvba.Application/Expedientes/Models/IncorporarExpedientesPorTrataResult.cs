@@ -11,4 +11,5 @@ public sealed record IncorporarExpedientesPorTrataResult(
     int Creados,
     int Actualizados,
     int SinCambios,
-    IReadOnlyCollection<Guid> ExpedientesNuevosIds);
+    IReadOnlyCollection<Guid> ExpedientesNuevosIds,
+    IReadOnlyCollection<Guid> ExpedientesActualizadosIds);

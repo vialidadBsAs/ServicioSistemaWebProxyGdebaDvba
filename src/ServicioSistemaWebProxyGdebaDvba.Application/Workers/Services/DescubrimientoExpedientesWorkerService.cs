@@ -148,7 +148,8 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
                 resultado.Creados,
                 resultado.Actualizados,
                 resultado.SinCambios,
-                resultado.ExpedientesNuevosIds);
+                resultado.ExpedientesNuevosIds,
+                resultado.ExpedientesActualizadosIds);
             _ejecucionWorkerRepository.Update(ejecucion);
             _ejecucionWorkerRepository.ApplyChanges(ejecucion);
 

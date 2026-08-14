@@ -6,5 +6,7 @@ public enum EstadoSolicitudEjecucionWorker
     Pendiente = 1,
     EnEjecucion = 2,
     Finalizada = 3,
-    Fallida = 4
+    Fallida = 4,
+    Programada = 5,
+    Cancelada = 6
 }

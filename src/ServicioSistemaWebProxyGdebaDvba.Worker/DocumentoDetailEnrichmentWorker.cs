@@ -23,9 +23,10 @@ public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await this.CerrarEjecucionesInterrumpidasAsync(stoppingToken);
         var configuracionInicial = await this.ObtenerConfiguracionAsync(stoppingToken);
         var intervaloConfigurado = this.ResolverIntervalo(configuracionInicial);
-        var proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+        var proximaEjecucionProgramada = await this.ResolverProximaEjecucionProgramadaAsync(intervaloConfigurado, stoppingToken);
         if (configuracionInicial.Habilitado && configuracionInicial.EjecutarAlIniciar)
         {
             await this.EjecutarCorridaProgramadaAsync(configuracionInicial, stoppingToken);
@@ -136,6 +137,25 @@ public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var configuracionesWorker = scope.ServiceProvider.GetRequiredService<IConfiguracionProgramadaWorkerService>();
         return await configuracionesWorker.ObtenerAsync(ProcesoWorker.EnriquecimientoDetalleDocumental, cancellationToken);
+    }
+
+    private async Task CerrarEjecucionesInterrumpidasAsync(CancellationToken cancellationToken)
+    {
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IWorkerExecutionService ejecucionesWorker = scope.ServiceProvider.GetRequiredService<IWorkerExecutionService>();
+        int cerradas = await ejecucionesWorker.CerrarEjecucionesInterrumpidasAsync(ProcesoWorker.EnriquecimientoDetalleDocumental, cancellationToken);
+        if (cerradas > 0)
+        {
+            _logger.LogWarning("Al iniciar el Worker se marcaron como fallidas {Cerradas} ejecuciones de enriquecimiento documental interrumpidas por un reinicio.", cerradas);
+        }
+    }
+
+    private async Task<DateTimeOffset> ResolverProximaEjecucionProgramadaAsync(TimeSpan intervalo, CancellationToken cancellationToken)
+    {
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IWorkerExecutionService ejecucionesWorker = scope.ServiceProvider.GetRequiredService<IWorkerExecutionService>();
+        DateTimeOffset? ultimaEjecucionProgramada = await ejecucionesWorker.ObtenerUltimaEjecucionProgramadaAsync(ProcesoWorker.EnriquecimientoDetalleDocumental, cancellationToken);
+        return ultimaEjecucionProgramada is DateTimeOffset ultima ? ultima.Add(intervalo) : DateTimeOffset.Now.Add(intervalo);
     }
 
     private int CalcularLoteAutorizado(ConsumoCuotaOperacionGdebaDto cuota, int limiteDiario, ConfiguracionProgramadaWorkerDto configuracion)

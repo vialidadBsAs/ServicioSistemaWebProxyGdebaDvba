@@ -20,6 +20,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Servi
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Workers.ReadStores;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Services;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application;
@@ -45,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<IDescubrimientoExpedientesWorkerService, DescubrimientoExpedientesWorkerService>();
         services.AddScoped<IConfiguracionProgramadaWorkerService, ConfiguracionProgramadaWorkerService>();
         services.AddScoped<IConfiguracionDatosWorkerService, ConfiguracionDatosWorkerService>();
+        services.AddScoped<IOmisionCorridaProgramadaWorkerService, OmisionCorridaProgramadaWorkerService>();
+        services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
     }
@@ -68,6 +71,8 @@ public static class DependencyInjection
         services.AddScoped<IDescubrimientoExpedientesWorkerService, DescubrimientoExpedientesWorkerService>();
         services.AddScoped<IConfiguracionProgramadaWorkerService, ConfiguracionProgramadaWorkerService>();
         services.AddScoped<IConfiguracionDatosWorkerService, ConfiguracionDatosWorkerService>();
+        services.AddScoped<IOmisionCorridaProgramadaWorkerService, OmisionCorridaProgramadaWorkerService>();
+        services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

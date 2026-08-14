@@ -119,7 +119,8 @@ public sealed class IncorporacionExpedientesPorTrataService : IIncorporacionExpe
         var creados = 0;
         var actualizados = 0;
         var sinCambios = 0;
-        var expedientesNuevosIds = new List<Guid>();
+        List<Guid> expedientesNuevosIds = new List<Guid>();
+        List<Guid> expedientesActualizadosIds = new List<Guid>();
 
         foreach (var (numero, datos) in expedientesDetectados)
         {
@@ -143,6 +144,7 @@ public sealed class IncorporacionExpedientesPorTrataService : IIncorporacionExpe
             else if (datosCambiaron)
             {
                 actualizados++;
+                expedientesActualizadosIds.Add(expediente.Id);
             }
             else
             {
@@ -165,7 +167,7 @@ public sealed class IncorporacionExpedientesPorTrataService : IIncorporacionExpe
 
         return new IncorporarExpedientesPorTrataResult(
             codigoTrata, trata.Id, estadoDestino, resolvedAt, datosGdeba.Count, expedientesDetectados.Count, descartados,
-            creados, actualizados, sinCambios, expedientesNuevosIds);
+            creados, actualizados, sinCambios, expedientesNuevosIds, expedientesActualizadosIds);
     }
 
     private void RegistrarCambiosExpediente(Expediente expediente, bool esNuevo)

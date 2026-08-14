@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using ServicioSistemaWebProxyGdebaDvba.Api.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
@@ -16,22 +17,21 @@ public sealed class WorkersController : ControllerBase
     private readonly IWorkerExecutionService _workerExecutionService;
     private readonly IConfiguracionProgramadaWorkerService _configuracionProgramadaWorkerService;
     private readonly IConfiguracionDatosWorkerService _configuracionDatosWorkerService;
+    private readonly IOmisionCorridaProgramadaWorkerService _omisionCorridaProgramadaWorkerService;
+    private readonly IPanelEjecucionesWorkerReadStore _panelEjecucionesWorkerReadStore;
 
     public WorkersController(
         IWorkerExecutionService workerExecutionService,
         IConfiguracionProgramadaWorkerService configuracionProgramadaWorkerService,
-        IConfiguracionDatosWorkerService configuracionDatosWorkerService)
+        IConfiguracionDatosWorkerService configuracionDatosWorkerService,
+        IOmisionCorridaProgramadaWorkerService omisionCorridaProgramadaWorkerService,
+        IPanelEjecucionesWorkerReadStore panelEjecucionesWorkerReadStore)
     {
         _workerExecutionService = workerExecutionService;
         _configuracionProgramadaWorkerService = configuracionProgramadaWorkerService;
         _configuracionDatosWorkerService = configuracionDatosWorkerService;
-    }
-
-    [HttpGet]
-    public async Task<ActionResult<MonitoreoWorkersResponse>> Consultar([FromQuery] int? cantidad, CancellationToken cancellationToken)
-    {
-        var resultado = await _workerExecutionService.ConsultarAsync(cantidad ?? 30, cancellationToken);
-        return this.Ok(MonitoreoWorkersResponse.Create(resultado));
+        _omisionCorridaProgramadaWorkerService = omisionCorridaProgramadaWorkerService;
+        _panelEjecucionesWorkerReadStore = panelEjecucionesWorkerReadStore;
     }
 
     [HttpGet("configuraciones")]
@@ -39,6 +39,25 @@ public sealed class WorkersController : ControllerBase
     {
         var configuraciones = await _configuracionProgramadaWorkerService.ConsultarAsync(cancellationToken);
         return this.Ok(configuraciones.Select(ConfiguracionProgramadaWorkerResponse.Create).ToArray());
+    }
+
+    [HttpGet("{proceso}/configuracion")]
+    public async Task<ActionResult<ConfiguracionProgramadaWorkerResponse>> ConsultarConfiguracion(string proceso, CancellationToken cancellationToken)
+    {
+        if (!WorkersController.TryResolverProceso(proceso, out var procesoWorker))
+        {
+            return this.BadRequest("El proceso de Worker solicitado no es valido.");
+        }
+
+        try
+        {
+            ConfiguracionProgramadaWorkerDto configuracion = await _configuracionProgramadaWorkerService.ObtenerAsync(procesoWorker, cancellationToken);
+            return this.Ok(ConfiguracionProgramadaWorkerResponse.Create(configuracion));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return this.NotFound(exception.Message);
+        }
     }
 
     [HttpPut("{proceso}/configuracion")]
@@ -166,20 +185,90 @@ public sealed class WorkersController : ControllerBase
     }
 
     [HttpPost("{proceso}/solicitudes")]
-    public async Task<ActionResult<SolicitudEjecucionWorkerResponse>> CrearSolicitudManual(string proceso, CancellationToken cancellationToken)
+    public async Task<ActionResult<SolicitudEjecucionWorkerResponse>> CrearSolicitudManual(string proceso, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SolicitarEjecucionManualWorkerApiRequest? request, CancellationToken cancellationToken)
     {
         if (!WorkersController.TryResolverProceso(proceso, out var procesoWorker))
         {
             return this.BadRequest("El proceso de Worker solicitado no es valido.");
         }
 
-        var solicitadaPor = User.Identity?.Name ?? User.FindFirst("unique_name")?.Value ?? "Administracion";
-        var solicitud = await _workerExecutionService.SolicitarEjecucionManualAsync(
-            new SolicitarEjecucionManualWorkerRequest(procesoWorker, solicitadaPor), cancellationToken);
-        return this.CreatedAtAction(
-            nameof(WorkersController.Consultar),
-            new { cantidad = 30 },
-            SolicitudEjecucionWorkerResponse.Create(solicitud));
+        string solicitadaPor = User.Identity?.Name ?? User.FindFirst("unique_name")?.Value ?? "Administracion";
+        try
+        {
+            SolicitudEjecucionWorkerDto solicitud = await _workerExecutionService.SolicitarEjecucionManualAsync(
+                new SolicitarEjecucionManualWorkerRequest(procesoWorker, solicitadaPor, request?.FechaInicioProgramada), cancellationToken);
+            return this.CreatedAtAction(nameof(WorkersController.ConsultarPanel), new { proceso }, SolicitudEjecucionWorkerResponse.Create(solicitud));
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            return this.BadRequest(exception.Message);
+        }
+    }
+
+    [HttpPost("solicitudes/{solicitudId:guid}/cancelar")]
+    public async Task<ActionResult<SolicitudEjecucionWorkerResponse>> CancelarSolicitudManual(Guid solicitudId, CancellationToken cancellationToken)
+    {
+        string canceladaPor = User.Identity?.Name ?? User.FindFirst("unique_name")?.Value ?? "Administracion";
+        try
+        {
+            SolicitudEjecucionWorkerDto solicitud = await _workerExecutionService.CancelarSolicitudManualAsync(solicitudId, canceladaPor, cancellationToken);
+            return this.Ok(SolicitudEjecucionWorkerResponse.Create(solicitud));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return this.BadRequest(exception.Message);
+        }
+    }
+
+    [HttpPut("{proceso}/omisiones/hoy")]
+    public async Task<ActionResult> OmitirCorridaDelDia(string proceso, CancellationToken cancellationToken)
+    {
+        if (!WorkersController.TryResolverProceso(proceso, out var procesoWorker))
+        {
+            return this.BadRequest("El proceso de Worker solicitado no es valido.");
+        }
+
+        string omitidaPor = User.Identity?.Name ?? User.FindFirst("unique_name")?.Value ?? "Administracion";
+        try
+        {
+            await _omisionCorridaProgramadaWorkerService.OmitirCorridaDelDiaAsync(procesoWorker, omitidaPor, cancellationToken);
+            return this.NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return this.BadRequest(exception.Message);
+        }
+    }
+
+    [HttpDelete("{proceso}/omisiones/hoy")]
+    public async Task<IActionResult> QuitarOmisionDelDia(string proceso, CancellationToken cancellationToken)
+    {
+        if (!WorkersController.TryResolverProceso(proceso, out var procesoWorker))
+        {
+            return this.BadRequest("El proceso de Worker solicitado no es valido.");
+        }
+
+        await _omisionCorridaProgramadaWorkerService.QuitarOmisionDelDiaAsync(procesoWorker, cancellationToken);
+        return this.NoContent();
+    }
+
+    [HttpGet("{proceso}/panel")]
+    public async Task<ActionResult<PanelEjecucionesWorkerResponse>> ConsultarPanel(string proceso, [FromQuery] int? cantidadHistorico, CancellationToken cancellationToken)
+    {
+        if (!WorkersController.TryResolverProceso(proceso, out var procesoWorker))
+        {
+            return this.BadRequest("El proceso de Worker solicitado no es valido.");
+        }
+
+        try
+        {
+            ConsultaPanelEjecucionesWorkerResult resultado = await _panelEjecucionesWorkerReadStore.ConsultarAsync(procesoWorker, cantidadHistorico ?? 30, cancellationToken);
+            return this.Ok(PanelEjecucionesWorkerResponse.Create(resultado));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return this.NotFound(exception.Message);
+        }
     }
 
     [HttpPost("solicitudes/{solicitudId:guid}/iniciar")]
@@ -187,11 +276,8 @@ public sealed class WorkersController : ControllerBase
     {
         try
         {
-            var solicitud = await _workerExecutionService.IniciarSolicitudManualAsync(solicitudId, cancellationToken);
-            return this.AcceptedAtAction(
-                nameof(WorkersController.Consultar),
-                new { cantidad = 30 },
-                SolicitudEjecucionWorkerResponse.Create(solicitud));
+            SolicitudEjecucionWorkerDto solicitud = await _workerExecutionService.IniciarSolicitudManualAsync(solicitudId, cancellationToken);
+            return this.Accepted(SolicitudEjecucionWorkerResponse.Create(solicitud));
         }
         catch (InvalidOperationException exception)
         {

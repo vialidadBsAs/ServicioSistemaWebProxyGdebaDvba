@@ -15,7 +15,8 @@ public sealed partial class EjecucionWorker : IAggregateRoot
         int creados,
         int actualizados,
         int sinCambios,
-        IEnumerable<Guid> expedientesNuevosIds)
+        IEnumerable<Guid> expedientesNuevosIds,
+        IEnumerable<Guid> expedientesActualizadosIds)
     {
         if (Proceso != ProcesoWorker.DescubrimientoExpedientes)
         {
@@ -35,9 +36,14 @@ public sealed partial class EjecucionWorker : IAggregateRoot
         {
             TrackingState = TrackableEntities.Common.Core.TrackingState.Added
         };
-        foreach (var expedienteId in expedientesNuevosIds.Distinct())
+        foreach (Guid expedienteId in expedientesNuevosIds.Distinct())
         {
-            resultado.RegistrarExpedienteDescubierto(expedienteId);
+            resultado.RegistrarExpedienteDescubierto(expedienteId, TipoDeteccionExpedienteDescubierto.Nuevo);
+        }
+
+        foreach (Guid expedienteId in expedientesActualizadosIds.Distinct())
+        {
+            resultado.RegistrarExpedienteDescubierto(expedienteId, TipoDeteccionExpedienteDescubierto.Actualizado);
         }
 
         _resultadosDescubrimientoTrataEstado.Add(resultado);

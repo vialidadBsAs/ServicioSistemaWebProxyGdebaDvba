@@ -26,13 +26,13 @@ Toda llamada debe mostrar claramente quien ejecuta la operacion.
 Ejemplos:
 
 ```csharp
-var expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(
+Expediente expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(
     numero.Valor,
     cancellationToken);
 
 this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
 
-var numero = NumeroGdebaCompleto.Create(valor);
+NumeroGdebaCompleto numero = NumeroGdebaCompleto.Create(valor);
 ```
 
 No escribir llamadas ambiguas como:
@@ -57,6 +57,10 @@ La lectura del codigo debe permitir distinguir inmediatamente entre:
 - Los nombres deben expresar responsabilidad, no solamente tecnologia.
 - Evitar nombres generales como `manager`, `helper`, `processor`, `handler`,
   `registro` o `servicio` cuando no aclaran el caso de uso.
+- Declarar las variables locales con su tipo explicito en lugar de `var`; el
+  tipo a la izquierda es parte de la lectura del codigo. Esta preferencia rige
+  para todo codigo nuevo o modificado; el codigo existente con `var` se migra
+  de forma oportunista al tocarlo.
 
 ## Formato de metodos y llamadas
 

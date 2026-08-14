@@ -2,18 +2,6 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Models;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Models;
 
-public sealed record MonitoreoWorkersResponse(
-    IReadOnlyCollection<EjecucionWorkerResponse> Ejecuciones,
-    IReadOnlyCollection<SolicitudEjecucionWorkerResponse> SolicitudesActivas)
-{
-    public static MonitoreoWorkersResponse Create(ConsultaMonitoreoWorkersResult resultado)
-    {
-        return new MonitoreoWorkersResponse(
-            resultado.Ejecuciones.Select(EjecucionWorkerResponse.Create).ToArray(),
-            resultado.SolicitudesActivas.Select(SolicitudEjecucionWorkerResponse.Create).ToArray());
-    }
-}
-
 public sealed record EjecucionWorkerResponse(
     Guid Id,
     string Proceso,
@@ -54,8 +42,11 @@ public sealed record SolicitudEjecucionWorkerResponse(
     string Estado,
     string SolicitadaPor,
     DateTimeOffset FechaSolicitud,
+    DateTimeOffset? FechaInicioProgramada,
     DateTimeOffset? FechaInicio,
     DateTimeOffset? FechaFinalizacion,
+    string? CanceladaPor,
+    DateTimeOffset? FechaCancelacion,
     string? Mensaje,
     Guid? EjecucionWorkerId)
 {
@@ -63,8 +54,8 @@ public sealed record SolicitudEjecucionWorkerResponse(
     {
         return new SolicitudEjecucionWorkerResponse(
             solicitud.Id, solicitud.Proceso.ToString(), solicitud.Estado.ToString(), solicitud.SolicitadaPor,
-            solicitud.FechaSolicitud, solicitud.FechaInicio, solicitud.FechaFinalizacion,
-            solicitud.Mensaje, solicitud.EjecucionWorkerId);
+            solicitud.FechaSolicitud, solicitud.FechaInicioProgramada, solicitud.FechaInicio, solicitud.FechaFinalizacion,
+            solicitud.CanceladaPor, solicitud.FechaCancelacion, solicitud.Mensaje, solicitud.EjecucionWorkerId);
     }
 }
 
@@ -92,7 +83,7 @@ public sealed record ResultadoEjecucionDescubrimientoTrataEstadoResponse(
     int Creados,
     int Actualizados,
     int SinCambios,
-    IReadOnlyCollection<ExpedienteDescubiertoPorEjecucionResponse> ExpedientesNuevos)
+    IReadOnlyCollection<ExpedienteDescubiertoPorEjecucionResponse> ExpedientesDetectados)
 {
     public static ResultadoEjecucionDescubrimientoTrataEstadoResponse Create(ResultadoEjecucionDescubrimientoTrataEstadoDto resultado)
     {
@@ -100,14 +91,14 @@ public sealed record ResultadoEjecucionDescubrimientoTrataEstadoResponse(
             resultado.Id, resultado.CodigoTrata, resultado.DescripcionTrata, resultado.EstadoDestino,
             resultado.FechaResolucion, resultado.RecibidosGdeba, resultado.Habilitados, resultado.Descartados,
             resultado.Creados, resultado.Actualizados, resultado.SinCambios,
-            resultado.ExpedientesNuevos.Select(ExpedienteDescubiertoPorEjecucionResponse.Create).ToArray());
+            resultado.ExpedientesDetectados.Select(ExpedienteDescubiertoPorEjecucionResponse.Create).ToArray());
     }
 }
 
-public sealed record ExpedienteDescubiertoPorEjecucionResponse(Guid Id, string NumeroExpediente)
+public sealed record ExpedienteDescubiertoPorEjecucionResponse(Guid Id, string NumeroExpediente, string TipoDeteccion)
 {
     public static ExpedienteDescubiertoPorEjecucionResponse Create(ExpedienteDescubiertoPorEjecucionDto expediente)
     {
-        return new ExpedienteDescubiertoPorEjecucionResponse(expediente.Id, expediente.NumeroExpediente);
+        return new ExpedienteDescubiertoPorEjecucionResponse(expediente.Id, expediente.NumeroExpediente, expediente.TipoDeteccion.ToString());
     }
 }

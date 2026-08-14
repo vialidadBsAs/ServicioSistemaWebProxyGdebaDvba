@@ -1,4 +1,5 @@
 using ServicioSistemaWebProxyGdebaDvba.Domain.Common;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker;
 
@@ -49,14 +50,14 @@ public sealed class EjecucionWorkerDescubrimientoTrataEstado : DomainEntity
     public int SinCambios { get; private set; }
     public IReadOnlyCollection<EjecucionWorkerExpedienteDescubierto> ExpedientesDescubiertos => _expedientesDescubiertos;
 
-    internal void RegistrarExpedienteDescubierto(Guid expedienteId)
+    internal void RegistrarExpedienteDescubierto(Guid expedienteId, TipoDeteccionExpedienteDescubierto tipoDeteccion)
     {
         if (_expedientesDescubiertos.Any(x => x.ExpedienteId == expedienteId))
         {
             return;
         }
 
-        var expedienteDescubierto = new EjecucionWorkerExpedienteDescubierto(Id, expedienteId)
+        EjecucionWorkerExpedienteDescubierto expedienteDescubierto = new EjecucionWorkerExpedienteDescubierto(Id, expedienteId, tipoDeteccion)
         {
             TrackingState = TrackableEntities.Common.Core.TrackingState.Added
         };

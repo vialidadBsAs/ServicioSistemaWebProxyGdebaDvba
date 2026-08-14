@@ -40,31 +40,6 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<ConsultaMonitoreoWorkersResult> ConsultarAsync(int cantidadEjecuciones, CancellationToken cancellationToken)
-    {
-        var ejecuciones = await _ejecucionWorkerRepository.Query()
-            .OrderByDescending(x => x.FechaInicio)
-            .Take(Math.Clamp(cantidadEjecuciones, 1, 200))
-            .SelectAsync(cancellationToken);
-        var solicitudesActivas = await _solicitudEjecucionWorkerRepository.Query()
-            .Where(x => x.Estado == EstadoSolicitudEjecucionWorker.PendienteDeInicio ||
-                x.Estado == EstadoSolicitudEjecucionWorker.Pendiente ||
-                x.Estado == EstadoSolicitudEjecucionWorker.EnEjecucion)
-            .OrderBy(x => x.FechaSolicitud)
-            .SelectAsync(cancellationToken);
-        var solicitudesManualesPorId = (await _solicitudEjecucionWorkerRepository.Query()
-                .Where(x => ejecuciones.Select(y => y.SolicitudEjecucionWorkerId).Contains(x.Id))
-                .SelectAsync(cancellationToken))
-            .ToDictionary(x => x.Id);
-        return new ConsultaMonitoreoWorkersResult(
-            ejecuciones.Select(x => WorkerExecutionService.MapearEjecucion(
-                x,
-                x.SolicitudEjecucionWorkerId is Guid solicitudId && solicitudesManualesPorId.TryGetValue(solicitudId, out var solicitud)
-                    ? solicitud
-                    : null)).ToArray(),
-            solicitudesActivas.Select(WorkerExecutionService.MapearSolicitud).ToArray());
-    }
-
     public async Task<ConsultaDetalleEjecucionDescubrimientoResult> ConsultarDetalleDescubrimientoAsync(Guid ejecucionId, CancellationToken cancellationToken)
     {
         var ejecucion = (await _ejecucionWorkerRepository.Query()
@@ -93,9 +68,9 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
             .ToDictionary(x => x.Id);
         var expedientesPorId = (await _expedienteRepository.Query().Where(x => expedienteIds.Contains(x.Id)).SelectAsync(cancellationToken))
             .ToDictionary(x => x.Id);
-        var expedientesPorResultado = expedientesDescubiertos
+        Dictionary<Guid, EjecucionWorkerExpedienteDescubierto[]> expedientesPorResultado = expedientesDescubiertos
             .GroupBy(x => x.EjecucionWorkerDescubrimientoTrataEstadoId)
-            .ToDictionary(x => x.Key, x => x.Select(y => y.ExpedienteId).ToArray());
+            .ToDictionary(x => x.Key, x => x.ToArray());
         var resultados = resultadosPersistidos
             .Select(x => WorkerExecutionService.MapearResultadoDescubrimiento(x, tratasPorId, estadosPorId, expedientesPorResultado, expedientesPorId))
             .ToArray();
@@ -108,9 +83,10 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
 
     public async Task<SolicitudEjecucionWorkerDto> SolicitarEjecucionManualAsync(SolicitarEjecucionManualWorkerRequest request, CancellationToken cancellationToken)
     {
-        var solicitudExistente = (await _solicitudEjecucionWorkerRepository.Query()
+        SolicitudEjecucionWorker? solicitudExistente = (await _solicitudEjecucionWorkerRepository.Query()
             .Where(x => x.Proceso == request.Proceso &&
                 (x.Estado == EstadoSolicitudEjecucionWorker.PendienteDeInicio ||
+                x.Estado == EstadoSolicitudEjecucionWorker.Programada ||
                 x.Estado == EstadoSolicitudEjecucionWorker.Pendiente ||
                 x.Estado == EstadoSolicitudEjecucionWorker.EnEjecucion))
             .Take(1)
@@ -121,7 +97,7 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
             return WorkerExecutionService.MapearSolicitud(solicitudExistente);
         }
 
-        var solicitud = new SolicitudEjecucionWorker(request.Proceso, request.SolicitadaPor ?? "Administracion", DateTimeOffset.Now);
+        SolicitudEjecucionWorker solicitud = new SolicitudEjecucionWorker(request.Proceso, request.SolicitadaPor ?? "Administracion", DateTimeOffset.Now, request.FechaInicioProgramada);
         _solicitudEjecucionWorkerRepository.Insert(solicitud);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return WorkerExecutionService.MapearSolicitud(solicitud);
@@ -146,6 +122,25 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         return WorkerExecutionService.MapearSolicitud(solicitud);
     }
 
+    public async Task<SolicitudEjecucionWorkerDto> CancelarSolicitudManualAsync(Guid solicitudId, string? canceladaPor, CancellationToken cancellationToken)
+    {
+        SolicitudEjecucionWorker? solicitud = (await _solicitudEjecucionWorkerRepository.Query()
+            .Where(x => x.Id == solicitudId)
+            .Take(1)
+            .SelectAsync(cancellationToken))
+            .SingleOrDefault();
+        if (solicitud is null)
+        {
+            throw new InvalidOperationException("No existe la solicitud manual de Worker.");
+        }
+
+        solicitud.Cancelar(canceladaPor ?? "Administracion", DateTimeOffset.Now);
+        _solicitudEjecucionWorkerRepository.Update(solicitud);
+        _solicitudEjecucionWorkerRepository.ApplyChanges(solicitud);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return WorkerExecutionService.MapearSolicitud(solicitud);
+    }
+
     public async Task<EjecucionWorkerIniciada> IniciarEjecucionProgramadaAsync(ProcesoWorker proceso, CancellationToken cancellationToken)
     {
         var ejecucion = new EjecucionWorker(proceso, OrigenInvocacionGdeba.WorkerProgramado, null, DateTimeOffset.Now);
@@ -154,20 +149,78 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         return new EjecucionWorkerIniciada(ejecucion.Id, null);
     }
 
-    public async Task<EjecucionWorkerIniciada?> TomarSolicitudManualAsync(ProcesoWorker proceso, CancellationToken cancellationToken)
+    public async Task<DateTimeOffset?> ObtenerUltimaEjecucionProgramadaAsync(ProcesoWorker proceso, CancellationToken cancellationToken)
     {
-        var solicitud = (await _solicitudEjecucionWorkerRepository.Query()
-            .Where(x => x.Proceso == proceso && x.Estado == EstadoSolicitudEjecucionWorker.Pendiente)
-            .OrderBy(x => x.FechaSolicitud)
+        EjecucionWorker? ultimaEjecucionProgramada = (await _ejecucionWorkerRepository.Query()
+            .Where(x => x.Proceso == proceso && x.Origen == OrigenInvocacionGdeba.WorkerProgramado)
+            .OrderByDescending(x => x.FechaInicio)
             .Take(1)
             .SelectAsync(cancellationToken))
             .SingleOrDefault();
-        if (solicitud is null)
+        return ultimaEjecucionProgramada?.FechaInicio;
+    }
+
+    public async Task<int> CerrarEjecucionesInterrumpidasAsync(ProcesoWorker proceso, CancellationToken cancellationToken)
+    {
+        EjecucionWorker[] ejecucionesInterrumpidas = (await _ejecucionWorkerRepository.Query()
+            .Where(x => x.Proceso == proceso && x.Estado == EstadoEjecucionWorker.EnEjecucion)
+            .SelectAsync(cancellationToken))
+            .ToArray();
+        if (ejecucionesInterrumpidas.Length == 0)
+        {
+            return 0;
+        }
+
+        const string resumen = "La ejecucion se interrumpio por un reinicio del servicio Worker y no llego a completarse.";
+        DateTimeOffset fechaCierre = DateTimeOffset.Now;
+        Guid[] solicitudIds = ejecucionesInterrumpidas
+            .Where(x => x.SolicitudEjecucionWorkerId is not null)
+            .Select(x => x.SolicitudEjecucionWorkerId!.Value)
+            .ToArray();
+        Dictionary<Guid, SolicitudEjecucionWorker> solicitudesPorId = solicitudIds.Length == 0
+            ? new Dictionary<Guid, SolicitudEjecucionWorker>()
+            : (await _solicitudEjecucionWorkerRepository.Query().Where(x => solicitudIds.Contains(x.Id)).SelectAsync(cancellationToken)).ToDictionary(x => x.Id);
+        foreach (EjecucionWorker ejecucion in ejecucionesInterrumpidas)
+        {
+            ejecucion.Finalizar(EstadoEjecucionWorker.Fallida, resumen, null, null, null, null, null, fechaCierre);
+            _ejecucionWorkerRepository.Update(ejecucion);
+            _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+            if (ejecucion.SolicitudEjecucionWorkerId is Guid solicitudId && solicitudesPorId.TryGetValue(solicitudId, out SolicitudEjecucionWorker? solicitud))
+            {
+                solicitud.Finalizar(EstadoEjecucionWorker.Fallida, resumen, fechaCierre);
+                _solicitudEjecucionWorkerRepository.Update(solicitud);
+                _solicitudEjecucionWorkerRepository.ApplyChanges(solicitud);
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ejecucionesInterrumpidas.Length;
+    }
+
+    public async Task<EjecucionWorkerIniciada?> TomarSolicitudManualAsync(ProcesoWorker proceso, CancellationToken cancellationToken)
+    {
+        DateTimeOffset ahora = DateTimeOffset.Now;
+        SolicitudEjecucionWorker[] solicitudesElegibles = (await _solicitudEjecucionWorkerRepository.Query()
+            .Where(x => x.Proceso == proceso &&
+                (x.Estado == EstadoSolicitudEjecucionWorker.Pendiente ||
+                (x.Estado == EstadoSolicitudEjecucionWorker.Programada && x.FechaInicioProgramada != null && x.FechaInicioProgramada <= ahora)))
+            .OrderBy(x => x.FechaSolicitud)
+            .SelectAsync(cancellationToken))
+            .ToArray();
+        if (solicitudesElegibles.Length == 0)
         {
             return null;
         }
 
-        var ejecucion = new EjecucionWorker(proceso, OrigenInvocacionGdeba.Administrativo, solicitud.Id, DateTimeOffset.Now);
+        foreach (SolicitudEjecucionWorker solicitudProgramada in solicitudesElegibles.Where(x => x.Estado == EstadoSolicitudEjecucionWorker.Programada))
+        {
+            solicitudProgramada.EncolarPorHorario(ahora);
+            _solicitudEjecucionWorkerRepository.Update(solicitudProgramada);
+            _solicitudEjecucionWorkerRepository.ApplyChanges(solicitudProgramada);
+        }
+
+        SolicitudEjecucionWorker solicitud = solicitudesElegibles[0];
+        EjecucionWorker ejecucion = new EjecucionWorker(proceso, OrigenInvocacionGdeba.Administrativo, solicitud.Id, DateTimeOffset.Now);
         solicitud.Iniciar(ejecucion.Id, ejecucion.FechaInicio);
         _ejecucionWorkerRepository.Insert(ejecucion);
         _solicitudEjecucionWorkerRepository.Update(solicitud);
@@ -264,15 +317,15 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
     {
         return new SolicitudEjecucionWorkerDto(
             solicitud.Id, solicitud.Proceso, solicitud.Estado, solicitud.SolicitadaPor,
-            solicitud.FechaSolicitud, solicitud.FechaInicio, solicitud.FechaFinalizacion,
-            solicitud.Mensaje, solicitud.EjecucionWorkerId);
+            solicitud.FechaSolicitud, solicitud.FechaInicioProgramada, solicitud.FechaInicio, solicitud.FechaFinalizacion,
+            solicitud.CanceladaPor, solicitud.FechaCancelacion, solicitud.Mensaje, solicitud.EjecucionWorkerId);
     }
 
     private static ResultadoEjecucionDescubrimientoTrataEstadoDto MapearResultadoDescubrimiento(
         EjecucionWorkerDescubrimientoTrataEstado resultado,
         IReadOnlyDictionary<Guid, TrataHabilitadaVialidad> tratasPorId,
         IReadOnlyDictionary<Guid, EstadoExpedienteGdeba> estadosPorId,
-        IReadOnlyDictionary<Guid, Guid[]> expedientesPorResultado,
+        IReadOnlyDictionary<Guid, EjecucionWorkerExpedienteDescubierto[]> expedientesPorResultado,
         IReadOnlyDictionary<Guid, Expediente> expedientesPorId)
     {
         if (!tratasPorId.TryGetValue(resultado.TrataHabilitadaVialidadId, out var trata) ||
@@ -281,9 +334,11 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
             throw new InvalidOperationException("El resultado de descubrimiento referencia datos de dominio inexistentes.");
         }
 
-        var expedientesNuevos = expedientesPorResultado.TryGetValue(resultado.Id, out var expedienteIds)
-            ? expedienteIds.Where(expedientesPorId.ContainsKey).Select(x => expedientesPorId[x]).OrderBy(x => x.GdebaNumeroCompleto)
-                .Select(x => new ExpedienteDescubiertoPorEjecucionDto(x.Id, x.GdebaNumeroCompleto)).ToArray()
+        ExpedienteDescubiertoPorEjecucionDto[] expedientesDetectados = expedientesPorResultado.TryGetValue(resultado.Id, out EjecucionWorkerExpedienteDescubierto[]? detectados)
+            ? detectados.Where(x => expedientesPorId.ContainsKey(x.ExpedienteId))
+                .Select(x => new ExpedienteDescubiertoPorEjecucionDto(x.ExpedienteId, expedientesPorId[x.ExpedienteId].GdebaNumeroCompleto, x.TipoDeteccion))
+                .OrderBy(x => x.NumeroExpediente)
+                .ToArray()
             : Array.Empty<ExpedienteDescubiertoPorEjecucionDto>();
         return new ResultadoEjecucionDescubrimientoTrataEstadoDto(
             resultado.Id,
@@ -297,6 +352,6 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
             resultado.Creados,
             resultado.Actualizados,
             resultado.SinCambios,
-            expedientesNuevos);
+            expedientesDetectados);
     }
 }

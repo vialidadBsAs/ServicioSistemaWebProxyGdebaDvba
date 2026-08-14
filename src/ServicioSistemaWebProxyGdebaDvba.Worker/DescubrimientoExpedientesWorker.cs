@@ -25,6 +25,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await this.CerrarEjecucionesInterrumpidasAsync(stoppingToken);
         DateOnly? fechaEjecutada = null;
         var esperaInformada = false;
         while (!stoppingToken.IsCancellationRequested)
@@ -35,9 +36,22 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
             var fecha = DateOnly.FromDateTime(ahora.LocalDateTime);
             if (!ejecutoSolicitudManual && configuracion.Habilitado && fechaEjecutada != fecha && this.EstaDentroDeLaVentana(configuracion, ahora))
             {
-                await this.EjecutarCorridaProgramadaAsync(configuracion, fecha, stoppingToken);
-                fechaEjecutada = fecha;
-                esperaInformada = false;
+                if (await this.YaSeEjecutoCorridaProgramadaAsync(fecha, stoppingToken))
+                {
+                    fechaEjecutada = fecha;
+                }
+                else if (await this.ObtenerOmisionDelDiaAsync(fecha, stoppingToken) is OmisionCorridaProgramadaDto omision)
+                {
+                    await this.RegistrarCorridaOmitidaPorOperadorAsync(omision, stoppingToken);
+                    fechaEjecutada = fecha;
+                    esperaInformada = false;
+                }
+                else
+                {
+                    await this.EjecutarCorridaProgramadaAsync(configuracion, fecha, stoppingToken);
+                    fechaEjecutada = fecha;
+                    esperaInformada = false;
+                }
             }
             else if (!esperaInformada)
             {
@@ -64,7 +78,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                 ejecucion.EjecucionId,
                 new DescubrirExpedientesProgramadosRequest(int.MaxValue, configuracion.ConsultasVaciasParaPausa ?? 1, configuracion.DiasPausaSinResultados ?? 1, configuracion.OmitirConsultasRealizadasEnElDia, OrigenInvocacionGdeba.Administrativo),
                 cancellationToken);
-            await ejecucionesWorker.FinalizarEjecucionDescubrimientoAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: true), resultado.RecibidosGdeba, resultado.Creados, cancellationToken);
+            await ejecucionesWorker.FinalizarEjecucionDescubrimientoAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: true), resultado.Habilitados, resultado.Creados, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -114,7 +128,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                 ejecucion.EjecucionId,
                 new DescubrirExpedientesProgramadosRequest(presupuesto, configuracion.ConsultasVaciasParaPausa ?? 1, configuracion.DiasPausaSinResultados ?? 1, configuracion.OmitirConsultasRealizadasEnElDia, OrigenInvocacionGdeba.WorkerProgramado),
                 cancellationToken);
-            await ejecucionesWorker.FinalizarEjecucionDescubrimientoAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: false, presupuesto), resultado.RecibidosGdeba, resultado.Creados, cancellationToken);
+            await ejecucionesWorker.FinalizarEjecucionDescubrimientoAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: false, presupuesto), resultado.Habilitados, resultado.Creados, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -132,6 +146,42 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var configuracionesWorker = scope.ServiceProvider.GetRequiredService<IConfiguracionProgramadaWorkerService>();
         return await configuracionesWorker.ObtenerAsync(ProcesoWorker.DescubrimientoExpedientes, cancellationToken);
+    }
+
+    private async Task CerrarEjecucionesInterrumpidasAsync(CancellationToken cancellationToken)
+    {
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IWorkerExecutionService ejecucionesWorker = scope.ServiceProvider.GetRequiredService<IWorkerExecutionService>();
+        int cerradas = await ejecucionesWorker.CerrarEjecucionesInterrumpidasAsync(ProcesoWorker.DescubrimientoExpedientes, cancellationToken);
+        if (cerradas > 0)
+        {
+            _logger.LogWarning("Al iniciar el Worker se marcaron como fallidas {Cerradas} ejecuciones de descubrimiento interrumpidas por un reinicio.", cerradas);
+        }
+    }
+
+    private async Task<OmisionCorridaProgramadaDto?> ObtenerOmisionDelDiaAsync(DateOnly fecha, CancellationToken cancellationToken)
+    {
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IOmisionCorridaProgramadaWorkerService omisionesCorridaProgramada = scope.ServiceProvider.GetRequiredService<IOmisionCorridaProgramadaWorkerService>();
+        return await omisionesCorridaProgramada.ObtenerOmisionAsync(ProcesoWorker.DescubrimientoExpedientes, fecha, cancellationToken);
+    }
+
+    private async Task RegistrarCorridaOmitidaPorOperadorAsync(OmisionCorridaProgramadaDto omision, CancellationToken cancellationToken)
+    {
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IWorkerExecutionService ejecucionesWorker = scope.ServiceProvider.GetRequiredService<IWorkerExecutionService>();
+        EjecucionWorkerIniciada ejecucion = await ejecucionesWorker.IniciarEjecucionProgramadaAsync(ProcesoWorker.DescubrimientoExpedientes, cancellationToken);
+        string motivo = $"La corrida programada del dia fue omitida por decision del operador ({omision.OmitidaPor}).";
+        await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Omitida, motivo, null, null, null, null, cancellationToken);
+        _logger.LogInformation("Corrida programada de descubrimiento omitida por decision del operador. Fecha={Fecha}. Operador={Operador}.", omision.FechaLocal, omision.OmitidaPor);
+    }
+
+    private async Task<bool> YaSeEjecutoCorridaProgramadaAsync(DateOnly fecha, CancellationToken cancellationToken)
+    {
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IWorkerExecutionService ejecucionesWorker = scope.ServiceProvider.GetRequiredService<IWorkerExecutionService>();
+        DateTimeOffset? ultimaEjecucionProgramada = await ejecucionesWorker.ObtenerUltimaEjecucionProgramadaAsync(ProcesoWorker.DescubrimientoExpedientes, cancellationToken);
+        return ultimaEjecucionProgramada is DateTimeOffset ultima && DateOnly.FromDateTime(ultima.LocalDateTime) == fecha;
     }
 
     private void ConfigurarAplicacionActual(IServiceProvider serviceProvider)

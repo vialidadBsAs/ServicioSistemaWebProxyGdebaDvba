@@ -2,7 +2,7 @@ using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Workers.Models;
 
-public sealed record SolicitarEjecucionManualWorkerRequest(ProcesoWorker Proceso, string? SolicitadaPor);
+public sealed record SolicitarEjecucionManualWorkerRequest(ProcesoWorker Proceso, string? SolicitadaPor, DateTimeOffset? FechaInicioProgramada = null);
 
 public sealed record SolicitudEjecucionWorkerDto(
     Guid Id,
@@ -10,8 +10,11 @@ public sealed record SolicitudEjecucionWorkerDto(
     EstadoSolicitudEjecucionWorker Estado,
     string SolicitadaPor,
     DateTimeOffset FechaSolicitud,
+    DateTimeOffset? FechaInicioProgramada,
     DateTimeOffset? FechaInicio,
     DateTimeOffset? FechaFinalizacion,
+    string? CanceladaPor,
+    DateTimeOffset? FechaCancelacion,
     string? Mensaje,
     Guid? EjecucionWorkerId);
 
@@ -35,10 +38,6 @@ public sealed record SolicitudManualAsociadaEjecucionWorkerDto(Guid Id, string S
 
 public sealed record EjecucionWorkerIniciada(Guid EjecucionId, Guid? SolicitudId);
 
-public sealed record ConsultaMonitoreoWorkersResult(
-    IReadOnlyCollection<EjecucionWorkerDto> Ejecuciones,
-    IReadOnlyCollection<SolicitudEjecucionWorkerDto> SolicitudesActivas);
-
 public sealed record ConsultaDetalleEjecucionDescubrimientoResult(
     EjecucionWorkerDto Ejecucion,
     IReadOnlyCollection<ResultadoEjecucionDescubrimientoTrataEstadoDto> ResultadosPorTrataEstado);
@@ -55,6 +54,6 @@ public sealed record ResultadoEjecucionDescubrimientoTrataEstadoDto(
     int Creados,
     int Actualizados,
     int SinCambios,
-    IReadOnlyCollection<ExpedienteDescubiertoPorEjecucionDto> ExpedientesNuevos);
+    IReadOnlyCollection<ExpedienteDescubiertoPorEjecucionDto> ExpedientesDetectados);
 
-public sealed record ExpedienteDescubiertoPorEjecucionDto(Guid Id, string NumeroExpediente);
+public sealed record ExpedienteDescubiertoPorEjecucionDto(Guid Id, string NumeroExpediente, TipoDeteccionExpedienteDescubierto TipoDeteccion);

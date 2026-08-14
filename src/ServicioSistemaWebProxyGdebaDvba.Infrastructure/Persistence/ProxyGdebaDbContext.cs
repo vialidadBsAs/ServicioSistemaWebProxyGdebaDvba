@@ -43,6 +43,8 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<ConfiguracionProgramadaWorker> ConfiguracionesProgramadasWorker => Set<ConfiguracionProgramadaWorker>();
 
+    public DbSet<OmisionCorridaProgramadaWorker> OmisionesCorridaProgramadaWorker => Set<OmisionCorridaProgramadaWorker>();
+
     public DbSet<Expediente> Expedientes => Set<Expediente>();
 
     public DbSet<EstadoExpedienteGdeba> EstadosExpedienteGdeba => Set<EstadoExpedienteGdeba>();

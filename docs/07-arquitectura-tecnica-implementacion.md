@@ -247,7 +247,15 @@ Para enriquecimiento documental, el Worker conserva las decisiones operativas: s
 
 El limite diario autorizado se obtiene exclusivamente de la configuracion persistida de cada operacion GDEBA. Los Workers no mantienen un segundo limite en `appsettings`; solamente pueden reservar parte del cupo mediante `CupoReservaDiaria`. Si una operacion no existe en el control de cuotas o no tiene limite diario, el proceso se omite sin invocar GDEBA.
 
-La planificacion operativa de cada Worker se guarda en `Worker_ConfiguracionesProgramadas`: hay una fila por proceso tecnico y una estructura comun de datos. Incluye habilitacion, ventana horaria, reserva diaria y los parametros particulares que correspondan; los no aplicables permanecen nulos. Los nombres tecnicos de los procesos siguen definidos por `ProcesoWorker`, porque determinan la implementacion que se ejecuta. La API administrativa permite actualizar la configuracion y cada Worker la relee al comenzar su ciclo de un minuto, sin reiniciar el host.
+La planificacion operativa de cada Worker se guarda en `Worker_ConfiguracionesProgramadas`: hay una fila por proceso tecnico y una estructura comun de datos. Incluye habilitacion, ventana horaria, reserva diaria y los parametros particulares que correspondan; los no aplicables permanecen nulos. Los nombres tecnicos de los procesos siguen definidos por `ProcesoWorker`, porque determinan la implementacion que se ejecuta. La API administrativa permite consultar y actualizar la configuracion y cada Worker la relee al comenzar su ciclo de un minuto, sin reiniciar el host.
+
+La planificacion tambien es resistente a reinicios del host Worker. Antes de decidir una corrida programada, cada Worker consulta la ultima ejecucion con origen `WorkerProgramado` en `Worker_Ejecuciones` mediante `IWorkerExecutionService`. El descubrimiento de expedientes no repite la corrida diaria si ya existe una ejecucion programada con fecha local del dia, y el enriquecimiento documental calcula su proxima ejecucion a partir de la ultima corrida persistida mas el intervalo configurado, en lugar de reiniciar el intervalo en cada arranque.
+
+Al arrancar, cada Worker cierra ademas las ejecuciones de su proceso que quedaron en `EnEjecucion` por un corte abrupto del host: las marca como `Fallida` con un resumen que indica la interrupcion, junto con la solicitud manual asociada si existiera. Es un cierre administrativo del registro para que el monitoreo quede consistente; no reintenta el trabajo pendiente. Las unidades trata-estado confirmadas antes del corte permanecen persistidas y una ejecucion cerrada de este modo sigue contando como el intento programado del dia.
+
+Las ordenes manuales siguen el ciclo de vida definido en `10-diseno-pantallas-workers.md`. Una solicitud puede crearse con un horario de inicio (`FechaInicioProgramada`, estado `Programada`): al tomar solicitudes, el Worker encola primero las programadas cuyo horario ya llego, en la misma unidad de trabajo. Una solicitud que el Worker todavia no tomo puede cancelarse (`Cancelada`, con usuario y fecha de cancelacion). La corrida programada diaria de descubrimiento puede omitirse por fecha mediante `Worker_OmisionesCorridaProgramada`; si existe la omision del dia, el Worker registra una ejecucion `Omitida` que menciona al operador y no consume cuota. Los procesos por intervalo no admiten omision: se pausan deshabilitando su configuracion programada.
+
+La pantalla de ejecuciones se alimenta con `GET /api/gdeba/workers/{proceso}/panel`, resuelto por `IPanelEjecucionesWorkerReadStore` (read model de solo lectura, en `Workers/ReadStores`): devuelve la configuracion programada, la proyeccion de la corrida automatica (`Proyectada`, `EjecutadaHoy`, `OmitidaHoy` o `Pausada`, con la proxima corrida calculada de politica mas historial), las ordenes manuales vivas, las ejecuciones del dia y el historico. La corrida automatica no se materializa como registro; la proyeccion se calcula en Application para que pantalla y Workers compartan la misma regla. El panel por proceso reemplazo al monitoreo global `GET /api/gdeba/workers`, que fue retirado junto con su consulta en Application al quedar sin consumidores.
 
 La logica reutilizable de enriquecer el detalle de un documento no vive en el Worker. Esta en Application mediante `IDocumentoDetailEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.
 
@@ -1333,3 +1341,9 @@ combinacion posterior falla, las unidades anteriores permanecen completas y
 consultables; la cabecera queda en estado `Fallida` para expresar que la corrida
 no se completo. El registro tecnico de la invocacion GDEBA permanece separado,
 porque describe una llamada externa ya realizada.
+
+Cada expediente detectado por una combinacion trata-estado se persiste con su
+`TipoDeteccion`: `Nuevo` (no existia localmente) o `Actualizado` (existia y la
+consulta detecto un cambio, tipicamente de estado). Las filas anteriores a esta
+distincion quedaron como `Nuevo` por default de migracion; para esas corridas los
+actualizados solo existen como contador.

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Configurations;
 
@@ -10,6 +11,7 @@ public sealed class EjecucionWorkerExpedienteDescubiertoConfiguration : IEntityT
     {
         builder.ToTable("WorkerDescubrimiento_ExpedientesDescubiertosPorEjecucionTrataEstado");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TipoDeteccion).HasDefaultValue(TipoDeteccionExpedienteDescubierto.Nuevo);
         builder.HasIndex(x => x.ExpedienteId);
         builder.HasIndex(x => new { x.EjecucionWorkerDescubrimientoTrataEstadoId, x.ExpedienteId }).IsUnique();
         builder.HasOne(x => x.Expediente)
