@@ -41,6 +41,7 @@ public sealed class ConfiguracionDatosWorkerService : IConfiguracionDatosWorkerS
                 .Select(x => new ConfiguracionTemaWorkerDto(x.TemaExpedienteId, x.Habilitado, x.Prioridad)).ToArray(),
             ProcesoWorker.EnriquecimientoDetalleDocumental => (await _configuracionEnriquecimientoTemaRepository.Query().SelectAsync(cancellationToken))
                 .Select(x => new ConfiguracionTemaWorkerDto(x.TemaExpedienteId, x.Habilitado, x.Prioridad)).ToArray(),
+            ProcesoWorker.ExpedienteDetallado => Array.Empty<ConfiguracionTemaWorkerDto>(),
             _ => throw new InvalidOperationException("El proceso de Worker no está soportado.")
         };
         var tratas = proceso == ProcesoWorker.DescubrimientoExpedientes

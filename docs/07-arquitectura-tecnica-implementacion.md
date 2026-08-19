@@ -255,6 +255,17 @@ Al arrancar, cada Worker cierra ademas las ejecuciones de su proceso que quedaro
 
 Las ordenes manuales siguen el ciclo de vida definido en `10-diseno-pantallas-workers.md`. Una solicitud puede crearse con un horario de inicio (`FechaInicioProgramada`, estado `Programada`): al tomar solicitudes, el Worker encola primero las programadas cuyo horario ya llego, en la misma unidad de trabajo. Una solicitud que el Worker todavia no tomo puede cancelarse (`Cancelada`, con usuario y fecha de cancelacion). La corrida programada diaria de descubrimiento puede omitirse por fecha mediante `Worker_OmisionesCorridaProgramada`; si existe la omision del dia, el Worker registra una ejecucion `Omitida` que menciona al operador y no consume cuota. Los procesos por intervalo no admiten omision: se pausan deshabilitando su configuracion programada.
 
+El worker `ExpedienteDetallado` cierra el eslabon faltante del pipeline: detalla
+de forma programada los expedientes descubiertos cuyo historial nunca fue
+consultado a GDEBA, completando por orden de deteccion del mas viejo al mas
+nuevo. No tiene alcance de datos configurable ni control de cuota: el lote por
+intervalo es el unico regulador y las invocaciones quedan registradas por el
+modulo transversal. No agrega logica de consulta: `ExpedienteDetalladoWorkerService`
+selecciona los candidatos y delega cada uno en `IExpedienteService.ObtenerCompletoAsync`
+con origen `WorkerProgramado` (el origen viaja opcionalmente en los requests del
+caso de uso y cae en `Interactiva`/`RefrescoManual` cuando no se indica). El
+detalle de diseno esta en `10-diseno-pantallas-workers.md`.
+
 La pantalla de ejecuciones se alimenta con `GET /api/gdeba/workers/{proceso}/panel`, resuelto por `IPanelEjecucionesWorkerReadStore` (read model de solo lectura, en `Workers/ReadStores`): devuelve la configuracion programada, la proyeccion de la corrida automatica (`Proyectada`, `EjecutadaHoy`, `OmitidaHoy` o `Pausada`, con la proxima corrida calculada de politica mas historial), las ordenes manuales vivas, las ejecuciones del dia y el historico. La corrida automatica no se materializa como registro; la proyeccion se calcula en Application para que pantalla y Workers compartan la misma regla. El panel por proceso reemplazo al monitoreo global `GET /api/gdeba/workers`, que fue retirado junto con su consulta en Application al quedar sin consumidores.
 
 La logica reutilizable de enriquecer el detalle de un documento no vive en el Worker. Esta en Application mediante `IDocumentoDetailEnrichmentService`, que expone una operacion unitaria por documento y una operacion por lote de pendientes. Ambas terminan aplicando reglas del aggregate `DocumentoGdeba`.

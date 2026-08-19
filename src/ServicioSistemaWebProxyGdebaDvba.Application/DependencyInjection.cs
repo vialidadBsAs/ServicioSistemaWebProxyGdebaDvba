@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IConfiguracionProgramadaWorkerService, ConfiguracionProgramadaWorkerService>();
         services.AddScoped<IConfiguracionDatosWorkerService, ConfiguracionDatosWorkerService>();
         services.AddScoped<IOmisionCorridaProgramadaWorkerService, OmisionCorridaProgramadaWorkerService>();
+        services.AddScoped<IExpedienteDetalladoWorkerService, ExpedienteDetalladoWorkerService>();
         services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         return services;
@@ -72,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IConfiguracionProgramadaWorkerService, ConfiguracionProgramadaWorkerService>();
         services.AddScoped<IConfiguracionDatosWorkerService, ConfiguracionDatosWorkerService>();
         services.AddScoped<IOmisionCorridaProgramadaWorkerService, OmisionCorridaProgramadaWorkerService>();
+        services.AddScoped<IExpedienteDetalladoWorkerService, ExpedienteDetalladoWorkerService>();
         services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;

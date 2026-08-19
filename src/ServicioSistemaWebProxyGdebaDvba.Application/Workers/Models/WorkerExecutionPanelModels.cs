@@ -18,6 +18,7 @@ public sealed record ConsultaPanelEjecucionesWorkerResult(
     ProcesoWorker Proceso,
     ConfiguracionProgramadaWorkerDto Configuracion,
     ProyeccionCorridaAutomaticaDto CorridaAutomatica,
+    int? PendientesDeProceso,
     IReadOnlyCollection<SolicitudEjecucionWorkerDto> OrdenesManualesVivas,
     IReadOnlyCollection<EjecucionWorkerDto> EjecucionesDelDia,
     IReadOnlyCollection<EjecucionWorkerDto> Historico);

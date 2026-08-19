@@ -16,6 +16,7 @@ public sealed record PanelEjecucionesWorkerResponse(
     string Proceso,
     ConfiguracionProgramadaWorkerResponse Configuracion,
     ProyeccionCorridaAutomaticaResponse CorridaAutomatica,
+    int? PendientesDeProceso,
     IReadOnlyCollection<SolicitudEjecucionWorkerResponse> OrdenesManualesVivas,
     IReadOnlyCollection<EjecucionWorkerResponse> EjecucionesDelDia,
     IReadOnlyCollection<EjecucionWorkerResponse> Historico)
@@ -26,6 +27,7 @@ public sealed record PanelEjecucionesWorkerResponse(
             resultado.Proceso.ToString(),
             ConfiguracionProgramadaWorkerResponse.Create(resultado.Configuracion),
             ProyeccionCorridaAutomaticaResponse.Create(resultado.CorridaAutomatica),
+            resultado.PendientesDeProceso,
             resultado.OrdenesManualesVivas.Select(SolicitudEjecucionWorkerResponse.Create).ToArray(),
             resultado.EjecucionesDelDia.Select(EjecucionWorkerResponse.Create).ToArray(),
             resultado.Historico.Select(EjecucionWorkerResponse.Create).ToArray());

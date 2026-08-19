@@ -31,10 +31,10 @@ public sealed class ConfiguracionProgramadaWorker : DomainEntity
     {
         if (cupoReservaDiaria < 0) throw new ArgumentOutOfRangeException(nameof(cupoReservaDiaria), "La reserva diaria no puede ser negativa.");
 
-        if (Proceso == ProcesoWorker.EnriquecimientoDetalleDocumental)
+        if (Proceso is ProcesoWorker.EnriquecimientoDetalleDocumental or ProcesoWorker.ExpedienteDetallado)
         {
-            if (intervaloMinutos is null or < 1) throw new ArgumentOutOfRangeException(nameof(intervaloMinutos), "El intervalo documental debe ser mayor a cero.");
-            if (tamanoLote is null or < 1) throw new ArgumentOutOfRangeException(nameof(tamanoLote), "El tamaño de lote documental debe ser mayor a cero.");
+            if (intervaloMinutos is null or < 1) throw new ArgumentOutOfRangeException(nameof(intervaloMinutos), "El intervalo debe ser mayor a cero.");
+            if (tamanoLote is null or < 1) throw new ArgumentOutOfRangeException(nameof(tamanoLote), "El tamaño de lote debe ser mayor a cero.");
             consultasVaciasParaPausa = null;
             diasPausaSinResultados = null;
             omitirConsultasRealizadasEnElDia = false;

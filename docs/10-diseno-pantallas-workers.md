@@ -138,7 +138,36 @@ Se conserva sin cambios el modelo de `EjecucionWorker` y sus resultados por
 trata-estado, la politica persistida en `Worker_ConfiguracionesProgramadas` y la
 resistencia a reinicios documentada en `07-arquitectura-tecnica-implementacion.md`.
 
-## 8. Referencias
+## 8. Worker Expediente Detallado
+
+Cierra el eslabon faltante del pipeline de datos: el descubrimiento crea
+cabeceras de expedientes, el enriquecimiento completa documentos ya conocidos,
+pero la documentacion de un expediente descubierto solo se obtenia cuando un
+humano lo abria en pantalla. Este worker detalla expedientes de forma programada.
+
+Definiciones acordadas:
+
+- **Proceso**: `ProcesoWorker.ExpedienteDetallado`. Programacion por intervalo
+  con lote, igual que el enriquecimiento documental (intervalo, tamano de lote,
+  ventana horaria, ejecutar al iniciar).
+- **Sin alcance de datos propio**: no se configura por temas ni tratas. Procesa
+  todos los expedientes descubiertos, completando por orden de deteccion, del
+  mas viejo al mas nuevo (`ExpedienteCacheControl.FechaPrimeraDeteccion`).
+- **Candidatos**: expedientes cuyo historial nunca fue consultado a GDEBA
+  (`HistorialExpedienteCacheControl` inexistente o sin `FechaUltimaConsultaGdeba`).
+  Los vencidos no se reconsultan: la actualizacion por prioridad del usuario se
+  disenara como un worker separado.
+- **Sin control de cuota**: no aplica limite diario ni reserva; el lote por
+  intervalo es el unico regulador. Las invocaciones GDEBA quedan registradas
+  igual por el modulo transversal de control de cuotas.
+- **Reuso**: no agrega logica de consulta. Delega en el caso de uso existente
+  `IExpedienteService.ObtenerCompletoAsync`, que invoca los dos servicios GDEBA
+  (`consultarExpedienteDetallado` y `buscarHistorialPasesExpediente`), consolida
+  documentos, movimientos y relaciones, y persiste con su control de cache. El
+  worker solo aporta la seleccion de candidatos, el ciclo programado y el
+  registro de la ejecucion, con origen `WorkerProgramado`.
+
+## 9. Referencias
 
 - Front Angular: repositorio `ConsultaExpedientes` (mismo directorio padre que este
   repositorio), feature `administracion`.

@@ -17,6 +17,7 @@ if (builder.Configuration.GetValue<bool>("Messaging:RabbitMq:Enabled"))
 }
 builder.Services.AddHostedService<DocumentoDetailEnrichmentWorker>();
 builder.Services.AddHostedService<DescubrimientoExpedientesWorker>();
+builder.Services.AddHostedService<ExpedienteDetalladoWorker>();
 
 var host = builder.Build();
 host.Run();

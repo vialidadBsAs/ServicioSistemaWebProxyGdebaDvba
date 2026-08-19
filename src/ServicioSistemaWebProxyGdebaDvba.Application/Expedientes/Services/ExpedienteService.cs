@@ -117,7 +117,7 @@ public sealed class ExpedienteService : IExpedienteService
             {
                 detalle = await _gdebaExpedienteGateway.ConsultarExpedienteDetalladoAsync(
                     numeroGdebaCompleto,
-                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh),
+                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh, request.Origen),
                     cancellationToken);
             }
             catch (GdebaOperationException ex)
@@ -234,7 +234,7 @@ public sealed class ExpedienteService : IExpedienteService
             {
                 historialGdeba = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
                     numeroGdebaCompleto,
-                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh),
+                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh, request.Origen),
                     cancellationToken);
             }
             catch (GdebaOperationException ex)
@@ -385,8 +385,8 @@ public sealed class ExpedienteService : IExpedienteService
         ObtenerExpedienteRecursoRequest request,
         CancellationToken cancellationToken)
     {
-        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCompleto), cancellationToken);
-        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCompleto), cancellationToken);
+        var detalle = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCompleto, request.Origen), cancellationToken);
+        var historial = await this.ConsultarMovimientosAsync(new ConsultarMovimientosExpedienteRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCompleto, request.Origen), cancellationToken);
         var expediente = await this.CargarExpedienteAsync(request.NumeroGdebaCompleto, cancellationToken);
 
         ExpedienteCompletoDto? completo = null;
@@ -568,12 +568,12 @@ public sealed class ExpedienteService : IExpedienteService
 
     #region Metodos privados del servicio
 
-    private static ContextoInvocacionGdeba CrearContextoInvocacion(bool forceRefresh)
+    private static ContextoInvocacionGdeba CrearContextoInvocacion(bool forceRefresh, OrigenInvocacionGdeba? origen)
     {
         return ContextoInvocacionGdeba.Crear(
-            forceRefresh
+            origen ?? (forceRefresh
                 ? OrigenInvocacionGdeba.RefrescoManual
-                : OrigenInvocacionGdeba.Interactiva);
+                : OrigenInvocacionGdeba.Interactiva));
     }
 
     private static string NormalizarRequerido(string? valor, string parameterName)

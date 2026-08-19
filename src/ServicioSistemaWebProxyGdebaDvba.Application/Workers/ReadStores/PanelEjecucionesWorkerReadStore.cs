@@ -1,5 +1,6 @@
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Models;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Worker;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
 using URF.Core.Abstractions;
@@ -12,17 +13,20 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
     private readonly IRepository<SolicitudEjecucionWorker> _solicitudRepository;
     private readonly IRepository<EjecucionWorker> _ejecucionRepository;
     private readonly IRepository<OmisionCorridaProgramadaWorker> _omisionRepository;
+    private readonly IRepository<Expediente> _expedienteRepository;
 
     public PanelEjecucionesWorkerReadStore(
         IRepository<ConfiguracionProgramadaWorker> configuracionRepository,
         IRepository<SolicitudEjecucionWorker> solicitudRepository,
         IRepository<EjecucionWorker> ejecucionRepository,
-        IRepository<OmisionCorridaProgramadaWorker> omisionRepository)
+        IRepository<OmisionCorridaProgramadaWorker> omisionRepository,
+        IRepository<Expediente> expedienteRepository)
     {
         _configuracionRepository = configuracionRepository;
         _solicitudRepository = solicitudRepository;
         _ejecucionRepository = ejecucionRepository;
         _omisionRepository = omisionRepository;
+        _expedienteRepository = expedienteRepository;
     }
 
     public async Task<ConsultaPanelEjecucionesWorkerResult> ConsultarAsync(ProcesoWorker proceso, int cantidadHistorico, CancellationToken cancellationToken)
@@ -68,11 +72,18 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
             .SingleOrDefault();
         OmisionCorridaProgramadaWorker? omisionDelDia = await _omisionRepository.Query().FirstOrDefaultAsync(x => x.Proceso == proceso && x.FechaLocal == hoy, cancellationToken);
 
+        int? pendientesDeProceso = proceso == ProcesoWorker.ExpedienteDetallado
+            ? await _expedienteRepository.Query()
+                .Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null)
+                .CountAsync(cancellationToken)
+            : null;
+
         ConfiguracionProgramadaWorkerDto configuracionDto = PanelEjecucionesWorkerReadStore.MapearConfiguracion(configuracion);
         return new ConsultaPanelEjecucionesWorkerResult(
             proceso,
             configuracionDto,
             PanelEjecucionesWorkerReadStore.ProyectarCorridaAutomatica(configuracionDto, ultimaCorridaAutomatica, omisionDelDia, ahora),
+            pendientesDeProceso,
             ordenesManualesVivas.Select(PanelEjecucionesWorkerReadStore.MapearSolicitud).ToArray(),
             ejecucionesDelDia.Select(x => PanelEjecucionesWorkerReadStore.MapearEjecucion(x, solicitudesPorId)).ToArray(),
             historico.Select(x => PanelEjecucionesWorkerReadStore.MapearEjecucion(x, solicitudesPorId)).ToArray());

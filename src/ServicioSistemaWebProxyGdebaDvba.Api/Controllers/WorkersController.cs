@@ -291,9 +291,9 @@ public sealed class WorkersController : ControllerBase
         {
             "descubrimiento-expedientes" => ProcesoWorker.DescubrimientoExpedientes,
             "enriquecimiento-documental" => ProcesoWorker.EnriquecimientoDetalleDocumental,
+            "expediente-detallado" => ProcesoWorker.ExpedienteDetallado,
             _ => default
         };
-        return value.Trim().Equals("descubrimiento-expedientes", StringComparison.OrdinalIgnoreCase) ||
-            value.Trim().Equals("enriquecimiento-documental", StringComparison.OrdinalIgnoreCase);
+        return proceso != default;
     }
 }
