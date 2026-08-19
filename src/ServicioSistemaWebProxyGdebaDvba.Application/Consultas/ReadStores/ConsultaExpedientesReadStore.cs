@@ -45,6 +45,26 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 (filtro.EstadosDetalle.Contains("Vencido") && x.HistorialCacheControl != null && x.HistorialCacheControl.EstaCompleto && (x.HistorialCacheControl.FechaVencimiento == null || x.HistorialCacheControl.FechaVencimiento <= filtro.FechaConsulta)) ||
                 (filtro.EstadosDetalle.Contains("Disponible") && x.HistorialCacheControl != null && x.HistorialCacheControl.EstaCompleto && x.HistorialCacheControl.FechaVencimiento != null && x.HistorialCacheControl.FechaVencimiento > filtro.FechaConsulta));
         }
+
+        if (filtro.NumerosExpediente.Count == 1)
+        {
+            string numeroExpedienteBuscado = filtro.NumerosExpediente.First();
+            query = query.Where(x => x.GdebaNumeroCompleto.Contains(numeroExpedienteBuscado));
+        }
+        else if (filtro.NumerosExpediente.Count > 1)
+        {
+            query = query.Where(x => filtro.NumerosExpediente.Contains(x.GdebaNumeroCompleto));
+        }
+
+        if (filtro.FechaUltimoMovimientoDesde is DateTimeOffset fechaMovimientoDesde)
+        {
+            query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion >= fechaMovimientoDesde);
+        }
+
+        if (filtro.FechaUltimoMovimientoHasta is DateTimeOffset fechaMovimientoHasta)
+        {
+            query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion < fechaMovimientoHasta);
+        }
         var totalRegistros = await query.CountAsync(cancellationToken);
         var queryOrdenada = filtro.CampoOrden switch
         {
@@ -92,21 +112,18 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             .Where(x => x.Expediente.TrataId.HasValue && filtro.TrataIds.Contains(x.Expediente.TrataId.Value));
         var vinculosResumen = await query.Include(x => x.Documento).SelectAsync(cancellationToken);
         var documentosResumen = vinculosResumen
-            .Select(x => new DocumentoResumenLocal(x.DocumentoId, x.ExpedienteId, x.Documento.TipoDocumentoCodigo, x.Documento.MetadataCompleta))
+            .Select(x => new DocumentoResumenLocal(x.DocumentoId, x.ExpedienteId, x.Documento.ActuacionTipoCodigo, x.Documento.TipoDocumentoCodigo, x.Documento.MetadataCompleta))
             .ToArray();
         var tiposPorCodigo = await this.CargarTiposPorCodigoAsync(documentosResumen.Select(x => x.CodigoTipoDocumento), cancellationToken);
         var resumenTipos = documentosResumen
-            .Select(x => ConsultaExpedientesReadStore.MapearResumenTipo(x, tiposPorCodigo))
-            .GroupBy(x => new { x.CodigoTipoDocumento, x.NombreTipoDocumento, x.FamiliaTipoDocumento })
-            .Select(x => new ConsultaTipoDocumentoResumenDto(
-                x.Key.CodigoTipoDocumento,
-                x.Key.NombreTipoDocumento,
-                x.Key.FamiliaTipoDocumento,
-                x.Select(item => item.DocumentoId).Distinct().Count(),
-                x.Select(item => item.ExpedienteId).Distinct().Count(),
-                x.Where(item => item.MetadataCompleta).Select(item => item.DocumentoId).Distinct().Count()))
+            .GroupBy(x => x.CodigoActuacion, StringComparer.OrdinalIgnoreCase)
+            .Select(grupo => new ConsultaTipoDocumentoResumenDto(
+                grupo.Key,
+                grupo.Select(item => item.DocumentoId).Distinct().Count(),
+                grupo.Select(item => item.ExpedienteId).Distinct().Count(),
+                grupo.Where(item => item.MetadataCompleta).Select(item => item.DocumentoId).Distinct().Count()))
             .OrderByDescending(x => x.CantidadDocumentos)
-            .ThenBy(x => x.NombreTipoDocumento ?? x.CodigoTipoDocumento ?? "Sin tipo documental")
+            .ThenBy(x => x.CodigoTipoDocumento)
             .ToArray();
         var tratas = await _trataRepository.Query().Where(x => filtro.TrataIds.Contains(x.Id)).SelectAsync(cancellationToken);
         var tratasPorId = tratas.ToDictionary(x => x.Id);
@@ -126,7 +143,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         }
 
         var queryDocumentos = query
-            .Where(x => x.Documento.TipoDocumentoCodigo == filtro.CodigoTipoDocumento)
+            .Where(x => x.Documento.ActuacionTipoCodigo == filtro.CodigoTipoDocumento)
             .Include(x => x.Documento)
             .Include(x => x.Expediente);
         if (filtro.NumerosExpediente.Count > 0) queryDocumentos = queryDocumentos.Where(x => filtro.NumerosExpediente.Contains(x.Expediente.GdebaNumeroCompleto));
@@ -237,27 +254,33 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
     private async Task<IReadOnlyDictionary<string, TipoDocumentoGdeba>> CargarTiposPorCodigoAsync(IEnumerable<string?> codigosTipoDocumento, CancellationToken cancellationToken)
     {
-        var codigos = codigosTipoDocumento
+        string[] codigos = codigosTipoDocumento
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x!.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         if (codigos.Length == 0) return new Dictionary<string, TipoDocumentoGdeba>(StringComparer.OrdinalIgnoreCase);
 
-        var tipos = await _tipoDocumentoRepository.Query().Where(x => codigos.Contains(x.Codigo)).SelectAsync(cancellationToken);
-        return tipos.ToDictionary(x => x.Codigo, StringComparer.OrdinalIgnoreCase);
-    }
+        IEnumerable<TipoDocumentoGdeba> tipos = await _tipoDocumentoRepository.Query()
+            .Where(x => codigos.Contains(x.Codigo) || (x.CodigoTipoDocumentoGdeba != null && codigos.Contains(x.CodigoTipoDocumentoGdeba)))
+            .SelectAsync(cancellationToken);
+        Dictionary<string, TipoDocumentoGdeba> tiposPorCodigo = new Dictionary<string, TipoDocumentoGdeba>(StringComparer.OrdinalIgnoreCase);
+        foreach (TipoDocumentoGdeba tipo in tipos)
+        {
+            tiposPorCodigo[tipo.Codigo] = tipo;
+        }
 
-    private static DocumentoResumenConTipo MapearResumenTipo(DocumentoResumenLocal documento, IReadOnlyDictionary<string, TipoDocumentoGdeba> tiposPorCodigo)
-    {
-        var tipo = BuscarTipoDocumento(documento.CodigoTipoDocumento, tiposPorCodigo);
-        return new DocumentoResumenConTipo(
-            documento.DocumentoId,
-            documento.ExpedienteId,
-            documento.CodigoTipoDocumento,
-            tipo?.Nombre,
-            tipo?.Familia,
-            documento.MetadataCompleta);
+        foreach (IGrouping<string, TipoDocumentoGdeba> grupoActuacion in tipos
+            .Where(x => !string.IsNullOrWhiteSpace(x.CodigoTipoDocumentoGdeba))
+            .GroupBy(x => x.CodigoTipoDocumentoGdeba!, StringComparer.OrdinalIgnoreCase))
+        {
+            if (grupoActuacion.Count() == 1 && !tiposPorCodigo.ContainsKey(grupoActuacion.Key))
+            {
+                tiposPorCodigo[grupoActuacion.Key] = grupoActuacion.Single();
+            }
+        }
+
+        return tiposPorCodigo;
     }
 
     private static ConsultaDocumentoPorTrataDto MapearDocumento(
@@ -303,7 +326,5 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             : historial.FechaVencimiento is null || historial.FechaVencimiento <= fechaConsulta ? "Vencido" : "Disponible";
     }
 
-    private sealed record DocumentoResumenLocal(Guid DocumentoId, Guid ExpedienteId, string? CodigoTipoDocumento, bool MetadataCompleta);
-
-    private sealed record DocumentoResumenConTipo(Guid DocumentoId, Guid ExpedienteId, string? CodigoTipoDocumento, string? NombreTipoDocumento, string? FamiliaTipoDocumento, bool MetadataCompleta);
+    private sealed record DocumentoResumenLocal(Guid DocumentoId, Guid ExpedienteId, string CodigoActuacion, string? CodigoTipoDocumento, bool MetadataCompleta);
 }

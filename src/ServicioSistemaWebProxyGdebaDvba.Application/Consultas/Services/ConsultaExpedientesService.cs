@@ -22,7 +22,7 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         var tamanioPagina = Math.Clamp(request.TamanioPagina, 1, 100);
         var campoOrden = request.CampoOrden?.Trim() switch { "numeroGdebaCompleto" or "codigoTrata" or "descripcionTrata" or "estadoActual" or "fechaUltimoMovimiento" or "estadoDetalle" => request.CampoOrden.Trim(), _ => "fechaUltimoMovimiento" };
         var descendente = !string.Equals(request.DireccionOrden, "asc", StringComparison.OrdinalIgnoreCase);
-        return await _consultaExpedientesReadStore.ConsultarAsync(new ConsultaExpedientesFiltro(trataIds, pagina, tamanioPagina, DateTimeOffset.Now, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.EstadosActuales), ConsultaExpedientesService.Normalizar(request.EstadosDetalle)), cancellationToken);
+        return await _consultaExpedientesReadStore.ConsultarAsync(new ConsultaExpedientesFiltro(trataIds, pagina, tamanioPagina, DateTimeOffset.Now, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.EstadosActuales), ConsultaExpedientesService.Normalizar(request.EstadosDetalle), ConsultaExpedientesService.Normalizar(request.NumerosExpediente), request.FechaUltimoMovimientoDesde, request.FechaUltimoMovimientoHasta), cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroAsync(ConsultaExpedientesValoresFiltroRequest request, CancellationToken cancellationToken)

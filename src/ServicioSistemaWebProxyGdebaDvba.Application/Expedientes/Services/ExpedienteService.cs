@@ -812,7 +812,7 @@ public sealed class ExpedienteService : IExpedienteService
 
     private async Task<IReadOnlyDictionary<string, string>> CargarNombresTiposDocumentoAsync(Expediente expediente, CancellationToken cancellationToken)
     {
-        var codigosTipoDocumento = expediente.Documentos
+        string[] codigosTipoDocumento = expediente.Documentos
             .Select(x => x.Documento.TipoDocumentoCodigo)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x!.Trim())
@@ -824,11 +824,26 @@ public sealed class ExpedienteService : IExpedienteService
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        var tiposDocumento = await _tipoDocumentoRepository.Query()
-            .Where(x => codigosTipoDocumento.Contains(x.Codigo))
+        IEnumerable<TipoDocumentoGdeba> tiposDocumento = await _tipoDocumentoRepository.Query()
+            .Where(x => codigosTipoDocumento.Contains(x.Codigo) || (x.CodigoTipoDocumentoGdeba != null && codigosTipoDocumento.Contains(x.CodigoTipoDocumentoGdeba)))
             .SelectAsync(cancellationToken);
+        Dictionary<string, string> nombresPorCodigo = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (TipoDocumentoGdeba tipoDocumento in tiposDocumento)
+        {
+            nombresPorCodigo[tipoDocumento.Codigo] = tipoDocumento.Nombre;
+        }
 
-        return tiposDocumento.ToDictionary(x => x.Codigo, x => x.Nombre, StringComparer.OrdinalIgnoreCase);
+        foreach (IGrouping<string, TipoDocumentoGdeba> grupoActuacion in tiposDocumento
+            .Where(x => !string.IsNullOrWhiteSpace(x.CodigoTipoDocumentoGdeba))
+            .GroupBy(x => x.CodigoTipoDocumentoGdeba!, StringComparer.OrdinalIgnoreCase))
+        {
+            if (grupoActuacion.Count() == 1 && !nombresPorCodigo.ContainsKey(grupoActuacion.Key))
+            {
+                nombresPorCodigo[grupoActuacion.Key] = grupoActuacion.Single().Nombre;
+            }
+        }
+
+        return nombresPorCodigo;
     }
 
     private static ExpedienteDetalladoDto Mapear(
