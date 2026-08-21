@@ -34,11 +34,15 @@ public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
     public async Task<IReadOnlyCollection<TrataHabilitadaVialidadDto>> ObtenerTratasHabilitadasAsync(CancellationToken cancellationToken)
     {
         var tratas = await _trataRepository.Query()
-            .OrderBy(x => x.CodigoTrata)
-            .ThenBy(x => x.CodigoReparticion)
             .SelectAsync(cancellationToken);
 
-        return tratas.Select(TemaExpedienteAdminService.MapearTrata).ToArray();
+        // El mismo codigo puede estar habilitado desde varias reparticiones; para asignar a temas se ofrece una sola vez, con su fila representante.
+        return tratas
+            .GroupBy(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)
+            .Select(x => TrataHabilitadaVialidad.ElegirRepresentantePorCodigo(x))
+            .OrderBy(x => x.CodigoTrata)
+            .Select(TemaExpedienteAdminService.MapearTrata)
+            .ToArray();
     }
 
     public async Task<TemaExpedienteDto> CrearTemaAsync(GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)

@@ -195,10 +195,13 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             .Concat(asignacionesTemas.Select(x => x.TrataHabilitadaVialidad.CodigoTrata.Trim().ToUpperInvariant()))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        var tratasHabilitadasPorCodigo = (await _trataHabilitadaVialidadRepository.Query()
-                .Where(x => codigosTrataConfigurados.Contains(x.CodigoTrata))
-                .SelectAsync(cancellationToken))
-            .ToDictionary(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase);
+        // El catalogo admite el mismo codigo de trata habilitado desde varias reparticiones; el descubrimiento trabaja por codigo con una fila representante.
+        IEnumerable<TrataHabilitadaVialidad> tratasHabilitadasConfiguradas = await _trataHabilitadaVialidadRepository.Query()
+            .Where(x => codigosTrataConfigurados.Contains(x.CodigoTrata))
+            .SelectAsync(cancellationToken);
+        Dictionary<string, TrataHabilitadaVialidad> tratasHabilitadasPorCodigo = tratasHabilitadasConfiguradas
+            .GroupBy(x => x.CodigoTrata.Trim().ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, TrataHabilitadaVialidad.ElegirRepresentantePorCodigo, StringComparer.OrdinalIgnoreCase);
         var tratasPorCodigo = new Dictionary<string, TrataDescubrimientoProgramado>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var asignacion in asignacionesTemas)
@@ -222,7 +225,10 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             }
             else
             {
-                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(asignacion.TrataHabilitadaVialidad.Id, codigoTrata, prioridadTema, prioridadTrata));
+                Guid trataId = tratasHabilitadasPorCodigo.TryGetValue(codigoTrata, out TrataHabilitadaVialidad? representante)
+                    ? representante.Id
+                    : asignacion.TrataHabilitadaVialidad.Id;
+                tratasPorCodigo.Add(codigoTrata, new TrataDescubrimientoProgramado(trataId, codigoTrata, prioridadTema, prioridadTrata));
             }
         }
 

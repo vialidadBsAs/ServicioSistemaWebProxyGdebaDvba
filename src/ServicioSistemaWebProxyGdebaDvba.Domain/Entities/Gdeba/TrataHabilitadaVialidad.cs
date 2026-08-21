@@ -104,6 +104,15 @@ public sealed class TrataHabilitadaVialidad : DomainEntity
         TipoReservaDescripcionTipoReserva = Normalizar(tipoReservaDescripcionTipoReserva);
     }
 
+    public static TrataHabilitadaVialidad ElegirRepresentantePorCodigo(IEnumerable<TrataHabilitadaVialidad> tratasDelMismoCodigo)
+    {
+        // El mismo codigo puede estar habilitado desde varias reparticiones (permisos de caratulacion); para consultar prima la reparticion propia (igual al organismo) y luego el orden alfabetico para mantener determinismo.
+        return tratasDelMismoCodigo
+            .OrderByDescending(x => string.Equals(x.CodigoReparticion, x.CodigoOrganismo, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(x => x.CodigoReparticion, StringComparer.OrdinalIgnoreCase)
+            .First();
+    }
+
     private static string NormalizarRequerido(string value, string paramName)
     {
         return string.IsNullOrWhiteSpace(value)
