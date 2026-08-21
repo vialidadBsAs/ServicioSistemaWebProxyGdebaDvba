@@ -19,11 +19,17 @@ public sealed class ConsultasExpedientesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ConsultaExpedientesResult>> Consultar([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] string[]? estadosDetalle = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] DateTimeOffset? fechaUltimoMovimientoDesde = null, [FromQuery] DateTimeOffset? fechaUltimoMovimientoHasta = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaExpedientesResult>> Consultar([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] string[]? estadosDetalle = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] DateTimeOffset? fechaUltimoMovimientoDesde = null, [FromQuery] DateTimeOffset? fechaUltimoMovimientoHasta = null, [FromQuery] string? caratula = null, CancellationToken cancellationToken = default)
     {
-        if (trataIds is null || trataIds.Length == 0) return this.BadRequest("Debe seleccionar al menos una trata.");
+        if ((trataIds is null || trataIds.Length == 0) && string.IsNullOrWhiteSpace(caratula)) return this.BadRequest("Debe seleccionar al menos una trata.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, campoOrden, direccionOrden, codigosTrata, estadosActuales, estadosDetalle, numerosExpediente, fechaUltimoMovimientoDesde, fechaUltimoMovimientoHasta), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, campoOrden, direccionOrden, codigosTrata, estadosActuales, estadosDetalle, numerosExpediente, fechaUltimoMovimientoDesde, fechaUltimoMovimientoHasta, caratula), cancellationToken));
+    }
+
+    [HttpGet("cobertura-detalle")]
+    public async Task<ActionResult<ConsultaCoberturaDetalleResult>> ConsultarCoberturaDetalle([FromQuery] Guid[]? trataIds, CancellationToken cancellationToken = default)
+    {
+        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaDetalleAsync(trataIds, cancellationToken));
     }
 
     [HttpGet("valores-filtro")]

@@ -16,13 +16,20 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
     public async Task<ConsultaExpedientesResult> ConsultarAsync(ConsultaExpedientesRequest request, CancellationToken cancellationToken)
     {
         var trataIds = (request.TrataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
-        if (trataIds.Length == 0) throw new ArgumentException("Debe seleccionar al menos una trata.", nameof(request));
+        if (trataIds.Length == 0 && string.IsNullOrWhiteSpace(request.Caratula)) throw new ArgumentException("Debe seleccionar al menos una trata.", nameof(request));
 
         var pagina = Math.Max(request.Pagina, 1);
         var tamanioPagina = Math.Clamp(request.TamanioPagina, 1, 100);
         var campoOrden = request.CampoOrden?.Trim() switch { "numeroGdebaCompleto" or "codigoTrata" or "descripcionTrata" or "estadoActual" or "fechaUltimoMovimiento" or "estadoDetalle" => request.CampoOrden.Trim(), _ => "fechaUltimoMovimiento" };
         var descendente = !string.Equals(request.DireccionOrden, "asc", StringComparison.OrdinalIgnoreCase);
-        return await _consultaExpedientesReadStore.ConsultarAsync(new ConsultaExpedientesFiltro(trataIds, pagina, tamanioPagina, DateTimeOffset.Now, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.EstadosActuales), ConsultaExpedientesService.Normalizar(request.EstadosDetalle), ConsultaExpedientesService.Normalizar(request.NumerosExpediente), request.FechaUltimoMovimientoDesde, request.FechaUltimoMovimientoHasta), cancellationToken);
+        string? caratula = string.IsNullOrWhiteSpace(request.Caratula) ? null : request.Caratula.Trim();
+        return await _consultaExpedientesReadStore.ConsultarAsync(new ConsultaExpedientesFiltro(trataIds, pagina, tamanioPagina, DateTimeOffset.Now, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.EstadosActuales), ConsultaExpedientesService.Normalizar(request.EstadosDetalle), ConsultaExpedientesService.Normalizar(request.NumerosExpediente), request.FechaUltimoMovimientoDesde, request.FechaUltimoMovimientoHasta, caratula), cancellationToken);
+    }
+
+    public async Task<ConsultaCoberturaDetalleResult> ConsultarCoberturaDetalleAsync(IReadOnlyCollection<Guid>? trataIds, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsValidos = (trataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
+        return await _consultaExpedientesReadStore.ConsultarCoberturaDetalleAsync(trataIdsValidos, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroAsync(ConsultaExpedientesValoresFiltroRequest request, CancellationToken cancellationToken)

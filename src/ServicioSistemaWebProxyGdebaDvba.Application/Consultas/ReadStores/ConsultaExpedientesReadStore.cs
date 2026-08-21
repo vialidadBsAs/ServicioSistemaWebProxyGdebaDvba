@@ -35,7 +35,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
     public async Task<ConsultaExpedientesResult> ConsultarAsync(ConsultaExpedientesFiltro filtro, CancellationToken cancellationToken)
     {
-        var query = _expedienteRepository.Query().Where(x => x.TrataId.HasValue && filtro.TrataIds.Contains(x.TrataId.Value));
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(filtro.TrataIds, cancellationToken);
+        var query = _expedienteRepository.Query().Where(x => x.TrataId.HasValue);
+        if (trataIdsConsulta.Length > 0) query = query.Where(x => trataIdsConsulta.Contains(x.TrataId!.Value));
         if (filtro.CodigosTrata.Count > 0) query = query.Where(x => filtro.CodigosTrata.Contains(x.Trata!.CodigoTrata));
         if (filtro.EstadosActuales.Count > 0) query = query.Where(x => x.EstadoActual != null && filtro.EstadosActuales.Contains(x.EstadoActual));
         if (filtro.EstadosDetalle.Count > 0)
@@ -65,6 +67,12 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         {
             query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion < fechaMovimientoHasta);
         }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Caratula))
+        {
+            string caratulaBuscada = filtro.Caratula.Trim();
+            query = query.Where(x => x.DescripcionTramite != null && x.DescripcionTramite.Contains(caratulaBuscada));
+        }
         var totalRegistros = await query.CountAsync(cancellationToken);
         var queryOrdenada = filtro.CampoOrden switch
         {
@@ -92,7 +100,8 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             ? Array.Empty<MovimientoExpediente>()
             : await _movimientoRepository.Query().Where(x => ultimosMovimientosIds.Contains(x.Id)).SelectAsync(cancellationToken);
         var ultimosMovimientosPorId = ultimosMovimientos.ToDictionary(x => x.Id);
-        var tratas = await _trataRepository.Query().Where(x => filtro.TrataIds.Contains(x.Id)).SelectAsync(cancellationToken);
+        Guid[] trataIdsPagina = expedientes.Where(x => x.TrataId.HasValue).Select(x => x.TrataId!.Value).Distinct().ToArray();
+        var tratas = await _trataRepository.Query().Where(x => trataIdsPagina.Contains(x.Id)).SelectAsync(cancellationToken);
         var tratasPorId = tratas.ToDictionary(x => x.Id);
         var items = expedientes.Select(x => ConsultaExpedientesReadStore.MapearExpediente(
             x,
@@ -108,8 +117,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
     public async Task<ConsultaDocumentosPorTrataResult> ConsultarDocumentosAsync(ConsultaDocumentosPorTrataFiltro filtro, CancellationToken cancellationToken)
     {
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(filtro.TrataIds, cancellationToken);
         var query = _expedienteDocumentoRepository.Query()
-            .Where(x => x.Expediente.TrataId.HasValue && filtro.TrataIds.Contains(x.Expediente.TrataId.Value));
+            .Where(x => x.Expediente.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente.TrataId.Value));
         var vinculosResumen = await query.Include(x => x.Documento).SelectAsync(cancellationToken);
         var documentosResumen = vinculosResumen
             .Select(x => new DocumentoResumenLocal(x.DocumentoId, x.ExpedienteId, x.Documento.ActuacionTipoCodigo, x.Documento.TipoDocumentoCodigo, x.Documento.MetadataCompleta))
@@ -125,7 +135,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             .OrderByDescending(x => x.CantidadDocumentos)
             .ThenBy(x => x.CodigoTipoDocumento)
             .ToArray();
-        var tratas = await _trataRepository.Query().Where(x => filtro.TrataIds.Contains(x.Id)).SelectAsync(cancellationToken);
+        var tratas = await _trataRepository.Query().Where(x => trataIdsConsulta.Contains(x.Id)).SelectAsync(cancellationToken);
         var tratasPorId = tratas.ToDictionary(x => x.Id);
         if (string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento))
         {
@@ -203,10 +213,11 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
     public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroAsync(IReadOnlyCollection<Guid> trataIds, string campo, DateTimeOffset fechaConsulta, CancellationToken cancellationToken)
     {
-        var query = _expedienteRepository.Query().Where(x => x.TrataId.HasValue && trataIds.Contains(x.TrataId.Value));
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(trataIds, cancellationToken);
+        var query = _expedienteRepository.Query().Where(x => x.TrataId.HasValue && trataIdsConsulta.Contains(x.TrataId.Value));
         if (campo == "codigoTrata")
         {
-            var tratas = await _trataRepository.Query().Where(x => trataIds.Contains(x.Id)).SelectAsync(cancellationToken);
+            var tratas = await _trataRepository.Query().Where(x => trataIdsConsulta.Contains(x.Id)).SelectAsync(cancellationToken);
             return tratas.Select(x => x.CodigoTrata).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToArray();
         }
 
@@ -226,6 +237,27 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         }
 
         return Array.Empty<string>();
+    }
+
+    public async Task<ConsultaCoberturaDetalleResult> ConsultarCoberturaDetalleAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(trataIds, cancellationToken);
+        var query = _expedienteRepository.Query().Where(x => x.TrataId.HasValue);
+        if (trataIdsConsulta.Length > 0) query = query.Where(x => trataIdsConsulta.Contains(x.TrataId!.Value));
+        int detallados = await query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.FechaUltimaConsultaGdeba != null).CountAsync(cancellationToken);
+        int sinDetallar = await query.Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null).CountAsync(cancellationToken);
+        return new ConsultaCoberturaDetalleResult(detallados, sinDetallar);
+    }
+
+    private async Task<Guid[]> ExpandirTrataIdsPorCodigoAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)
+    {
+        if (trataIds.Count == 0) return Array.Empty<Guid>();
+
+        // La seleccion de tratas es conceptualmente por codigo: el mismo codigo puede tener filas por reparticion y cada expediente conserva la de su caratulacion.
+        IEnumerable<TrataHabilitadaVialidad> tratasSeleccionadas = await _trataRepository.Query().Where(x => trataIds.Contains(x.Id)).SelectAsync(cancellationToken);
+        string[] codigos = tratasSeleccionadas.Select(x => x.CodigoTrata).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        IEnumerable<TrataHabilitadaVialidad> tratasDelCodigo = await _trataRepository.Query().Where(x => codigos.Contains(x.CodigoTrata)).SelectAsync(cancellationToken);
+        return tratasDelCodigo.Select(x => x.Id).Union(trataIds).ToArray();
     }
 
     private static ConsultaExpedienteDto MapearExpediente(
@@ -249,7 +281,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             trata.DescripcionTrata,
             expediente.EstadoActual,
             ultimoMovimiento?.FechaOperacion,
-            estadoDetalle);
+            estadoDetalle,
+            expediente.DescripcionTramite,
+            expediente.FechaCaratulacion);
     }
 
     private async Task<IReadOnlyDictionary<string, TipoDocumentoGdeba>> CargarTiposPorCodigoAsync(IEnumerable<string?> codigosTipoDocumento, CancellationToken cancellationToken)
