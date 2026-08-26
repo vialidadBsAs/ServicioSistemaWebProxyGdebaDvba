@@ -111,11 +111,11 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
 
     private async Task<IEnumerable<string>> ConsultarPendientesAsync(Expression<Func<Expediente, bool>> filtroTrata, int cantidad, CancellationToken cancellationToken)
     {
+        // El orden se expresa en una sola clave (anio y numero combinados) porque el ThenBy del wrapper de URF no llega al SQL y dejaria el orden dentro del anio indefinido.
         return (await _expedienteRepository.Query()
             .Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null)
             .Where(filtroTrata)
-            .OrderByDescending(x => x.GdebaAnio)
-            .ThenByDescending(x => x.GdebaNumero)
+            .OrderByDescending(x => (long)x.GdebaAnio * 100000000L + x.GdebaNumero)
             .Take(cantidad)
             .SelectAsync(cancellationToken))
             .Select(x => x.GdebaNumeroCompleto);
