@@ -18,20 +18,17 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
     private const string ServicioConsultaExpediente = "ws_gdeba_consultaExpediente";
 
     private readonly HttpClient _httpClient;
-    private readonly IGdebaJwtTokenProvider _tokenProvider;
     private readonly IRegistroInvocacionesGdeba _registroInvocaciones;
     private readonly IOptions<GdebaOptions> _options;
     private readonly ILogger<SoapGdebaExpedienteGateway> _logger;
 
     public SoapGdebaExpedienteGateway(
         HttpClient httpClient,
-        IGdebaJwtTokenProvider tokenProvider,
         IRegistroInvocacionesGdeba registroInvocaciones,
         IOptions<GdebaOptions> options,
         ILogger<SoapGdebaExpedienteGateway> logger)
     {
         _httpClient = httpClient;
-        _tokenProvider = tokenProvider;
         _registroInvocaciones = registroInvocaciones;
         _options = options;
         _logger = logger;
@@ -199,7 +196,6 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
         ContextoInvocacionGdeba contextoInvocacion,
         CancellationToken cancellationToken)
     {
-        var token = await _tokenProvider.ObtenerTokenAsync(cancellationToken);
         var endpoint = SoapGdebaExpedienteGateway.ResolveSoapEndpoint(serviceOptions);
         _logger.LogInformation(
             "Invocando operacion SOAP GDEBA {Operacion} en {Endpoint}.",
@@ -211,7 +207,6 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
             envelope);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         if (!string.IsNullOrWhiteSpace(operationContractOptions?.SoapAction))
         {
             request.Headers.Add("SOAPAction", operationContractOptions.SoapAction);

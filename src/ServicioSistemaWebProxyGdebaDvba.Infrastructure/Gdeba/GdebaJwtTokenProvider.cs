@@ -8,6 +8,13 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 
 internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
 {
+    // El cache es estatico porque el proveedor se registra como typed client transitorio; el token GDEBA dura ~2 minutos y sin cache cada llamada SOAP pagaria un viaje extra al endpoint JWT.
+    private static readonly SemaphoreSlim _renovacionToken = new(1, 1);
+    private static readonly TimeSpan _margenRenovacion = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan _vidaPredeterminada = TimeSpan.FromSeconds(90);
+    private static string? _tokenActual;
+    private static DateTimeOffset _tokenValidoHasta = DateTimeOffset.MinValue;
+
     private readonly HttpClient _httpClient;
     private readonly IOptions<GdebaOptions> _options;
 
@@ -18,6 +25,79 @@ internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
     }
 
     public async Task<string> ObtenerTokenAsync(CancellationToken cancellationToken)
+    {
+        string? tokenVigente = GdebaJwtTokenProvider.TokenVigente();
+        if (tokenVigente is not null)
+        {
+            return tokenVigente;
+        }
+
+        await _renovacionToken.WaitAsync(cancellationToken);
+        try
+        {
+            tokenVigente = GdebaJwtTokenProvider.TokenVigente();
+            if (tokenVigente is not null)
+            {
+                return tokenVigente;
+            }
+
+            string tokenNuevo = await this.SolicitarTokenAsync(cancellationToken);
+            TimeSpan vida = GdebaJwtTokenProvider.CalcularVida(tokenNuevo);
+            TimeSpan margen = vida > _margenRenovacion + _margenRenovacion ? _margenRenovacion : TimeSpan.FromTicks(vida.Ticks / 4);
+            _tokenActual = tokenNuevo;
+            _tokenValidoHasta = DateTimeOffset.Now + vida - margen;
+            return tokenNuevo;
+        }
+        finally
+        {
+            _renovacionToken.Release();
+        }
+    }
+
+    public void InvalidarToken()
+    {
+        _tokenActual = null;
+        _tokenValidoHasta = DateTimeOffset.MinValue;
+    }
+
+    private static string? TokenVigente()
+    {
+        return _tokenActual is not null && DateTimeOffset.Now < _tokenValidoHasta ? _tokenActual : null;
+    }
+
+    private static TimeSpan CalcularVida(string token)
+    {
+        // La vida se toma de exp-iat del propio JWT y se mide contra el reloj local, para no depender del reloj del emisor.
+        try
+        {
+            string[] partes = token.Split('.');
+            if (partes.Length < 2)
+            {
+                return _vidaPredeterminada;
+            }
+
+            string payload = partes[1].Replace('-', '+').Replace('_', '/');
+            payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+            using JsonDocument document = JsonDocument.Parse(Convert.FromBase64String(payload));
+            if (document.RootElement.TryGetProperty("exp", out JsonElement exp) &&
+                document.RootElement.TryGetProperty("iat", out JsonElement iat))
+            {
+                long segundos = exp.GetInt64() - iat.GetInt64();
+                if (segundos > 0)
+                {
+                    return TimeSpan.FromSeconds(segundos);
+                }
+            }
+
+            return _vidaPredeterminada;
+        }
+        catch (Exception ex) when (ex is FormatException or JsonException)
+        {
+            return _vidaPredeterminada;
+        }
+    }
+
+    private async Task<string> SolicitarTokenAsync(CancellationToken cancellationToken)
     {
         var environmentOptions = ResolveEnvironmentOptions();
         var jwtOptions = environmentOptions.Jwt;

@@ -17,17 +17,15 @@ public sealed class SoapGdebaTipoDocumentoGateway : IGdebaTipoDocumentoGateway
     private const string OperacionConsultarTipoDocumento = "consultarTipoDocumento";
 
     private readonly HttpClient _httpClient;
-    private readonly IGdebaJwtTokenProvider _tokenProvider;
     private readonly IRegistroInvocacionesGdeba _registroInvocaciones;
     private readonly IOptions<GdebaOptions> _options;
     private readonly ILogger<SoapGdebaTipoDocumentoGateway> _logger;
 
-    public SoapGdebaTipoDocumentoGateway(HttpClient httpClient, IGdebaJwtTokenProvider tokenProvider,
+    public SoapGdebaTipoDocumentoGateway(HttpClient httpClient,
         IRegistroInvocacionesGdeba registroInvocaciones, IOptions<GdebaOptions> options,
         ILogger<SoapGdebaTipoDocumentoGateway> logger)
     {
         _httpClient = httpClient;
-        _tokenProvider = tokenProvider;
         _registroInvocaciones = registroInvocaciones;
         _options = options;
         _logger = logger;
@@ -80,12 +78,10 @@ public sealed class SoapGdebaTipoDocumentoGateway : IGdebaTipoDocumentoGateway
     private async Task<XDocument> SendSoapAsync(SoapServiceOptions serviceOptions, GdebaSoapOperationContractOptions? operationContractOptions,
         string envelope, ContextoInvocacionGdeba contextoInvocacion, CancellationToken cancellationToken)
     {
-        var token = await _tokenProvider.ObtenerTokenAsync(cancellationToken);
         var endpoint = SoapGdebaTipoDocumentoGateway.ResolveSoapEndpoint(serviceOptions);
         _logger.LogInformation("Invocando operacion SOAP GDEBA {Operacion} en {Endpoint}.", OperacionConsultarTipoDocumento, endpoint);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         if (!string.IsNullOrWhiteSpace(operationContractOptions?.SoapAction))
         {
             request.Headers.Add("SOAPAction", operationContractOptions.SoapAction);
