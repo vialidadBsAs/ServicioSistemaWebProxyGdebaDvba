@@ -30,33 +30,45 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
         var esperaInformada = false;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var configuracion = await this.ObtenerConfiguracionAsync(stoppingToken);
-            var ejecutoSolicitudManual = await this.EjecutarSolicitudManualAsync(configuracion, stoppingToken);
-            var ahora = DateTimeOffset.Now;
-            var fecha = DateOnly.FromDateTime(ahora.LocalDateTime);
-            if (!ejecutoSolicitudManual && configuracion.Habilitado && fechaEjecutada != fecha && this.EstaDentroDeLaVentana(configuracion, ahora))
+            // Ninguna excepcion del ciclo debe tumbar el host (StopHost detendria los tres workers): se loguea y se continua en la proxima vuelta.
+            try
             {
-                if (await this.YaSeEjecutoCorridaProgramadaAsync(fecha, stoppingToken))
+                var configuracion = await this.ObtenerConfiguracionAsync(stoppingToken);
+                var ejecutoSolicitudManual = await this.EjecutarSolicitudManualAsync(configuracion, stoppingToken);
+                var ahora = DateTimeOffset.Now;
+                var fecha = DateOnly.FromDateTime(ahora.LocalDateTime);
+                if (!ejecutoSolicitudManual && configuracion.Habilitado && fechaEjecutada != fecha && this.EstaDentroDeLaVentana(configuracion, ahora))
                 {
-                    fechaEjecutada = fecha;
+                    if (await this.YaSeEjecutoCorridaProgramadaAsync(fecha, stoppingToken))
+                    {
+                        fechaEjecutada = fecha;
+                    }
+                    else if (await this.ObtenerOmisionDelDiaAsync(fecha, stoppingToken) is OmisionCorridaProgramadaDto omision)
+                    {
+                        await this.RegistrarCorridaOmitidaPorOperadorAsync(omision, stoppingToken);
+                        fechaEjecutada = fecha;
+                        esperaInformada = false;
+                    }
+                    else
+                    {
+                        await this.EjecutarCorridaProgramadaAsync(configuracion, fecha, stoppingToken);
+                        fechaEjecutada = fecha;
+                        esperaInformada = false;
+                    }
                 }
-                else if (await this.ObtenerOmisionDelDiaAsync(fecha, stoppingToken) is OmisionCorridaProgramadaDto omision)
+                else if (!esperaInformada)
                 {
-                    await this.RegistrarCorridaOmitidaPorOperadorAsync(omision, stoppingToken);
-                    fechaEjecutada = fecha;
-                    esperaInformada = false;
-                }
-                else
-                {
-                    await this.EjecutarCorridaProgramadaAsync(configuracion, fecha, stoppingToken);
-                    fechaEjecutada = fecha;
-                    esperaInformada = false;
+                    _logger.LogInformation("Worker de descubrimiento en espera. Habilitado={Habilitado}. HoraLocal={HoraLocal}. Ventana={HoraInicio}-{HoraFin}.", configuracion.Habilitado, ahora, configuracion.HoraInicioLocal, configuracion.HoraFinLocal);
+                    esperaInformada = true;
                 }
             }
-            else if (!esperaInformada)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker de descubrimiento en espera. Habilitado={Habilitado}. HoraLocal={HoraLocal}. Ventana={HoraInicio}-{HoraFin}.", configuracion.Habilitado, ahora, configuracion.HoraInicioLocal, configuracion.HoraFinLocal);
-                esperaInformada = true;
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error inesperado en el ciclo del worker de descubrimiento; el worker continua.");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);

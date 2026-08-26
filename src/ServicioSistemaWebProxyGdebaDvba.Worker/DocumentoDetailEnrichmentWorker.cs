@@ -35,19 +35,31 @@ public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var configuracion = await this.ObtenerConfiguracionAsync(stoppingToken);
-            var intervaloActual = this.ResolverIntervalo(configuracion);
-            if (intervaloActual != intervaloConfigurado)
+            // Ninguna excepcion del ciclo debe tumbar el host (StopHost detendria los tres workers): se loguea y se continua en la proxima vuelta.
+            try
             {
-                intervaloConfigurado = intervaloActual;
-                proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
-            }
+                var configuracion = await this.ObtenerConfiguracionAsync(stoppingToken);
+                var intervaloActual = this.ResolverIntervalo(configuracion);
+                if (intervaloActual != intervaloConfigurado)
+                {
+                    intervaloConfigurado = intervaloActual;
+                    proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+                }
 
-            var ejecutoSolicitudManual = await this.EjecutarSolicitudManualAsync(configuracion, stoppingToken);
-            if (!ejecutoSolicitudManual && configuracion.Habilitado && DateTimeOffset.Now >= proximaEjecucionProgramada)
+                var ejecutoSolicitudManual = await this.EjecutarSolicitudManualAsync(configuracion, stoppingToken);
+                if (!ejecutoSolicitudManual && configuracion.Habilitado && DateTimeOffset.Now >= proximaEjecucionProgramada)
+                {
+                    await this.EjecutarCorridaProgramadaAsync(configuracion, stoppingToken);
+                    proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                await this.EjecutarCorridaProgramadaAsync(configuracion, stoppingToken);
-                proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error inesperado en el ciclo del worker de enriquecimiento documental; el worker continua.");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);

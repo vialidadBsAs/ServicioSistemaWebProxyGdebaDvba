@@ -31,19 +31,31 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            ConfiguracionProgramadaWorkerDto configuracion = await this.ObtenerConfiguracionAsync(stoppingToken);
-            TimeSpan intervaloActual = this.ResolverIntervalo(configuracion);
-            if (intervaloActual != intervaloConfigurado)
+            // Ninguna excepcion del ciclo debe tumbar el host (StopHost detendria los tres workers): se loguea y se continua en la proxima vuelta.
+            try
             {
-                intervaloConfigurado = intervaloActual;
-                proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
-            }
+                ConfiguracionProgramadaWorkerDto configuracion = await this.ObtenerConfiguracionAsync(stoppingToken);
+                TimeSpan intervaloActual = this.ResolverIntervalo(configuracion);
+                if (intervaloActual != intervaloConfigurado)
+                {
+                    intervaloConfigurado = intervaloActual;
+                    proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+                }
 
-            bool ejecutoSolicitudManual = await this.EjecutarSolicitudManualAsync(configuracion, stoppingToken);
-            if (!ejecutoSolicitudManual && configuracion.Habilitado && DateTimeOffset.Now >= proximaEjecucionProgramada)
+                bool ejecutoSolicitudManual = await this.EjecutarSolicitudManualAsync(configuracion, stoppingToken);
+                if (!ejecutoSolicitudManual && configuracion.Habilitado && DateTimeOffset.Now >= proximaEjecucionProgramada)
+                {
+                    await this.EjecutarCorridaProgramadaAsync(configuracion, stoppingToken);
+                    proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                await this.EjecutarCorridaProgramadaAsync(configuracion, stoppingToken);
-                proximaEjecucionProgramada = DateTimeOffset.Now.Add(intervaloConfigurado);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error inesperado en el ciclo del worker de expediente detallado; el worker continua.");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
@@ -59,10 +71,8 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
 
         try
         {
-            IExpedienteDetalladoWorkerService expedienteDetalladoWorkerService = scope.ServiceProvider.GetRequiredService<IExpedienteDetalladoWorkerService>();
-            this.ConfigurarAplicacionActual(scope.ServiceProvider);
-            DetallarExpedientesPendientesResult resultado = await expedienteDetalladoWorkerService.DetallarPendientesAsync(Math.Max(1, configuracion.TamanoLote ?? 1), OrigenInvocacionGdeba.Administrativo, cancellationToken);
-            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: true), resultado.Procesados, resultado.Detallados, null, resultado.Errores, cancellationToken);
+            DetallarExpedientesPendientesResult resultado = await this.DetallarEnSubLotesAsync(Math.Max(1, configuracion.TamanoLote ?? 1), OrigenInvocacionGdeba.Administrativo, cancellationToken);
+            await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: true), resultado.Procesados, resultado.Detallados, resultado.Errores);
         }
         catch (OperationCanceledException)
         {
@@ -71,7 +81,7 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
         catch (Exception exception)
         {
             _logger.LogError(exception, "La solicitud manual de expediente detallado finalizo con error.");
-            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, "La ejecucion manual finalizo con error. Consulte el registro tecnico.", null, null, null, 1, CancellationToken.None);
+            await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, "La ejecucion manual finalizo con error. Consulte el registro tecnico.", null, null, 1);
         }
 
         return true;
@@ -90,10 +100,8 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
         EjecucionWorkerIniciada ejecucion = await ejecucionesWorker.IniciarEjecucionProgramadaAsync(ProcesoWorker.ExpedienteDetallado, cancellationToken);
         try
         {
-            IExpedienteDetalladoWorkerService expedienteDetalladoWorkerService = scope.ServiceProvider.GetRequiredService<IExpedienteDetalladoWorkerService>();
-            this.ConfigurarAplicacionActual(scope.ServiceProvider);
-            DetallarExpedientesPendientesResult resultado = await expedienteDetalladoWorkerService.DetallarPendientesAsync(Math.Max(1, configuracion.TamanoLote ?? 1), OrigenInvocacionGdeba.WorkerProgramado, cancellationToken);
-            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: false), resultado.Procesados, resultado.Detallados, null, resultado.Errores, cancellationToken);
+            DetallarExpedientesPendientesResult resultado = await this.DetallarEnSubLotesAsync(Math.Max(1, configuracion.TamanoLote ?? 1), OrigenInvocacionGdeba.WorkerProgramado, cancellationToken);
+            await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: false), resultado.Procesados, resultado.Detallados, resultado.Errores);
         }
         catch (OperationCanceledException)
         {
@@ -102,8 +110,45 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
         catch (Exception exception)
         {
             _logger.LogError(exception, "La corrida programada de expediente detallado finalizo con error.");
-            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, "La corrida programada finalizo con error. Consulte el registro tecnico.", null, null, null, 1, CancellationToken.None);
+            await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, "La corrida programada finalizo con error. Consulte el registro tecnico.", null, null, 1);
         }
+    }
+
+    private async Task<DetallarExpedientesPendientesResult> DetallarEnSubLotesAsync(int tamanoLote, OrigenInvocacionGdeba origen, CancellationToken cancellationToken)
+    {
+        // El lote se procesa en sub-lotes con scope y DbContext propios: la memoria no crece con el tamano del lote, el costo de cada guardado se mantiene constante y un contexto danado por un item no contamina el resto de la corrida.
+        const int TamanoSubLote = 50;
+        int procesados = 0;
+        int detallados = 0;
+        int errores = 0;
+        int pendientesRestantes = 0;
+        while (procesados < tamanoLote)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int cantidad = Math.Min(TamanoSubLote, tamanoLote - procesados);
+            using IServiceScope scope = _scopeFactory.CreateScope();
+            this.ConfigurarAplicacionActual(scope.ServiceProvider);
+            IExpedienteDetalladoWorkerService expedienteDetalladoWorkerService = scope.ServiceProvider.GetRequiredService<IExpedienteDetalladoWorkerService>();
+            DetallarExpedientesPendientesResult resultado = await expedienteDetalladoWorkerService.DetallarPendientesAsync(cantidad, origen, cancellationToken);
+            procesados += resultado.Procesados;
+            detallados += resultado.Detallados;
+            errores += resultado.Errores;
+            pendientesRestantes = resultado.PendientesRestantes;
+            if (resultado.Procesados < cantidad)
+            {
+                break;
+            }
+        }
+
+        return new DetallarExpedientesPendientesResult(procesados, detallados, errores, pendientesRestantes);
+    }
+
+    private async Task FinalizarEnScopeLimpioAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string resumen, int? procesados, int? detallados, int errores)
+    {
+        // La corrida comparte un DbContext que puede quedar con entidades invalidas tras un fallo de persistencia; el cierre de la ejecucion se confirma siempre en un contexto limpio.
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        IWorkerExecutionService ejecucionesWorker = scope.ServiceProvider.GetRequiredService<IWorkerExecutionService>();
+        await ejecucionesWorker.FinalizarEjecucionAsync(ejecucionId, estado, resumen, procesados, detallados, null, errores, CancellationToken.None);
     }
 
     private async Task<ConfiguracionProgramadaWorkerDto> ObtenerConfiguracionAsync(CancellationToken cancellationToken)
