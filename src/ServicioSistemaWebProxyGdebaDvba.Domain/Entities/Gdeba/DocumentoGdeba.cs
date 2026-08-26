@@ -122,8 +122,8 @@ public sealed partial class DocumentoGdeba : DomainEntity
         this.MarcarComoModificada();
         this.ActualizarNumeroEspecial(numeroEspecial);
         TipoDocumentoCodigo = Normalizar(tipoDocumentoCodigo);
-        TipoDocumentoNombre = Normalizar(tipoDocumentoNombre);
-        TipoDocumentoDescripcion = Normalizar(tipoDocumentoDescripcion);
+        TipoDocumentoNombre = Truncar(Normalizar(tipoDocumentoNombre), 200);
+        TipoDocumentoDescripcion = Truncar(Normalizar(tipoDocumentoDescripcion), 500);
         Referencia = Normalizar(referencia);
         FechaCreacion = fechaCreacion;
         ListaFirmantes = Normalizar(listaFirmantes);
@@ -158,5 +158,11 @@ public sealed partial class DocumentoGdeba : DomainEntity
     private static string? Normalizar(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string? Truncar(string? value, int longitudMaxima)
+    {
+        // GDEBA no acota estos textos y las columnas si; un valor mas largo tumbaria la persistencia completa del expediente.
+        return value is null || value.Length <= longitudMaxima ? value : value[..longitudMaxima];
     }
 }

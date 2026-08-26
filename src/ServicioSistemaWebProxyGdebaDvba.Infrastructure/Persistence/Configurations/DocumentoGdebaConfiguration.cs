@@ -35,9 +35,11 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
         builder.Property(x => x.TipoDocumentoCodigo).HasMaxLength(50);
         builder.Property(x => x.TipoDocumentoNombre).HasMaxLength(200);
         builder.Property(x => x.TipoDocumentoDescripcion).HasMaxLength(500);
-        builder.Property(x => x.Referencia).HasMaxLength(1000);
-        builder.Property(x => x.ListaFirmantes).HasMaxLength(4000);
-        builder.Property(x => x.UrlArchivo).HasMaxLength(1000);
+
+        // GDEBA no acota estos textos: se almacenan completos (nvarchar(max)).
+        builder.Property(x => x.Referencia);
+        builder.Property(x => x.ListaFirmantes);
+        builder.Property(x => x.UrlArchivo);
 
         builder.HasIndex(x => x.NumeroActuacionCompleto)
             .IsUnique();
