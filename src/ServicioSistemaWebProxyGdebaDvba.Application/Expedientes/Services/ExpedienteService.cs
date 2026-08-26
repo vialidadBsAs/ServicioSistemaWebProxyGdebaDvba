@@ -122,6 +122,14 @@ public sealed class ExpedienteService : IExpedienteService
             }
             catch (GdebaOperationException ex)
             {
+                // GDEBA rechazo el detalle (p. ej. "no existe en EE"): se marcan ambos controles con el error para que el worker no reintente indefinidamente; la cache queda incompleta, por lo que una consulta interactiva posterior vuelve a intentar contra GDEBA.
+                if (expediente is not null)
+                {
+                    this.MarcarDetalleConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
+                    this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
+                    this.RegistrarCambiosExpediente(expediente, esNuevo: false);
+                }
+
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw;
             }
@@ -239,6 +247,13 @@ public sealed class ExpedienteService : IExpedienteService
             }
             catch (GdebaOperationException ex)
             {
+                // GDEBA rechazo la operacion de pases (p. ej. historiales grandes): el control queda consultado con error para que el worker no reintente indefinidamente; la cache queda incompleta, por lo que una consulta interactiva posterior vuelve a intentar contra GDEBA.
+                if (expediente is not null)
+                {
+                    this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
+                    this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+                }
+
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw;
             }
