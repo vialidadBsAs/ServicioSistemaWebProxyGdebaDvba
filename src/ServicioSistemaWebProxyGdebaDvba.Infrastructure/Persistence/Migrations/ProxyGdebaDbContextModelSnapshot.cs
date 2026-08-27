@@ -599,6 +599,21 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("FechaUltimaConsultaGdeba")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("FechaUltimaNovedad")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FechaUltimaNovedadAdjuntos")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FechaUltimaNovedadCabecera")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FechaUltimaNovedadDocumentos")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FechaUltimaNovedadMovimientos")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("FechaVencimiento")
                         .HasColumnType("datetimeoffset");
 
@@ -977,6 +992,33 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.ToTable("IntegracionGdeba_Operaciones", (string)null);
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.PerfilUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UsuarioGdeba")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UsuarioInstitucional")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioGdeba")
+                        .IsUnique()
+                        .HasFilter("[UsuarioGdeba] IS NOT NULL");
+
+                    b.HasIndex("UsuarioInstitucional")
+                        .IsUnique();
+
+                    b.ToTable("Perfil_Usuarios", (string)null);
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.RegistroAuditoria", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1018,6 +1060,10 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("UsuarioInstitucional")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Fecha");
@@ -1025,6 +1071,34 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.HasIndex("AplicacionConsumidoraId", "OperacionSolicitada", "Fecha");
 
                     b.ToTable("Auditoria_Registros", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.SeguimientoExpediente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExpedienteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("FechaAgregado")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("FechaUltimaVista")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("PerfilUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpedienteId");
+
+                    b.HasIndex("PerfilUsuarioId", "ExpedienteId")
+                        .IsUnique();
+
+                    b.ToTable("Perfil_SeguimientosExpediente", (string)null);
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TemaExpediente", b =>
@@ -1808,6 +1882,25 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("AplicacionConsumidora");
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.SeguimientoExpediente", b =>
+                {
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Expediente", "Expediente")
+                        .WithMany()
+                        .HasForeignKey("ExpedienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.PerfilUsuario", "PerfilUsuario")
+                        .WithMany("Seguimientos")
+                        .HasForeignKey("PerfilUsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Expediente");
+
+                    b.Navigation("PerfilUsuario");
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TemaExpedienteTrata", b =>
                 {
                     b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TemaExpediente", "TemaExpediente")
@@ -1918,6 +2011,11 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.OperacionGdeba", b =>
                 {
                     b.Navigation("Invocaciones");
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.PerfilUsuario", b =>
+                {
+                    b.Navigation("Seguimientos");
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TemaExpediente", b =>

@@ -14,6 +14,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Workers.Services;
 public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorkerService
 {
     private readonly IRepository<Expediente> _expedienteRepository;
+    private readonly IRepository<SeguimientoExpediente> _seguimientoRepository;
     private readonly IRepository<ConfiguracionDescubrimientoTemaExpediente> _configuracionDescubrimientoTemaRepository;
     private readonly IRepository<ConfiguracionDescubrimientoTrataExpediente> _configuracionDescubrimientoTrataRepository;
     private readonly IRepository<TemaExpedienteTrata> _temaExpedienteTrataRepository;
@@ -23,6 +24,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
 
     public ExpedienteDetalladoWorkerService(
         IRepository<Expediente> expedienteRepository,
+        IRepository<SeguimientoExpediente> seguimientoRepository,
         IRepository<ConfiguracionDescubrimientoTemaExpediente> configuracionDescubrimientoTemaRepository,
         IRepository<ConfiguracionDescubrimientoTrataExpediente> configuracionDescubrimientoTrataRepository,
         IRepository<TemaExpedienteTrata> temaExpedienteTrataRepository,
@@ -31,6 +33,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         ILogger<ExpedienteDetalladoWorkerService> logger)
     {
         _expedienteRepository = expedienteRepository;
+        _seguimientoRepository = seguimientoRepository;
         _configuracionDescubrimientoTemaRepository = configuracionDescubrimientoTemaRepository;
         _configuracionDescubrimientoTrataRepository = configuracionDescubrimientoTrataRepository;
         _temaExpedienteTrataRepository = temaExpedienteTrataRepository;
@@ -41,17 +44,18 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
 
     public async Task<DetallarExpedientesPendientesResult> DetallarPendientesAsync(int tamanoLote, OrigenInvocacionGdeba origen, CancellationToken cancellationToken)
     {
-        string[] numerosPendientes = await this.SeleccionarPendientesAsync(Math.Max(1, tamanoLote), cancellationToken);
+        List<PendienteSeleccionado> pendientes = await this.SeleccionarPendientesAsync(Math.Max(1, tamanoLote), cancellationToken);
 
         int detallados = 0;
         int errores = 0;
-        foreach (string numeroExpediente in numerosPendientes)
+        foreach (PendienteSeleccionado pendiente in pendientes)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            string numeroExpediente = pendiente.NumeroGdebaCompleto;
             try
             {
                 ObtenerExpedienteRecursoResult<ExpedienteCompletoDto> resultado = await _expedienteService.ObtenerCompletoAsync(
-                    new ObtenerExpedienteRecursoRequest(numeroExpediente, ForceRefresh: false, Origen: origen), cancellationToken);
+                    new ObtenerExpedienteRecursoRequest(numeroExpediente, ForceRefresh: pendiente.ForceRefresh, Origen: origen), cancellationToken);
                 if (resultado.Exitoso)
                 {
                     detallados++;
@@ -75,38 +79,78 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         int pendientesRestantes = await _expedienteRepository.Query()
             .Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null)
             .CountAsync(cancellationToken);
-        return new DetallarExpedientesPendientesResult(numerosPendientes.Length, detallados, errores, pendientesRestantes);
+        return new DetallarExpedientesPendientesResult(pendientes.Count, detallados, errores, pendientesRestantes);
     }
 
-    private async Task<string[]> SeleccionarPendientesAsync(int tamanoLote, CancellationToken cancellationToken)
+    private async Task<List<PendienteSeleccionado>> SeleccionarPendientesAsync(int tamanoLote, CancellationToken cancellationToken)
     {
-        // El lote se llena por prioridad de trata (la misma configuracion del descubrimiento) y, dentro de cada grupo, del caratulado mas nuevo al mas viejo; anio y numero GDEBA reflejan el orden de caratulacion porque la fecha explicita recien llega con el detalle.
+        List<PendienteSeleccionado> seleccion = new(tamanoLote);
+        HashSet<string> numerosSeleccionados = new(StringComparer.OrdinalIgnoreCase);
+
+        // Fase 0: expedientes seguidos por alguna persona cuya ultima consulta es anterior al dia de hoy — la actualizacion diaria por prioridad de usuario. ForceRefresh saltea la vigencia de la cache.
+        DateTimeOffset inicioDelDia = new(DateTime.Today, DateTimeOffset.Now.Offset);
+        IEnumerable<SeguimientoExpediente> seguimientosVencidos = await _seguimientoRepository.Query()
+            .Include(nameof(SeguimientoExpediente.Expediente))
+            .Where(x => x.Expediente.HistorialCacheControl == null || x.Expediente.HistorialCacheControl.FechaUltimaConsultaGdeba == null || x.Expediente.HistorialCacheControl.FechaUltimaConsultaGdeba < inicioDelDia)
+            .SelectAsync(cancellationToken);
+        foreach (Expediente seguido in seguimientosVencidos
+            .Select(x => x.Expediente)
+            .DistinctBy(x => x.Id)
+            .OrderByDescending(x => (long)x.GdebaAnio * 100000000L + x.GdebaNumero))
+        {
+            if (seleccion.Count >= tamanoLote)
+            {
+                break;
+            }
+
+            if (numerosSeleccionados.Add(seguido.GdebaNumeroCompleto))
+            {
+                seleccion.Add(new PendienteSeleccionado(seguido.GdebaNumeroCompleto, ForceRefresh: true));
+            }
+        }
+
+        // Fases siguientes: nunca consultados por prioridad de trata (la misma configuracion del descubrimiento) y relleno general, siempre del caratulado mas nuevo al mas viejo; anio y numero GDEBA reflejan el orden de caratulacion porque la fecha explicita recien llega con el detalle.
         Dictionary<Guid, int> prioridadPorTrataId = await this.CargarPrioridadesPorTrataAsync(cancellationToken);
-        List<string> numerosPendientes = new(tamanoLote);
         foreach (IGrouping<int, Guid> grupo in prioridadPorTrataId.GroupBy(x => x.Value, x => x.Key).OrderBy(x => x.Key))
         {
-            if (numerosPendientes.Count >= tamanoLote)
+            if (seleccion.Count >= tamanoLote)
             {
                 break;
             }
 
             Guid[] tratasDelGrupo = grupo.ToArray();
-            numerosPendientes.AddRange(await this.ConsultarPendientesAsync(
+            ExpedienteDetalladoWorkerService.AgregarPendientes(seleccion, numerosSeleccionados, tamanoLote, await this.ConsultarPendientesAsync(
                 x => x.TrataId.HasValue && tratasDelGrupo.Contains(x.TrataId.Value),
-                tamanoLote - numerosPendientes.Count,
+                tamanoLote - seleccion.Count + numerosSeleccionados.Count,
                 cancellationToken));
         }
 
-        if (numerosPendientes.Count < tamanoLote)
+        if (seleccion.Count < tamanoLote)
         {
             Guid[] tratasPriorizadas = prioridadPorTrataId.Keys.ToArray();
-            numerosPendientes.AddRange(await this.ConsultarPendientesAsync(
+            ExpedienteDetalladoWorkerService.AgregarPendientes(seleccion, numerosSeleccionados, tamanoLote, await this.ConsultarPendientesAsync(
                 x => !x.TrataId.HasValue || !tratasPriorizadas.Contains(x.TrataId.Value),
-                tamanoLote - numerosPendientes.Count,
+                tamanoLote - seleccion.Count + numerosSeleccionados.Count,
                 cancellationToken));
         }
 
-        return numerosPendientes.ToArray();
+        return seleccion;
+    }
+
+    private static void AgregarPendientes(List<PendienteSeleccionado> seleccion, HashSet<string> numerosSeleccionados, int tamanoLote, IEnumerable<string> numeros)
+    {
+        foreach (string numero in numeros)
+        {
+            if (seleccion.Count >= tamanoLote)
+            {
+                return;
+            }
+
+            if (numerosSeleccionados.Add(numero))
+            {
+                seleccion.Add(new PendienteSeleccionado(numero, ForceRefresh: false));
+            }
+        }
     }
 
     private async Task<IEnumerable<string>> ConsultarPendientesAsync(Expression<Func<Expediente, bool>> filtroTrata, int cantidad, CancellationToken cancellationToken)
@@ -172,4 +216,6 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
             ? Math.Min(actual, prioridad)
             : prioridad;
     }
+
+    private sealed record PendienteSeleccionado(string NumeroGdebaCompleto, bool ForceRefresh);
 }
