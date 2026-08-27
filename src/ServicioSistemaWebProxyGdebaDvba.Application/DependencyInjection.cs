@@ -14,6 +14,8 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.ReadStores;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Services;
+using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Services;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Services;
@@ -50,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IExpedienteDetalladoWorkerService, ExpedienteDetalladoWorkerService>();
         services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
+        services.AddScoped<IPerfilUsuarioService, PerfilUsuarioService>();
         return services;
     }
 
@@ -75,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<IOmisionCorridaProgramadaWorkerService, OmisionCorridaProgramadaWorkerService>();
         services.AddScoped<IExpedienteDetalladoWorkerService, ExpedienteDetalladoWorkerService>();
         services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
+        services.AddScoped<IPerfilUsuarioService, PerfilUsuarioService>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 
