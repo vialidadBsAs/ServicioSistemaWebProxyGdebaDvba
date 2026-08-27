@@ -313,6 +313,13 @@ public sealed class ExpedienteService : IExpedienteService
                     expediente.ActualizarDestinoActualDesdeHistorial(ultimoMovimientoGdeba.ReparticionDestino, ultimoMovimientoGdeba.SectorDestino);
                 }
 
+                expediente.RegistrarNovedadesDetectadas(
+                    resolvedAt,
+                    cabecera: false,
+                    movimientos: ExpedienteService.HayAgregados(expediente.Movimientos),
+                    documentos: ExpedienteService.HayAgregados(expediente.Documentos),
+                    adjuntos: false);
+
                 // Marca la cache de movimientos con vigencia diaria para la consulta bajo demanda.
                 this.MarcarHistorialConsultadoCorrectamente(
                     expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), ultimoMovimiento, estaCompleto: true);
@@ -454,12 +461,22 @@ public sealed class ExpedienteService : IExpedienteService
         var trata = await this.BuscarTrataHabilitadaLocalAsync(detalle.CodigoTrata, numeroGdebaCompleto.Reparticion, cancellationToken);
         var documentos = await this.ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
 
+        string? estadoAnterior = expediente.EstadoActual;
+        string? caratulaAnterior = expediente.DescripcionTramite;
         ExpedienteService.ConsolidarCabecera(expediente, detalle, trata?.Id);
         ExpedienteService.ConsolidarDocumentos(expediente, detalle.Documentos, documentos, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
         ExpedienteService.ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
         ExpedienteService.ConsolidarRelaciones(expediente, detalle.Relaciones, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
 
         this.RegistrarRespuestaExpedienteCorrecta(expediente, fechaConsulta, fechaConsulta, ExpedienteService.CalcularVencimientoDiario(fechaConsulta), estaCompleto: true);
+        bool cambioCabecera = !string.Equals(estadoAnterior, expediente.EstadoActual, StringComparison.Ordinal) ||
+            !string.Equals(caratulaAnterior, expediente.DescripcionTramite, StringComparison.Ordinal);
+        expediente.RegistrarNovedadesDetectadas(
+            fechaConsulta,
+            cabecera: cambioCabecera,
+            movimientos: false,
+            documentos: ExpedienteService.HayAgregados(expediente.Documentos),
+            adjuntos: ExpedienteService.HayAgregados(expediente.ArchivosAdjuntos));
 
         this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
 
@@ -653,6 +670,12 @@ public sealed class ExpedienteService : IExpedienteService
     {
         expediente.MarcarHistorialConsultadoCorrectamente(fechaConsulta, fechaActualizacionLocal, fechaVencimiento, ultimoMovimientoDetectado, estaCompleto);
 
+    }
+
+    private static bool HayAgregados<TEntidad>(IReadOnlyCollection<TEntidad> coleccion) where TEntidad : Domain.Common.DomainEntity
+    {
+        // Novedad institucional = algo que no estaba tras consolidar: los recien agregados quedan con estado Added (las relaciones no cuentan por definicion acordada).
+        return coleccion.Any(x => x.TrackingState == TrackableEntities.Common.Core.TrackingState.Added);
     }
 
     private void MarcarHistorialConsultadoConError(

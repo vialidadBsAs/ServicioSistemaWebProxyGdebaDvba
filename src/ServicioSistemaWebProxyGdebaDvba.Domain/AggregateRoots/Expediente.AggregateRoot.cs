@@ -47,6 +47,24 @@ public sealed partial class Expediente : IAggregateRoot
             reparticionActual);
     }
 
+    public void RegistrarNovedadesDetectadas(DateTimeOffset fecha, bool cabecera, bool movimientos, bool documentos, bool adjuntos)
+    {
+        if (!cabecera && !movimientos && !documentos && !adjuntos)
+        {
+            return;
+        }
+
+        if (CacheControl is null)
+        {
+            CacheControl = new ExpedienteCacheControl(Id, fecha)
+            {
+                TrackingState = TrackingState.Added
+            };
+        }
+
+        CacheControl.RegistrarNovedades(fecha, cabecera, movimientos, documentos, adjuntos);
+    }
+
     public bool PuedeResponderDetalleDesdeCache(DateTimeOffset fechaActual)
     {
         return CacheControl?.PuedeResponder(fechaActual) == true;

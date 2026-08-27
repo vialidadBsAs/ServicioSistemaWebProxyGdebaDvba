@@ -35,6 +35,32 @@ public sealed class ExpedienteCacheControl : DomainEntity
 
     public string? UltimoErrorConsulta { get; private set; }
 
+    // Se sellan solo cuando una consulta detecta informacion nueva, no en cada refresco; son la base institucional de los badges de seguimiento (la global para las listas, las especificas para cada coleccion del detalle).
+    public DateTimeOffset? FechaUltimaNovedad { get; private set; }
+
+    public DateTimeOffset? FechaUltimaNovedadCabecera { get; private set; }
+
+    public DateTimeOffset? FechaUltimaNovedadMovimientos { get; private set; }
+
+    public DateTimeOffset? FechaUltimaNovedadDocumentos { get; private set; }
+
+    public DateTimeOffset? FechaUltimaNovedadAdjuntos { get; private set; }
+
+    public void RegistrarNovedades(DateTimeOffset fechaNovedad, bool cabecera, bool movimientos, bool documentos, bool adjuntos)
+    {
+        if (!cabecera && !movimientos && !documentos && !adjuntos)
+        {
+            return;
+        }
+
+        MarcarComoModificada();
+        FechaUltimaNovedad = fechaNovedad;
+        if (cabecera) FechaUltimaNovedadCabecera = fechaNovedad;
+        if (movimientos) FechaUltimaNovedadMovimientos = fechaNovedad;
+        if (documentos) FechaUltimaNovedadDocumentos = fechaNovedad;
+        if (adjuntos) FechaUltimaNovedadAdjuntos = fechaNovedad;
+    }
+
     public bool PuedeResponder(DateTimeOffset fechaActual)
     {
         return EstaCompleto &&
