@@ -9,6 +9,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Domain.ValueObjects;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
@@ -18,17 +19,20 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
     private const string ServicioConsultaDocumento = "ws_gdeba_consultaDocumento";
 
     private readonly HttpClient _httpClient;
+    private readonly IUsuarioActualAccessor _usuarioActualAccessor;
     private readonly IRegistroInvocacionesGdeba _registroInvocaciones;
     private readonly IOptions<GdebaOptions> _options;
     private readonly ILogger<SoapGdebaDocumentoGateway> _logger;
 
     public SoapGdebaDocumentoGateway(
         HttpClient httpClient,
+        IUsuarioActualAccessor usuarioActualAccessor,
         IRegistroInvocacionesGdeba registroInvocaciones,
         IOptions<GdebaOptions> options,
         ILogger<SoapGdebaDocumentoGateway> logger)
     {
         _httpClient = httpClient;
+        _usuarioActualAccessor = usuarioActualAccessor;
         _registroInvocaciones = registroInvocaciones;
         _options = options;
         _logger = logger;
@@ -47,7 +51,7 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         var contractOptions = this.ResolveSoapContractOptions();
         var serviceContractOptions = this.ResolveConsultaDocumentoServiceContractOptions(contractOptions);
         var serviceOptions = this.ResolveConsultaDocumentoServiceOptions();
-        var usuarioConsulta = SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
+        var usuarioConsulta = _usuarioActualAccessor.UsuarioGdeba ?? SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
         const string operationName = "buscarDetallePorNumero";
         var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(contractOptions, serviceContractOptions, operationName, numeroNormalizado, usuarioConsulta, assignee: true);
 
@@ -94,7 +98,7 @@ public sealed class SoapGdebaDocumentoGateway : IGdebaDocumentoGateway
         var contractOptions = this.ResolveSoapContractOptions();
         var serviceContractOptions = this.ResolveConsultaDocumentoServiceContractOptions(contractOptions);
         var serviceOptions = this.ResolveConsultaDocumentoServiceOptions();
-        var usuarioConsulta = SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
+        var usuarioConsulta = _usuarioActualAccessor.UsuarioGdeba ?? SoapGdebaDocumentoGateway.ResolverUsuarioConsulta(serviceOptions);
         const string operationName = "buscarPDFPorNumero";
         var envelope = SoapGdebaDocumentoGateway.BuildEnvelope(contractOptions, serviceContractOptions, operationName, numeroNormalizado, usuarioConsulta, assignee: false);
         var document = await this.SendSoapAsync(

@@ -16,6 +16,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
         services.AddScoped<ICurrentApplicationAccessor, CurrentApplicationAccessor>();
+        services.AddScoped<IUsuarioActualAccessor, UsuarioActualAccessor>();
 
         return services;
     }
@@ -23,6 +24,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ICurrentApplicationAccessor, CurrentApplicationAccessor>();
+        services.AddScoped<IUsuarioActualAccessor, UsuarioActualAccessor>();
 
         var connectionString = configuration.GetConnectionString("ProxyGdeba");
         if (!string.IsNullOrWhiteSpace(connectionString))

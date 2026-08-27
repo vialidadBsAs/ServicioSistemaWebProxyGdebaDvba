@@ -9,8 +9,9 @@ public sealed class RegistroAuditoria : DomainEntity
     {
     }
 
-    public RegistroAuditoria(Guid aplicacionConsumidoraId, string operacionSolicitada, string? operacionGdeba, string? recurso, AmbienteGdeba ambiente, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha)
+    public RegistroAuditoria(Guid aplicacionConsumidoraId, string operacionSolicitada, string? operacionGdeba, string? recurso, AmbienteGdeba ambiente, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha, string? usuarioInstitucional = null)
     {
+        UsuarioInstitucional = NormalizarOperacionOpcional(usuarioInstitucional);
         AplicacionConsumidoraId = aplicacionConsumidoraId == Guid.Empty
             ? throw new ArgumentException("La aplicacion consumidora es requerida.", nameof(aplicacionConsumidoraId))
             : aplicacionConsumidoraId;
@@ -43,6 +44,9 @@ public sealed class RegistroAuditoria : DomainEntity
     public string? Mensaje { get; private set; }
 
     public DateTimeOffset Fecha { get; private set; }
+
+    // Persona que disparo la operacion (token DVBA-Auth); nulo en workers y mensajeria.
+    public string? UsuarioInstitucional { get; private set; }
 
     private static string? NormalizarMensaje(string? mensaje)
     {

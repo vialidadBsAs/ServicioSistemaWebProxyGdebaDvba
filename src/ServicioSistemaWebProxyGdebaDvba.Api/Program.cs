@@ -1,4 +1,5 @@
-﻿using ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
+﻿using ServicioSistemaWebProxyGdebaDvba.Api.Filters;
+using ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
 using ServicioSistemaWebProxyGdebaDvba.Application;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
@@ -33,6 +34,7 @@ builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddGdebaIntegration(builder.Configuration);
 builder.Services.AddSeguridadJwt(builder.Configuration);
+builder.Services.AddScoped<RequiereUsuarioGdebaFilter>();
 
 var app = builder.Build();
 

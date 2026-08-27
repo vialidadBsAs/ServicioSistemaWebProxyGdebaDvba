@@ -10,6 +10,8 @@ public sealed class RegistroAuditoriaConfiguration : IEntityTypeConfiguration<Re
     {
         builder.ToTable("Auditoria_Registros");
 
+        builder.Property(x => x.UsuarioInstitucional).HasMaxLength(200);
+
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.OperacionSolicitada)

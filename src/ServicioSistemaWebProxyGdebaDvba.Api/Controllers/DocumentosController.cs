@@ -11,6 +11,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 [ApiController]
 [Authorize(Policy = SeguridadInstitucional.PoliticaAccesoExpedientes)]
 [Route("api/gdeba/documentos")]
+[ServiceFilter(typeof(Filters.RequiereUsuarioGdebaFilter))]
 public sealed class DocumentosController : ControllerBase
 {
     private readonly IDocumentoDetailEnrichmentService _documentoDetailEnrichmentService;

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ServicioSistemaWebProxyGdebaDvba.Api.Filters;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +9,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
 [ApiController]
 [Route("api/gdeba/expedientes")]
+[ServiceFilter(typeof(RequiereUsuarioGdebaFilter))]
 public sealed class ExpedientesController : ControllerBase
 {
     private readonly IExpedienteService _expedienteService;
