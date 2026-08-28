@@ -16,7 +16,7 @@ public sealed record SeguimientoExpedienteDto(
     string NumeroGdebaCompleto,
     string? CodigoTrata,
     string? DescripcionTrata,
-    string? DescripcionTramite,
+    string? Caratula,
     string? EstadoActual,
     DateTimeOffset FechaAgregado,
     DateTimeOffset? FechaUltimaNovedad,

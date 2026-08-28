@@ -28,7 +28,7 @@ public sealed partial class Expediente : IAggregateRoot
         Guid? trataId,
         string? estadoActual,
         string? sistemaOrigen,
-        string? descripcionTramite,
+        string? descripcionAdicional,
         DateTimeOffset? fechaCaratulacion,
         string? usuarioCaratulador,
         string? usuarioDestino,
@@ -39,13 +39,31 @@ public sealed partial class Expediente : IAggregateRoot
             trataId,
             estadoActual,
             sistemaOrigen,
-            descripcionTramite,
+            descripcionAdicional,
             fechaCaratulacion,
             usuarioCaratulador,
             usuarioDestino,
             sectorDestino,
             reparticionActual);
     }
+
+    // La caratulacion es la unica fuente confiable del motivo: el descubrimiento informa el motivo del ultimo pase y el detallado solo la descripcion adicional.
+    public bool SellarMotivoDesdeCaratulacion()
+    {
+        MovimientoExpediente? caratulacion = _movimientos.FirstOrDefault(x =>
+            string.Equals(x.EstadoDestino, EstadoDestinoCaratulacion, StringComparison.OrdinalIgnoreCase));
+        string? motivoCaratulacion = Normalizar(caratulacion?.Motivo);
+        if (motivoCaratulacion is null || string.Equals(Motivo, motivoCaratulacion, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        MarcarComoModificada();
+        Motivo = motivoCaratulacion;
+        return true;
+    }
+
+    private const string EstadoDestinoCaratulacion = "Iniciar Expediente";
 
     public void RegistrarNovedadesDetectadas(DateTimeOffset fecha, bool cabecera, bool movimientos, bool documentos, bool adjuntos)
     {

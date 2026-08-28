@@ -78,7 +78,7 @@ public sealed class PerfilUsuarioService : IPerfilUsuarioService
                 x.Expediente.GdebaNumeroCompleto,
                 x.Expediente.Trata?.CodigoTrata,
                 x.Expediente.Trata?.DescripcionTrata,
-                x.Expediente.DescripcionTramite,
+                x.Expediente.Motivo ?? x.Expediente.DescripcionAdicional,
                 x.Expediente.EstadoActual,
                 x.FechaAgregado,
                 x.Expediente.CacheControl?.FechaUltimaNovedad,

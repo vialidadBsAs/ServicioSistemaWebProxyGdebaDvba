@@ -71,7 +71,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         if (!string.IsNullOrWhiteSpace(filtro.Caratula))
         {
             string caratulaBuscada = filtro.Caratula.Trim();
-            query = query.Where(x => x.DescripcionTramite != null && x.DescripcionTramite.Contains(caratulaBuscada));
+            query = query.Where(x =>
+                (x.Motivo != null && x.Motivo.Contains(caratulaBuscada)) ||
+                (x.DescripcionAdicional != null && x.DescripcionAdicional.Contains(caratulaBuscada)));
         }
         var totalRegistros = await query.CountAsync(cancellationToken);
         var queryOrdenada = filtro.CampoOrden switch
@@ -282,7 +284,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             expediente.EstadoActual,
             ultimoMovimiento?.FechaOperacion,
             estadoDetalle,
-            expediente.DescripcionTramite,
+            expediente.Motivo ?? expediente.DescripcionAdicional,
             expediente.FechaCaratulacion);
     }
 

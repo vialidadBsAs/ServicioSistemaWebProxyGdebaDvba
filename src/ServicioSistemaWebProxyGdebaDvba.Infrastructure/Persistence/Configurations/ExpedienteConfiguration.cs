@@ -34,7 +34,10 @@ public sealed class ExpedienteConfiguration : IEntityTypeConfiguration<Expedient
         builder.Property(x => x.SistemaOrigen)
             .HasMaxLength(100);
 
-        builder.Property(x => x.DescripcionTramite)
+        builder.Property(x => x.Motivo)
+            .HasMaxLength(1000);
+
+        builder.Property(x => x.DescripcionAdicional)
             .HasMaxLength(500);
 
         builder.Property(x => x.UsuarioCaratulador)

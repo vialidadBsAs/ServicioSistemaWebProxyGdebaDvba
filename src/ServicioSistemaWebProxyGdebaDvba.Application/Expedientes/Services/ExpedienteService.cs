@@ -313,9 +313,11 @@ public sealed class ExpedienteService : IExpedienteService
                     expediente.ActualizarDestinoActualDesdeHistorial(ultimoMovimientoGdeba.ReparticionDestino, ultimoMovimientoGdeba.SectorDestino);
                 }
 
+                bool cambioMotivo = expediente.SellarMotivoDesdeCaratulacion();
+
                 expediente.RegistrarNovedadesDetectadas(
                     resolvedAt,
-                    cabecera: false,
+                    cabecera: cambioMotivo,
                     movimientos: ExpedienteService.HayAgregados(expediente.Movimientos),
                     documentos: ExpedienteService.HayAgregados(expediente.Documentos),
                     adjuntos: false);
@@ -462,7 +464,7 @@ public sealed class ExpedienteService : IExpedienteService
         var documentos = await this.ResolverDocumentosAsync(detalle.Documentos, cancellationToken);
 
         string? estadoAnterior = expediente.EstadoActual;
-        string? caratulaAnterior = expediente.DescripcionTramite;
+        string? descripcionAdicionalAnterior = expediente.DescripcionAdicional;
         ExpedienteService.ConsolidarCabecera(expediente, detalle, trata?.Id);
         ExpedienteService.ConsolidarDocumentos(expediente, detalle.Documentos, documentos, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
         ExpedienteService.ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
@@ -470,7 +472,7 @@ public sealed class ExpedienteService : IExpedienteService
 
         this.RegistrarRespuestaExpedienteCorrecta(expediente, fechaConsulta, fechaConsulta, ExpedienteService.CalcularVencimientoDiario(fechaConsulta), estaCompleto: true);
         bool cambioCabecera = !string.Equals(estadoAnterior, expediente.EstadoActual, StringComparison.Ordinal) ||
-            !string.Equals(caratulaAnterior, expediente.DescripcionTramite, StringComparison.Ordinal);
+            !string.Equals(descripcionAdicionalAnterior, expediente.DescripcionAdicional, StringComparison.Ordinal);
         expediente.RegistrarNovedadesDetectadas(
             fechaConsulta,
             cabecera: cambioCabecera,
@@ -699,6 +701,7 @@ public sealed class ExpedienteService : IExpedienteService
         GdebaExpedienteDetalladoDto detalle,
         Guid? trataId)
     {
+        // El campo descripcionTramite del contrato SOAP es la "Descripcion Adicional" de la caratula, no el motivo del tramite.
         expediente.AplicarCabeceraDetallada(
             trataId, detalle.Estado, detalle.SistemaOrigen, detalle.DescripcionTramite, detalle.FechaCaratulacion, detalle.UsuarioCaratulador, detalle.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual);
     }
@@ -890,7 +893,7 @@ public sealed class ExpedienteService : IExpedienteService
         IReadOnlyDictionary<string, string> nombresTiposDocumento)
     {
         return new ExpedienteDetalladoDto(
-            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, ExpedienteService.MapearDocumentos(expediente, nombresTiposDocumento), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado ?? ExpedienteService.BuscarDescripcionTrata(x.CodigoTrataRelacionado, descripcionesTrata), x.FechaRelacion, x.UsuarioRelacion)).ToArray());
+            expediente.GdebaNumeroCompleto, expediente.Trata?.CodigoTrata, expediente.Trata?.DescripcionTrata, expediente.EstadoActual, expediente.SistemaOrigen, expediente.Motivo, expediente.DescripcionAdicional, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual, ExpedienteService.MapearDocumentos(expediente, nombresTiposDocumento), expediente.ArchivosAdjuntos.Select(x => new ArchivoAdjuntoExpedienteDto(x.NombreArchivo)).ToArray(), expediente.Relaciones.Select(x => new RelacionExpedienteDto(x.NumeroExpedienteRelacionado, x.TipoRelacion.ToString(), x.EsCabecera, x.CodigoTrataRelacionado, x.DescripcionTrataRelacionado ?? ExpedienteService.BuscarDescripcionTrata(x.CodigoTrataRelacionado, descripcionesTrata), x.FechaRelacion, x.UsuarioRelacion)).ToArray());
     }
 
     private static string? BuscarDescripcionTrata(string? codigoTrata, IReadOnlyDictionary<string, string> descripcionesTrata)
@@ -940,7 +943,7 @@ public sealed class ExpedienteService : IExpedienteService
     private static ExpedienteDetalladoDto MapearRespuestaLiviana(GdebaExpedienteDetalladoDto detalle)
     {
         return new ExpedienteDetalladoDto(
-            detalle.NumeroGdebaCompleto, detalle.CodigoTrata, detalle.DescripcionTrata, detalle.Estado, detalle.SistemaOrigen, detalle.DescripcionTramite, detalle.FechaCaratulacion, detalle.UsuarioCaratulador, detalle.UsuarioDestino, SectorDestino: null, ReparticionActual: null, Array.Empty<DocumentoExpedienteDto>(), Array.Empty<ArchivoAdjuntoExpedienteDto>(), Array.Empty<RelacionExpedienteDto>());
+            detalle.NumeroGdebaCompleto, detalle.CodigoTrata, detalle.DescripcionTrata, detalle.Estado, detalle.SistemaOrigen, Motivo: null, detalle.DescripcionTramite, detalle.FechaCaratulacion, detalle.UsuarioCaratulador, detalle.UsuarioDestino, SectorDestino: null, ReparticionActual: null, Array.Empty<DocumentoExpedienteDto>(), Array.Empty<ArchivoAdjuntoExpedienteDto>(), Array.Empty<RelacionExpedienteDto>());
     }
 
     /// <summary>
@@ -967,7 +970,7 @@ public sealed class ExpedienteService : IExpedienteService
     private static CabeceraExpedienteDto MapearCabecera(ExpedienteDetalladoDto expediente)
     {
         return new CabeceraExpedienteDto(
-            expediente.NumeroGdebaCompleto, expediente.CodigoTrata, expediente.DescripcionTrata, expediente.Estado, expediente.SistemaOrigen, expediente.DescripcionTramite, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual);
+            expediente.NumeroGdebaCompleto, expediente.CodigoTrata, expediente.DescripcionTrata, expediente.Estado, expediente.SistemaOrigen, expediente.Motivo, expediente.DescripcionAdicional, expediente.FechaCaratulacion, expediente.UsuarioCaratulador, expediente.UsuarioDestino, expediente.SectorDestino, expediente.ReparticionActual);
     }
 
     private static GdebaMovimientoExpedienteDto? ResolverUltimoMovimiento(

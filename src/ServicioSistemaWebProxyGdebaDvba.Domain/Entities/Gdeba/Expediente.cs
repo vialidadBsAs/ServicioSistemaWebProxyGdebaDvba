@@ -40,7 +40,11 @@ public sealed partial class Expediente : DomainEntity
 
     public string? SistemaOrigen { get; private set; }
 
-    public string? DescripcionTramite { get; private set; }
+    // Motivo de la caratulacion: la descripcion principal del tramite; se sella desde la operacion "Iniciar Expediente" del historial de pases.
+    public string? Motivo { get; private set; }
+
+    // "Descripcion Adicional" de la caratula GDEBA (el campo descripcionTramite de consultarExpedienteDetallado): complementario y a veces boilerplate o truncado.
+    public string? DescripcionAdicional { get; private set; }
 
     public DateTimeOffset? FechaCaratulacion { get; private set; }
 
@@ -78,7 +82,7 @@ public sealed partial class Expediente : DomainEntity
         Guid? trataId,
         string? estadoActual,
         string? sistemaOrigen,
-        string? descripcionTramite,
+        string? descripcionAdicional,
         DateTimeOffset? fechaCaratulacion,
         string? usuarioCaratulador,
         string? usuarioDestino,
@@ -89,7 +93,7 @@ public sealed partial class Expediente : DomainEntity
         TrataId = trataId;
         EstadoActual = Normalizar(estadoActual);
         SistemaOrigen = Normalizar(sistemaOrigen);
-        DescripcionTramite = Normalizar(descripcionTramite);
+        DescripcionAdicional = Normalizar(descripcionAdicional);
         FechaCaratulacion = fechaCaratulacion;
         UsuarioCaratulador = Normalizar(usuarioCaratulador);
         UsuarioDestino = Normalizar(usuarioDestino);

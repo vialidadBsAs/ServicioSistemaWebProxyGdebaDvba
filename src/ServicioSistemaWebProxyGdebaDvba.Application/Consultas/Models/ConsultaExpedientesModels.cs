@@ -6,7 +6,7 @@ public sealed record ConsultaExpedientesFiltro(IReadOnlyCollection<Guid> TrataId
 
 public sealed record ConsultaExpedientesResult(int TotalRegistros, int Pagina, int TamanioPagina, IReadOnlyCollection<ConsultaExpedienteDto> Items);
 
-public sealed record ConsultaExpedienteDto(Guid Id, string NumeroGdebaCompleto, string CodigoTrata, string? DescripcionTrata, string? EstadoActual, DateTimeOffset? FechaUltimoMovimiento, string EstadoDetalle, string? DescripcionTramite, DateTimeOffset? FechaCaratulacion);
+public sealed record ConsultaExpedienteDto(Guid Id, string NumeroGdebaCompleto, string CodigoTrata, string? DescripcionTrata, string? EstadoActual, DateTimeOffset? FechaUltimoMovimiento, string EstadoDetalle, string? Caratula, DateTimeOffset? FechaCaratulacion);
 
 public sealed record ConsultaCoberturaDetalleResult(int Detallados, int SinDetallar);
 
