@@ -16,8 +16,11 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
     private const string OperacionDescargarPdfDocumento = "DescargarPdfDocumento";
     private const string OperacionBuscarPdfPorNumero = "buscarPDFPorNumero";
 
+    private const string MotivoDocumentoNoVisible = "GDEBA no permite visualizar este documento.";
+
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
     private readonly IGdebaDocumentoGateway _gdebaDocumentoGateway;
+    private readonly IDocumentoDetailEnrichmentService _documentoDetailEnrichmentService;
     private readonly IAuditoriaService _auditoriaService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGdebaExecutionContext _gdebaExecutionContext;
@@ -26,6 +29,7 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
     public DocumentoPdfDownloadService(
         IRepository<DocumentoGdeba> documentoRepository,
         IGdebaDocumentoGateway gdebaDocumentoGateway,
+        IDocumentoDetailEnrichmentService documentoDetailEnrichmentService,
         IAuditoriaService auditoriaService,
         IUnitOfWork unitOfWork,
         IGdebaExecutionContext gdebaExecutionContext,
@@ -33,6 +37,7 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
     {
         _documentoRepository = documentoRepository;
         _gdebaDocumentoGateway = gdebaDocumentoGateway;
+        _documentoDetailEnrichmentService = documentoDetailEnrichmentService;
         _auditoriaService = auditoriaService;
         _unitOfWork = unitOfWork;
         _gdebaExecutionContext = gdebaExecutionContext;
@@ -47,15 +52,38 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
             return new DocumentoPdfDescargaResult(false, false, null, null);
         }
 
-        if (string.IsNullOrWhiteSpace(documento.UrlArchivo) || documento.PuedeVerDocumento is false)
+        if (documento.PuedeVerDocumento is false)
         {
-            return new DocumentoPdfDescargaResult(true, false, documento.NumeroActuacionCompleto, null);
+            return new DocumentoPdfDescargaResult(true, false, documento.NumeroActuacionCompleto, null, DocumentoPdfDownloadService.MotivoDocumentoNoVisible);
+        }
+
+        // Enriquecimiento a demanda: ver el documento incluye completar su metadata si todavia falta.
+        var metadataPrevia = documento.MetadataCompleta;
+        if (!metadataPrevia)
+        {
+            var enriquecimiento = await this.EnriquecerAsync(documentoId, origenInvocacion, cancellationToken);
+            if (enriquecimiento is not null)
+            {
+                return enriquecimiento;
+            }
         }
 
         try
         {
             var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
             var pdf = await _gdebaDocumentoGateway.BuscarPdfPorNumeroAsync(documento.NumeroActuacionCompleto, contextoInvocacion, cancellationToken);
+            if (pdf is null && metadataPrevia)
+            {
+                // Auto-reparacion: la metadata previa pudo quedar vieja; se refresca una unica vez y se reintenta.
+                var enriquecimiento = await this.EnriquecerAsync(documentoId, origenInvocacion, cancellationToken);
+                if (enriquecimiento is not null)
+                {
+                    return enriquecimiento;
+                }
+
+                pdf = await _gdebaDocumentoGateway.BuscarPdfPorNumeroAsync(documento.NumeroActuacionCompleto, contextoInvocacion, cancellationToken);
+            }
+
             if (pdf is null)
             {
                 await this.RegistrarAuditoriaAsync(documento.NumeroActuacionCompleto, origenInvocacion, exitoso: false, "GDEBA no devolvio el archivo PDF.", cancellationToken);
@@ -77,6 +105,25 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Enriquece la metadata del documento y devuelve un resultado terminal si la descarga no debe continuar; null si puede seguir.
+    /// </summary>
+    private async Task<DocumentoPdfDescargaResult?> EnriquecerAsync(Guid documentoId, OrigenInvocacionGdeba origenInvocacion, CancellationToken cancellationToken)
+    {
+        var enriquecimiento = await _documentoDetailEnrichmentService.EnriquecerDocumentoAsync(documentoId, origenInvocacion, cancellationToken);
+        if (enriquecimiento.Estado == DocumentoDetailEnrichmentItemStatus.DocumentoNoEncontrado)
+        {
+            return new DocumentoPdfDescargaResult(false, false, null, null);
+        }
+
+        if (enriquecimiento.PuedeVerDocumento is false)
+        {
+            return new DocumentoPdfDescargaResult(true, false, enriquecimiento.NumeroDocumento, null, DocumentoPdfDownloadService.MotivoDocumentoNoVisible);
+        }
+
+        return null;
     }
 
     private Task RegistrarAuditoriaAsync(string recurso, OrigenInvocacionGdeba origenInvocacion, bool exitoso, string mensaje, CancellationToken cancellationToken)

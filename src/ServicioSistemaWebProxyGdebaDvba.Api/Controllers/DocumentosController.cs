@@ -38,6 +38,19 @@ public sealed class DocumentosController : ControllerBase
         return this.Ok(DocumentoDetalleEnriquecidoResponse.Create(resultado));
     }
 
+    // Lectura local: la metadata tal como quedo persistida (p. ej. tras el enriquecimiento implicito de la descarga del PDF), sin invocar GDEBA.
+    [HttpGet("{documentoId:guid}/detalle")]
+    public async Task<IActionResult> ObtenerDetalle(Guid documentoId, CancellationToken cancellationToken)
+    {
+        var resultado = await _documentoDetailEnrichmentService.ObtenerDetalleLocalAsync(documentoId, cancellationToken);
+        if (resultado.Estado == DocumentoDetailEnrichmentItemStatus.DocumentoNoEncontrado)
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(DocumentoDetalleEnriquecidoResponse.Create(resultado));
+    }
+
     [HttpGet("{documentoId:guid}/pdf")]
     public async Task<IActionResult> DescargarPdf(Guid documentoId, CancellationToken cancellationToken)
     {
@@ -49,7 +62,7 @@ public sealed class DocumentosController : ControllerBase
 
         if (!resultado.DisponibleParaDescarga || resultado.Contenido is null || string.IsNullOrWhiteSpace(resultado.NumeroDocumento))
         {
-            return this.Conflict("El archivo PDF no esta disponible para este documento.");
+            return this.Conflict(resultado.Motivo ?? "El archivo PDF no esta disponible para este documento.");
         }
 
         return this.File(resultado.Contenido, "application/pdf", $"{resultado.NumeroDocumento}.pdf");

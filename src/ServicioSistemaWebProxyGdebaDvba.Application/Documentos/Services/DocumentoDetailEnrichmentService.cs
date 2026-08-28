@@ -176,6 +176,40 @@ public sealed class DocumentoDetailEnrichmentService
             errores);
     }
 
+    /// <summary>
+    /// Lectura local de la metadata del documento tal como quedo persistida, sin invocar GDEBA.
+    /// </summary>
+    public async Task<DocumentoDetailEnrichmentItemResult> ObtenerDetalleLocalAsync(Guid documentoId, CancellationToken cancellationToken)
+    {
+        DocumentoGdeba? documento = await this.CargarDocumentoAsync(documentoId, cancellationToken);
+        if (documento is null)
+        {
+            return new DocumentoDetailEnrichmentItemResult(documentoId, null, DocumentoDetailEnrichmentItemStatus.DocumentoNoEncontrado);
+        }
+
+        TipoDocumentoGdeba? tipoDocumento = string.IsNullOrWhiteSpace(documento.TipoDocumentoCodigo)
+            ? null
+            : (await _tipoDocumentoRepository.Query().Where(x => x.Codigo == documento.TipoDocumentoCodigo).Take(1).SelectAsync(cancellationToken)).SingleOrDefault();
+        var ultimaActividad = documento.Historial
+            .OrderByDescending(x => x.FechaFin ?? x.FechaInicio)
+            .ThenByDescending(x => x.IdGdeba)
+            .FirstOrDefault();
+        return new DocumentoDetailEnrichmentItemResult(
+            documento.Id,
+            documento.NumeroActuacionCompleto,
+            documento.MetadataCompleta ? DocumentoDetailEnrichmentItemStatus.Enriquecido : DocumentoDetailEnrichmentItemStatus.SinDatos,
+            ultimaActividad?.Actividad,
+            ultimaActividad?.FechaFin ?? ultimaActividad?.FechaInicio,
+            documento.UrlArchivo,
+            documento.PuedeVerDocumento,
+            documento.TipoDocumentoCodigo,
+            tipoDocumento?.Nombre,
+            tipoDocumento?.Familia,
+            documento.Referencia,
+            documento.FechaCreacion,
+            documento.MetadataCompleta);
+    }
+
     private async Task<DocumentoGdeba?> CargarDocumentoAsync(
         Guid documentoId,
         CancellationToken cancellationToken)
