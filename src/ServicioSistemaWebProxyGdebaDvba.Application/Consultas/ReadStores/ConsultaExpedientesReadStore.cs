@@ -126,26 +126,42 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
             .Where(x => x.Expediente!.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente!.TrataId!.Value));
 
-        ConsultaTipoDocumentoResumenDto[] resumenTipos = (await vinculosTema
-            .GroupBy(x => x.Documento!.ActuacionTipoCodigo)
-            .Select(grupo => new
-            {
-                CodigoTipoDocumento = grupo.Key,
-                CantidadDocumentos = grupo.Select(x => x.DocumentoId).Distinct().Count(),
-                CantidadExpedientes = grupo.Select(x => x.ExpedienteId).Distinct().Count(),
-                CantidadDocumentosConMetadata = grupo.Where(x => x.Documento!.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count()
-            })
-            .ToArrayAsync(cancellationToken))
-            .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, x.CantidadExpedientes, x.CantidadDocumentosConMetadata))
-            .OrderByDescending(x => x.CantidadDocumentos)
-            .ThenBy(x => x.CodigoTipoDocumento)
-            .ToArray();
-        // El tipo particiona a los documentos, por lo que los totales de documentos salen del propio resumen; los expedientes se repiten entre tipos.
-        int totalDocumentos = resumenTipos.Sum(x => x.CantidadDocumentos);
-        int totalDocumentosConMetadata = resumenTipos.Sum(x => x.CantidadDocumentosConMetadata);
-        int totalExpedientes = await vinculosTema.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+        // La busqueda por referencia no muestra resumen ni totales del tema: se saltea su calculo para responder rapido en cada tecleo.
+        bool buscaPorReferencia = !string.IsNullOrWhiteSpace(filtro.ReferenciaContiene) || filtro.SoloSinReferencia;
+        ConsultaTipoDocumentoResumenDto[] resumenTipos = Array.Empty<ConsultaTipoDocumentoResumenDto>();
+        int totalDocumentos = 0;
+        int totalDocumentosConMetadata = 0;
+        int totalExpedientes = 0;
+        int totalDocumentosConReferencia = 0;
+        if (!buscaPorReferencia)
+        {
+            resumenTipos = (await vinculosTema
+                .GroupBy(x => x.Documento!.ActuacionTipoCodigo)
+                .Select(grupo => new
+                {
+                    CodigoTipoDocumento = grupo.Key,
+                    CantidadDocumentos = grupo.Select(x => x.DocumentoId).Distinct().Count(),
+                    CantidadExpedientes = grupo.Select(x => x.ExpedienteId).Distinct().Count(),
+                    CantidadDocumentosConMetadata = grupo.Where(x => x.Documento!.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count()
+                })
+                .ToArrayAsync(cancellationToken))
+                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, x.CantidadExpedientes, x.CantidadDocumentosConMetadata))
+                .OrderByDescending(x => x.CantidadDocumentos)
+                .ThenBy(x => x.CodigoTipoDocumento)
+                .ToArray();
+            // El tipo particiona a los documentos, por lo que los totales de documentos salen del propio resumen; los expedientes se repiten entre tipos.
+            totalDocumentos = resumenTipos.Sum(x => x.CantidadDocumentos);
+            totalDocumentosConMetadata = resumenTipos.Sum(x => x.CantidadDocumentosConMetadata);
+            totalExpedientes = await vinculosTema.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+            // Cobertura declarada de la busqueda por referencia: solo los documentos llegados por historial o enriquecimiento la tienen.
+            totalDocumentosConReferencia = await vinculosTema
+                .Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia != string.Empty)
+                .Select(x => x.DocumentoId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+        }
 
-        if (string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento))
+        if (string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento) && !buscaPorReferencia)
         {
             return new ConsultaDocumentosPorTrataResult(
                 0,
@@ -154,20 +170,28 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 totalDocumentos,
                 totalExpedientes,
                 totalDocumentosConMetadata,
+                totalDocumentosConReferencia,
                 0,
                 0,
                 resumenTipos,
                 Array.Empty<ConsultaDocumentoPorTrataDto>());
         }
 
-        IQueryable<ExpedienteDocumento> vinculosFiltrados = vinculosTema
-            .Where(x => x.Documento!.ActuacionTipoCodigo == filtro.CodigoTipoDocumento);
+        IQueryable<ExpedienteDocumento> vinculosFiltrados = vinculosTema;
+        if (!string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento)) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.ActuacionTipoCodigo == filtro.CodigoTipoDocumento);
+        if (filtro.SoloSinReferencia) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.Referencia == null || x.Documento!.Referencia == string.Empty);
+        else if (buscaPorReferencia) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia.Contains(filtro.ReferenciaContiene!));
+        if (filtro.TiposDocumento.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.TipoDocumentoCodigo != null && filtro.TiposDocumento.Contains(x.Documento!.TipoDocumentoCodigo));
+        if (filtro.FechaCreacionDesde is DateTimeOffset fechaCreacionDesde) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.FechaCreacion >= fechaCreacionDesde);
+        if (filtro.FechaCreacionHastaExclusiva is DateTimeOffset fechaCreacionHasta) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.FechaCreacion < fechaCreacionHasta);
         if (filtro.NumerosExpediente.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => filtro.NumerosExpediente.Contains(x.Expediente!.GdebaNumeroCompleto));
         if (filtro.CodigosTrata.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => x.Expediente!.Trata != null && filtro.CodigosTrata.Contains(x.Expediente!.Trata!.CodigoTrata));
         if (filtro.NumerosActuacion.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => filtro.NumerosActuacion.Contains(x.Documento!.NumeroActuacionCompleto));
         if (filtro.Referencias.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.Referencia != null && filtro.Referencias.Contains(x.Documento!.Referencia));
 
         // Proyeccion minima para agrupar por documento y ordenar en memoria con la misma semantica de siempre, sin arrastrar las entidades.
+        // La referencia (texto libre potencialmente largo) solo viaja cuando el orden la necesita; la pagina visible la carga completa igual.
+        bool ordenaPorReferencia = filtro.CampoOrden == "referencia";
         FilaOrdenDocumento[] filasFiltradas = await vinculosFiltrados
             .Select(x => new FilaOrdenDocumento(
                 x.DocumentoId,
@@ -176,7 +200,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 x.Expediente!.Trata != null ? x.Expediente!.Trata!.CodigoTrata : null,
                 x.Documento!.NumeroActuacionCompleto,
                 x.Documento!.FechaCreacion,
-                x.Documento!.Referencia))
+                ordenaPorReferencia ? x.Documento!.Referencia : null))
             .ToArrayAsync(cancellationToken);
         FilaOrdenDocumento[][] documentosAgrupados = filasFiltradas.GroupBy(x => x.DocumentoId).Select(x => x.OrderBy(fila => fila.NumeroExpediente).ToArray()).ToArray();
         int totalRegistros = documentosAgrupados.Length;
@@ -241,6 +265,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             totalDocumentos,
             totalExpedientes,
             totalDocumentosConMetadata,
+            totalDocumentosConReferencia,
             totalRegistros,
             totalExpedientesFiltrados,
             resumenTipos,

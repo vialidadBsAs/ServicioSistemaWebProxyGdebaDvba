@@ -49,9 +49,12 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         var pagina = Math.Max(request.Pagina, 1);
         var tamanioPagina = Math.Clamp(request.TamanioPagina, 1, 100);
         var codigoTipoDocumento = string.IsNullOrWhiteSpace(request.CodigoTipoDocumento) ? null : request.CodigoTipoDocumento.Trim().ToUpperInvariant();
+        // Listar los pendientes de referencia es excluyente con buscar por texto: sin referencia no hay donde buscar.
+        var referenciaContiene = request.SoloSinReferencia || string.IsNullOrWhiteSpace(request.ReferenciaContiene) ? null : request.ReferenciaContiene.Trim();
         var campoOrden = request.CampoOrden?.Trim() switch { "numeroExpediente" or "codigoTrata" or "numeroActuacionCompleto" or "fechaCreacion" or "ultimaActividad" or "fechaUltimaActividad" or "referencia" => request.CampoOrden.Trim(), _ => "fechaVinculacion" };
         var descendente = !string.Equals(request.DireccionOrden, "asc", StringComparison.OrdinalIgnoreCase);
-        return await _consultaExpedientesReadStore.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataFiltro(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.NumerosExpediente), ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.NumerosActuacion), ConsultaExpedientesService.Normalizar(request.Referencias)), cancellationToken);
+        // La fecha hasta llega exclusiva desde los filtros de grilla, la misma convencion que fechaUltimoMovimientoHasta en expedientes.
+        return await _consultaExpedientesReadStore.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataFiltro(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.NumerosExpediente), ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.NumerosActuacion), ConsultaExpedientesService.Normalizar(request.Referencias), referenciaContiene, ConsultaExpedientesService.Normalizar(request.TiposDocumento), request.FechaCreacionDesde, request.FechaCreacionHasta, request.SoloSinReferencia), cancellationToken);
     }
 
     private static IReadOnlyCollection<string> Normalizar(IEnumerable<string>? valores) => (valores ?? Array.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();

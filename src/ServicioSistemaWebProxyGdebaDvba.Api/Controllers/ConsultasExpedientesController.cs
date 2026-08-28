@@ -41,10 +41,10 @@ public sealed class ConsultasExpedientesController : ControllerBase
     }
 
     [HttpGet("documentos")]
-    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? numerosActuacion = null, [FromQuery] string[]? referencias = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? numerosActuacion = null, [FromQuery] string[]? referencias = null, [FromQuery] string? referenciaContiene = null, [FromQuery] string[]? tiposDocumento = null, [FromQuery] DateTimeOffset? fechaCreacionDesde = null, [FromQuery] DateTimeOffset? fechaCreacionHasta = null, [FromQuery] bool soloSinReferencia = false, CancellationToken cancellationToken = default)
     {
         if (trataIds is null || trataIds.Length == 0) return this.BadRequest("Debe seleccionar al menos una trata.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataRequest(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, direccionOrden, numerosExpediente, codigosTrata, numerosActuacion, referencias), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataRequest(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, direccionOrden, numerosExpediente, codigosTrata, numerosActuacion, referencias, referenciaContiene, tiposDocumento, fechaCreacionDesde, fechaCreacionHasta, soloSinReferencia), cancellationToken));
     }
 }
