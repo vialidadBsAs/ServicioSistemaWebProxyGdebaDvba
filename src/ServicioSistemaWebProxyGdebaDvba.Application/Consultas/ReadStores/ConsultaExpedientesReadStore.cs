@@ -120,98 +120,168 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
     public async Task<ConsultaDocumentosPorTrataResult> ConsultarDocumentosAsync(ConsultaDocumentosPorTrataFiltro filtro, CancellationToken cancellationToken)
     {
         Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(filtro.TrataIds, cancellationToken);
-        var query = _expedienteDocumentoRepository.Query()
-            .Where(x => x.Expediente.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente.TrataId.Value));
-        var vinculosResumen = await query.Include(x => x.Documento).SelectAsync(cancellationToken);
-        var documentosResumen = vinculosResumen
-            .Select(x => new DocumentoResumenLocal(x.DocumentoId, x.ExpedienteId, x.Documento.ActuacionTipoCodigo, x.Documento.TipoDocumentoCodigo, x.Documento.MetadataCompleta))
-            .ToArray();
-        var tiposPorCodigo = await this.CargarTiposPorCodigoAsync(documentosResumen.Select(x => x.CodigoTipoDocumento), cancellationToken);
-        var resumenTipos = documentosResumen
-            .GroupBy(x => x.CodigoActuacion, StringComparer.OrdinalIgnoreCase)
-            .Select(grupo => new ConsultaTipoDocumentoResumenDto(
-                grupo.Key,
-                grupo.Select(item => item.DocumentoId).Distinct().Count(),
-                grupo.Select(item => item.ExpedienteId).Distinct().Count(),
-                grupo.Where(item => item.MetadataCompleta).Select(item => item.DocumentoId).Distinct().Count()))
+
+        // Con miles de documentos por tema, materializar los vinculos completos para contar u ordenar en memoria era el cuello de botella:
+        // los conteos se resuelven en SQL, el orden usa una proyeccion liviana y solo la pagina visible carga entidades completas.
+        IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
+            .Where(x => x.Expediente!.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente!.TrataId!.Value));
+
+        ConsultaTipoDocumentoResumenDto[] resumenTipos = (await vinculosTema
+            .GroupBy(x => x.Documento!.ActuacionTipoCodigo)
+            .Select(grupo => new
+            {
+                CodigoTipoDocumento = grupo.Key,
+                CantidadDocumentos = grupo.Select(x => x.DocumentoId).Distinct().Count(),
+                CantidadExpedientes = grupo.Select(x => x.ExpedienteId).Distinct().Count(),
+                CantidadDocumentosConMetadata = grupo.Where(x => x.Documento!.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count()
+            })
+            .ToArrayAsync(cancellationToken))
+            .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, x.CantidadExpedientes, x.CantidadDocumentosConMetadata))
             .OrderByDescending(x => x.CantidadDocumentos)
             .ThenBy(x => x.CodigoTipoDocumento)
             .ToArray();
-        var tratas = await _trataRepository.Query().Where(x => trataIdsConsulta.Contains(x.Id)).SelectAsync(cancellationToken);
-        var tratasPorId = tratas.ToDictionary(x => x.Id);
+        // El tipo particiona a los documentos, por lo que los totales de documentos salen del propio resumen; los expedientes se repiten entre tipos.
+        int totalDocumentos = resumenTipos.Sum(x => x.CantidadDocumentos);
+        int totalDocumentosConMetadata = resumenTipos.Sum(x => x.CantidadDocumentosConMetadata);
+        int totalExpedientes = await vinculosTema.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+
         if (string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento))
         {
             return new ConsultaDocumentosPorTrataResult(
                 0,
                 filtro.Pagina,
                 filtro.TamanioPagina,
-                documentosResumen.Select(x => x.DocumentoId).Distinct().Count(),
-                documentosResumen.Select(x => x.ExpedienteId).Distinct().Count(),
-                documentosResumen.Where(x => x.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count(),
+                totalDocumentos,
+                totalExpedientes,
+                totalDocumentosConMetadata,
                 0,
                 0,
                 resumenTipos,
                 Array.Empty<ConsultaDocumentoPorTrataDto>());
         }
 
-        var queryDocumentos = query
-            .Where(x => x.Documento.ActuacionTipoCodigo == filtro.CodigoTipoDocumento)
-            .Include(x => x.Documento)
-            .Include(x => x.Expediente);
-        if (filtro.NumerosExpediente.Count > 0) queryDocumentos = queryDocumentos.Where(x => filtro.NumerosExpediente.Contains(x.Expediente.GdebaNumeroCompleto));
-        if (filtro.CodigosTrata.Count > 0) queryDocumentos = queryDocumentos.Where(x => x.Expediente.Trata != null && filtro.CodigosTrata.Contains(x.Expediente.Trata.CodigoTrata));
-        if (filtro.NumerosActuacion.Count > 0) queryDocumentos = queryDocumentos.Where(x => filtro.NumerosActuacion.Contains(x.Documento.NumeroActuacionCompleto));
-        if (filtro.Referencias.Count > 0) queryDocumentos = queryDocumentos.Where(x => x.Documento.Referencia != null && filtro.Referencias.Contains(x.Documento.Referencia));
-        var vinculosFiltrados = await queryDocumentos.SelectAsync(cancellationToken);
-        var documentosAgrupados = vinculosFiltrados.GroupBy(x => x.DocumentoId).Select(x => x.ToArray()).ToArray();
-        var totalRegistros = documentosAgrupados.Length;
-        var totalDocumentosFiltrados = documentosAgrupados.Length;
-        var totalExpedientesFiltrados = vinculosFiltrados.Select(x => x.ExpedienteId).Distinct().Count();
-        var documentosIds = documentosAgrupados.Select(x => x[0].DocumentoId).ToArray();
-        var historialDocumentos = documentosIds.Length == 0
-            ? Array.Empty<HistorialDocumentoGdeba>()
-            : await _historialDocumentoRepository.Query().Where(x => documentosIds.Contains(x.DocumentoId)).SelectAsync(cancellationToken);
-        var ultimaActividadPorDocumentoId = historialDocumentos
-            .GroupBy(x => x.DocumentoId)
-            .ToDictionary(
-                x => x.Key,
-                x => x.OrderByDescending(actividad => actividad.FechaFin ?? actividad.FechaInicio ?? DateTimeOffset.MinValue)
-                    .ThenByDescending(actividad => actividad.IdGdeba)
-                    .First());
-        var documentos = documentosAgrupados.Select(x => ConsultaExpedientesReadStore.MapearDocumento(
-            x,
-            tratasPorId,
-            tiposPorCodigo,
-            ultimaActividadPorDocumentoId.GetValueOrDefault(x[0].DocumentoId)));
-        var documentosOrdenados = filtro.CampoOrden switch
+        IQueryable<ExpedienteDocumento> vinculosFiltrados = vinculosTema
+            .Where(x => x.Documento!.ActuacionTipoCodigo == filtro.CodigoTipoDocumento);
+        if (filtro.NumerosExpediente.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => filtro.NumerosExpediente.Contains(x.Expediente!.GdebaNumeroCompleto));
+        if (filtro.CodigosTrata.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => x.Expediente!.Trata != null && filtro.CodigosTrata.Contains(x.Expediente!.Trata!.CodigoTrata));
+        if (filtro.NumerosActuacion.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => filtro.NumerosActuacion.Contains(x.Documento!.NumeroActuacionCompleto));
+        if (filtro.Referencias.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.Referencia != null && filtro.Referencias.Contains(x.Documento!.Referencia));
+
+        // Proyeccion minima para agrupar por documento y ordenar en memoria con la misma semantica de siempre, sin arrastrar las entidades.
+        FilaOrdenDocumento[] filasFiltradas = await vinculosFiltrados
+            .Select(x => new FilaOrdenDocumento(
+                x.DocumentoId,
+                x.ExpedienteId,
+                x.Expediente!.GdebaNumeroCompleto,
+                x.Expediente!.Trata != null ? x.Expediente!.Trata!.CodigoTrata : null,
+                x.Documento!.NumeroActuacionCompleto,
+                x.Documento!.FechaCreacion,
+                x.Documento!.Referencia))
+            .ToArrayAsync(cancellationToken);
+        FilaOrdenDocumento[][] documentosAgrupados = filasFiltradas.GroupBy(x => x.DocumentoId).Select(x => x.OrderBy(fila => fila.NumeroExpediente).ToArray()).ToArray();
+        int totalRegistros = documentosAgrupados.Length;
+        int totalExpedientesFiltrados = filasFiltradas.Select(x => x.ExpedienteId).Distinct().Count();
+
+        // El historial completo solo hace falta cuando el orden lo pide; para el resto alcanza con el de la pagina visible.
+        bool ordenaPorActividad = filtro.CampoOrden is "ultimaActividad" or "fechaUltimaActividad";
+        Dictionary<Guid, HistorialDocumentoGdeba> ultimaActividadPorDocumentoId = ordenaPorActividad
+            ? await this.CargarUltimaActividadAsync(documentosAgrupados.Select(x => x[0].DocumentoId).ToArray(), cancellationToken)
+            : new Dictionary<Guid, HistorialDocumentoGdeba>();
+
+        IOrderedEnumerable<FilaOrdenDocumento[]> gruposOrdenados = filtro.CampoOrden switch
         {
-            "numeroExpediente" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.Expedientes.First().Numero) : documentos.OrderBy(x => x.Expedientes.First().Numero),
-            "codigoTrata" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.Expedientes.First().CodigoTrata) : documentos.OrderBy(x => x.Expedientes.First().CodigoTrata),
-            "numeroActuacionCompleto" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.NumeroActuacionCompleto) : documentos.OrderBy(x => x.NumeroActuacionCompleto),
-            "fechaCreacion" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.FechaCreacion) : documentos.OrderBy(x => x.FechaCreacion),
-            "ultimaActividad" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.UltimaActividad) : documentos.OrderBy(x => x.UltimaActividad),
-            "fechaUltimaActividad" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.FechaUltimaActividad) : documentos.OrderBy(x => x.FechaUltimaActividad),
-            "referencia" => filtro.OrdenDescendente ? documentos.OrderByDescending(x => x.Referencia) : documentos.OrderBy(x => x.Referencia),
-            _ => documentos.OrderByDescending(x => x.FechaCreacion)
+            "numeroExpediente" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => x[0].NumeroExpediente, filtro.OrdenDescendente),
+            "codigoTrata" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => x[0].CodigoTrata, filtro.OrdenDescendente),
+            "numeroActuacionCompleto" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => x[0].NumeroActuacionCompleto, filtro.OrdenDescendente),
+            "fechaCreacion" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => x[0].FechaCreacion, filtro.OrdenDescendente),
+            "ultimaActividad" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => ultimaActividadPorDocumentoId.GetValueOrDefault(x[0].DocumentoId)?.Actividad, filtro.OrdenDescendente),
+            "fechaUltimaActividad" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => ultimaActividadPorDocumentoId.GetValueOrDefault(x[0].DocumentoId) is HistorialDocumentoGdeba actividad ? actividad.FechaFin ?? actividad.FechaInicio : null, filtro.OrdenDescendente),
+            "referencia" => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => x[0].Referencia, filtro.OrdenDescendente),
+            _ => ConsultaExpedientesReadStore.Ordenar(documentosAgrupados, x => x[0].FechaCreacion, descendente: true)
         };
-        var items = documentosOrdenados
-            .ThenByDescending(x => x.NumeroActuacionCompleto)
+        Guid[] documentosIdsPagina = gruposOrdenados
+            .ThenByDescending(x => x[0].NumeroActuacionCompleto)
             .Skip((filtro.Pagina - 1) * filtro.TamanioPagina)
             .Take(filtro.TamanioPagina)
+            .Select(x => x[0].DocumentoId)
+            .ToArray();
+
+        // Solo la pagina visible materializa entidades completas (documento, expedientes y tipos) para el mapeo final.
+        ExpedienteDocumento[] vinculosPagina = documentosIdsPagina.Length == 0
+            ? Array.Empty<ExpedienteDocumento>()
+            : await vinculosFiltrados
+                .Where(x => documentosIdsPagina.Contains(x.DocumentoId))
+                .Include(x => x.Documento)
+                .Include(x => x.Expediente)
+                .ToArrayAsync(cancellationToken);
+        Dictionary<Guid, ExpedienteDocumento[]> vinculosPaginaPorDocumentoId = vinculosPagina
+            .GroupBy(x => x.DocumentoId)
+            .ToDictionary(x => x.Key, x => x.ToArray());
+        if (!ordenaPorActividad)
+        {
+            ultimaActividadPorDocumentoId = await this.CargarUltimaActividadAsync(documentosIdsPagina, cancellationToken);
+        }
+
+        var tratas = await _trataRepository.Query().Where(x => trataIdsConsulta.Contains(x.Id)).SelectAsync(cancellationToken);
+        var tratasPorId = tratas.ToDictionary(x => x.Id);
+        var tiposPorCodigo = await this.CargarTiposPorCodigoAsync(vinculosPagina.Select(x => x.Documento.TipoDocumentoCodigo), cancellationToken);
+        ConsultaDocumentoPorTrataDto[] items = documentosIdsPagina
+            .Where(vinculosPaginaPorDocumentoId.ContainsKey)
+            .Select(documentoId => ConsultaExpedientesReadStore.MapearDocumento(
+                vinculosPaginaPorDocumentoId[documentoId],
+                tratasPorId,
+                tiposPorCodigo,
+                ultimaActividadPorDocumentoId.GetValueOrDefault(documentoId)))
             .ToArray();
 
         return new ConsultaDocumentosPorTrataResult(
             totalRegistros,
             filtro.Pagina,
             filtro.TamanioPagina,
-            documentosResumen.Select(x => x.DocumentoId).Distinct().Count(),
-            documentosResumen.Select(x => x.ExpedienteId).Distinct().Count(),
-            documentosResumen.Where(x => x.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count(),
-            totalDocumentosFiltrados,
+            totalDocumentos,
+            totalExpedientes,
+            totalDocumentosConMetadata,
+            totalRegistros,
             totalExpedientesFiltrados,
             resumenTipos,
             items);
     }
+
+    private async Task<Dictionary<Guid, HistorialDocumentoGdeba>> CargarUltimaActividadAsync(Guid[] documentosIds, CancellationToken cancellationToken)
+    {
+        if (documentosIds.Length == 0)
+        {
+            return new Dictionary<Guid, HistorialDocumentoGdeba>();
+        }
+
+        IEnumerable<HistorialDocumentoGdeba> historialDocumentos = await _historialDocumentoRepository.Query()
+            .Where(x => documentosIds.Contains(x.DocumentoId))
+            .SelectAsync(cancellationToken);
+        return historialDocumentos
+            .GroupBy(x => x.DocumentoId)
+            .ToDictionary(
+                x => x.Key,
+                x => x.OrderByDescending(actividad => actividad.FechaFin ?? actividad.FechaInicio ?? DateTimeOffset.MinValue)
+                    .ThenByDescending(actividad => actividad.IdGdeba)
+                    .First());
+    }
+
+    private static IOrderedEnumerable<FilaOrdenDocumento[]> Ordenar<TClave>(
+        IEnumerable<FilaOrdenDocumento[]> grupos,
+        Func<FilaOrdenDocumento[], TClave> clave,
+        bool descendente)
+    {
+        return descendente ? grupos.OrderByDescending(clave) : grupos.OrderBy(clave);
+    }
+
+    private sealed record FilaOrdenDocumento(
+        Guid DocumentoId,
+        Guid ExpedienteId,
+        string NumeroExpediente,
+        string? CodigoTrata,
+        string NumeroActuacionCompleto,
+        DateTimeOffset? FechaCreacion,
+        string? Referencia);
 
     public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroAsync(IReadOnlyCollection<Guid> trataIds, string campo, DateTimeOffset fechaConsulta, CancellationToken cancellationToken)
     {
@@ -362,5 +432,4 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             : historial.FechaVencimiento is null || historial.FechaVencimiento <= fechaConsulta ? "Vencido" : "Disponible";
     }
 
-    private sealed record DocumentoResumenLocal(Guid DocumentoId, Guid ExpedienteId, string CodigoActuacion, string? CodigoTipoDocumento, bool MetadataCompleta);
 }
