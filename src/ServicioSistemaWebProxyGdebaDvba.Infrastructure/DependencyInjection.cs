@@ -29,7 +29,8 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("ProxyGdeba");
         if (!string.IsNullOrWhiteSpace(connectionString))
         {
-            services.AddDbContext<ProxyGdebaDbContext>(options => options.UseSqlServer(connectionString));
+            // Produccion corre sobre SQL Server 2008: el nivel de compatibilidad 100 evita traducciones modernas (p. ej. OPENJSON en los Contains).
+            services.AddDbContext<ProxyGdebaDbContext>(options => options.UseSqlServer(connectionString, sqlServer => sqlServer.UseCompatibilityLevel(100)));
             services.AddScoped<DbContext>(provider => provider.GetRequiredService<ProxyGdebaDbContext>());
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
