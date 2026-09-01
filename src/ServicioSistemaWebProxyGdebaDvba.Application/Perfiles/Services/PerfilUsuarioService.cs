@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
@@ -15,17 +16,20 @@ public sealed class PerfilUsuarioService : IPerfilUsuarioService
     private readonly IRepository<SeguimientoExpediente> _seguimientoRepository;
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IHostEnvironment _hostEnvironment;
 
     public PerfilUsuarioService(
         ITrackableRepository<PerfilUsuario> perfilRepository,
         IRepository<SeguimientoExpediente> seguimientoRepository,
         IRepository<Expediente> expedienteRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IHostEnvironment hostEnvironment)
     {
         _perfilRepository = perfilRepository;
         _seguimientoRepository = seguimientoRepository;
         _expedienteRepository = expedienteRepository;
         _unitOfWork = unitOfWork;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<PerfilUsuarioDto> ObtenerAsync(string usuarioInstitucional, CancellationToken cancellationToken)
@@ -46,9 +50,10 @@ public sealed class PerfilUsuarioService : IPerfilUsuarioService
     {
         string usuario = PerfilUsuarioService.NormalizarUsuario(usuarioInstitucional);
         string? usuarioGdebaNormalizado = string.IsNullOrWhiteSpace(usuarioGdeba) ? null : usuarioGdeba.Trim();
-        if (usuarioGdebaNormalizado is not null)
+        // La identidad GDEBA pertenece a una sola persona: sin esta exclusividad la trazabilidad de quien consulta pierde sentido.
+        // Solo en Development se permite compartirlo entre perfiles de prueba; el ambiente es el unico interruptor, no hay llave de configuracion.
+        if (usuarioGdebaNormalizado is not null && !_hostEnvironment.IsDevelopment())
         {
-            // La identidad GDEBA pertenece a una sola persona: sin esta exclusividad la trazabilidad de quien consulta pierde sentido.
             bool asignadoAOtroPerfil = await _perfilRepository.Query()
                 .AnyAsync(x => x.UsuarioGdeba == usuarioGdebaNormalizado && x.UsuarioInstitucional != usuario, cancellationToken);
             if (asignadoAOtroPerfil)

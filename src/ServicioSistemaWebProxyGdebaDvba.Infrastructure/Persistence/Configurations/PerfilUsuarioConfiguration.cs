@@ -23,9 +23,9 @@ public sealed class PerfilUsuarioConfiguration : IEntityTypeConfiguration<Perfil
             .IsUnique();
 
         // La identidad GDEBA es exclusiva de un perfil; el filtro permite multiples perfiles sin usuario cargado.
-        builder.HasIndex(x => x.UsuarioGdeba)
-            .IsUnique()
-            .HasFilter("[UsuarioGdeba] IS NOT NULL");
+        // La exclusividad del usuario GDEBA la garantiza PerfilUsuarioService (absoluta salvo en Development, donde se
+        // permite compartirlo entre perfiles de prueba): un indice unico en el esquema no puede expresar esa distincion.
+        builder.HasIndex(x => x.UsuarioGdeba);
 
         builder.HasMany(x => x.Seguimientos)
             .WithOne(x => x.PerfilUsuario)
