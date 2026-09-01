@@ -204,3 +204,38 @@ El proxy implementa:
 No existen endpoints de login o sesion en el proxy. Antes de la prueba
 integrada se deben confirmar con un token real los valores efectivos de issuer,
 audience y claims.
+
+## 12. Alta y roles de usuarios (runbook operativo)
+
+El proxy no administra usuarios, credenciales ni roles: los consume del token
+emitido por DVBA-Auth. El alta la ejecuta el **administrador de la aplicacion
+DVBA-Auth** (rol institucional de esa plataforma), con estos pasos:
+
+1. **Crear el usuario** en DVBA-Auth. La contrasena la gestiona luego el propio
+   usuario desde su perfil en la aplicacion (`CambiarContraseña` directo contra
+   DVBA-Auth; el proxy nunca ve credenciales).
+2. **Asignar la aplicacion**: el token debe incluir el claim `AppAccess` con el
+   valor `Expedientes` (el `ApplicationName` configurado). Sin este claim el
+   usuario no pasa la politica de acceso base.
+3. **Asignar rol segun perfil** (claim `role_Expedientes`):
+
+   | Rol | Alcance |
+   |---|---|
+   | `admin` | Todo: Administracion (workers, cuotas), Temas y tratas, y lo de usuario final. |
+   | `super` | Temas y tratas (consulta masiva por tratas, documentos y definicion de temas), mas lo de usuario final. |
+   | (sin rol) | Usuario final: consulta por numero, busqueda por caratula, seguimiento y perfil. |
+
+4. **En el proxy no hay nada que hacer**: el primer login crea el perfil local
+   automaticamente, y la compuerta de usuario GDEBA le exige cargar su usuario
+   GDEBA personal para operar consultas interactivas contra GDEBA.
+
+Notas operativas:
+
+- Los roles viajan dentro del JWT: tras un cambio de rol en DVBA-Auth, el
+  usuario debe cerrar sesion y volver a ingresar para que el token nuevo lo
+  refleje.
+- Politicas vigentes en la API: `Expedientes-Acceso` (token + AppAccess),
+  `Expedientes-Admin` (rol `admin`), `Expedientes-GestionTemas` (rol `super` o
+  `admin`; protege la consulta masiva por tratas, la consulta de documentos,
+  los valores de filtro y el CRUD de temas). La busqueda puntual por caratula
+  (`GET consultas/expedientes/caratula`) es de acceso general.

@@ -8,6 +8,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
 [ApiController]
 [Route("api/gdeba/temas-expediente")]
+[ServiceFilter(typeof(Filters.RequiereUsuarioGdebaFilter))]
 public sealed class TemasExpedienteController : ControllerBase
 {
     private readonly ITemaExpedienteAdminService _temaExpedienteAdminService;

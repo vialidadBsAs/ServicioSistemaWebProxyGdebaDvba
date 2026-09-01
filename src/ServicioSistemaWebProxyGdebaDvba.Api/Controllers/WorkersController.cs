@@ -12,6 +12,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 [ApiController]
 [Authorize(Policy = SeguridadInstitucional.PoliticaAdministracionExpedientes)]
 [Route("api/gdeba/workers")]
+[ServiceFilter(typeof(Filters.RequiereUsuarioGdebaFilter))]
 public sealed class WorkersController : ControllerBase
 {
     private readonly IWorkerExecutionService _workerExecutionService;

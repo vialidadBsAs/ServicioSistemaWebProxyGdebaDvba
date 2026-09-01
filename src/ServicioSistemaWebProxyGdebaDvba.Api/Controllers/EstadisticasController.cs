@@ -6,6 +6,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
 [ApiController]
 [Route("api/gdeba/estadisticas")]
+[ServiceFilter(typeof(Filters.RequiereUsuarioGdebaFilter))]
 public sealed class EstadisticasController : ControllerBase
 {
     private readonly IEstadisticasService _estadisticasService;

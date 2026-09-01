@@ -9,6 +9,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 [ApiController]
 [Authorize(Policy = SeguridadInstitucional.PoliticaAdministracionExpedientes)]
 [Route("api/gdeba/cuotas")]
+[ServiceFilter(typeof(Filters.RequiereUsuarioGdebaFilter))]
 public sealed class CuotasGdebaController : ControllerBase
 {
     private readonly IConsultaCuotasGdeba _consultaCuotas;
