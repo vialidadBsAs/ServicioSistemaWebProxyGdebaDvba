@@ -11,7 +11,8 @@ public sealed class EjecucionWorkerExpedienteDescubiertoConfiguration : IEntityT
     {
         builder.ToTable("WorkerDescubrimiento_ExpedientesDescubiertosPorEjecucionTrataEstado");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.TipoDeteccion).HasDefaultValue(TipoDeteccionExpedienteDescubierto.Nuevo);
+        // El enum arranca en 1: el 0 (default CLR) es el sentinel de "sin setear" y ahi aplica el default de la base.
+        builder.Property(x => x.TipoDeteccion).HasDefaultValue(TipoDeteccionExpedienteDescubierto.Nuevo).HasSentinel((TipoDeteccionExpedienteDescubierto)0);
         builder.HasIndex(x => x.ExpedienteId);
         builder.HasIndex(x => new { x.EjecucionWorkerDescubrimientoTrataEstadoId, x.ExpedienteId }).IsUnique();
         builder.HasOne(x => x.Expediente)
