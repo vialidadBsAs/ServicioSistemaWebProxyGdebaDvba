@@ -32,15 +32,6 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         return await _consultaExpedientesReadStore.ConsultarCoberturaDetalleAsync(trataIdsValidos, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroAsync(ConsultaExpedientesValoresFiltroRequest request, CancellationToken cancellationToken)
-    {
-        var trataIds = (request.TrataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
-        if (trataIds.Length == 0) throw new ArgumentException("Debe seleccionar al menos una trata.", nameof(request));
-
-        var campo = request.Campo?.Trim() switch { "codigoTrata" or "estadoActual" or "estadoDetalle" => request.Campo.Trim(), _ => throw new ArgumentException("El campo de filtro no es válido.", nameof(request)) };
-        return await _consultaExpedientesReadStore.ObtenerValoresFiltroAsync(trataIds, campo, DateTimeOffset.Now, cancellationToken);
-    }
-
     public async Task<ConsultaDocumentosPorTrataResult> ConsultarDocumentosAsync(ConsultaDocumentosPorTrataRequest request, CancellationToken cancellationToken)
     {
         var trataIds = (request.TrataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
