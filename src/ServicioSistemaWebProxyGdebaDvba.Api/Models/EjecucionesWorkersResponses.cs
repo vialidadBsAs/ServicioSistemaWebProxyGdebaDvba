@@ -11,6 +11,8 @@ public sealed record EjecucionWorkerResponse(
     DateTimeOffset FechaInicio,
     DateTimeOffset? FechaFinalizacion,
     string? Resumen,
+    int? TamanoLote,
+    DateTimeOffset? FechaCancelacionSolicitada,
     int? Procesados,
     int? Creados,
     int? Enriquecidos,
@@ -23,7 +25,8 @@ public sealed record EjecucionWorkerResponse(
         return new EjecucionWorkerResponse(
             ejecucion.Id, ejecucion.Proceso.ToString(), ejecucion.Origen.ToString(), ejecucion.Estado.ToString(),
             ejecucion.SolicitudEjecucionWorkerId, ejecucion.FechaInicio, ejecucion.FechaFinalizacion,
-            ejecucion.Resumen, ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos, ejecucion.SinDatos, ejecucion.Errores,
+            ejecucion.Resumen, ejecucion.TamanoLote, ejecucion.FechaCancelacionSolicitada,
+            ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos, ejecucion.SinDatos, ejecucion.Errores,
             ejecucion.SolicitudManual is null ? null : SolicitudManualAsociadaEjecucionWorkerResponse.Create(ejecucion.SolicitudManual));
     }
 }

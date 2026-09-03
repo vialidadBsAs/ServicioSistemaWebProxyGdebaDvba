@@ -178,7 +178,8 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
         return new EjecucionWorkerDto(
             ejecucion.Id, ejecucion.Proceso, ejecucion.Origen, ejecucion.Estado,
             ejecucion.SolicitudEjecucionWorkerId, ejecucion.FechaInicio, ejecucion.FechaFinalizacion,
-            ejecucion.Resumen, ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos,
+            ejecucion.Resumen, ejecucion.TamanoLote, ejecucion.FechaCancelacionSolicitada,
+            ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos,
             ejecucion.SinDatos, ejecucion.Errores, solicitudManual);
     }
 }

@@ -22,6 +22,14 @@ public interface IWorkerExecutionService
 
     Task<EjecucionWorkerIniciada?> TomarSolicitudManualAsync(ProcesoWorker proceso, CancellationToken cancellationToken);
 
+    Task SellarLoteEjecucionAsync(Guid ejecucionId, int tamanoLote, CancellationToken cancellationToken);
+
+    Task RegistrarAvanceEjecucionAsync(Guid ejecucionId, int procesados, CancellationToken cancellationToken);
+
+    Task<bool> EstaCancelacionSolicitadaAsync(Guid ejecucionId, CancellationToken cancellationToken);
+
+    Task SolicitarCancelacionEjecucionAsync(Guid ejecucionId, CancellationToken cancellationToken);
+
     Task FinalizarEjecucionAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string? resumen, int? procesados, int? enriquecidos, int? sinDatos, int? errores, CancellationToken cancellationToken);
 
     Task FinalizarEjecucionDescubrimientoAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string? resumen, int? procesados, int? creados, CancellationToken cancellationToken);

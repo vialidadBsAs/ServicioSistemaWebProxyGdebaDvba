@@ -42,15 +42,25 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         _logger = logger;
     }
 
-    public async Task<DetallarExpedientesPendientesResult> DetallarPendientesAsync(int tamanoLote, OrigenInvocacionGdeba origen, CancellationToken cancellationToken)
+    public async Task<DetallarExpedientesPendientesResult> DetallarPendientesAsync(int tamanoLote, OrigenInvocacionGdeba origen, Func<CancellationToken, Task<bool>>? cancelacionSolicitada, CancellationToken cancellationToken)
     {
         List<PendienteSeleccionado> pendientes = await this.SeleccionarPendientesAsync(Math.Max(1, tamanoLote), cancellationToken);
 
+        int procesados = 0;
         int detallados = 0;
         int errores = 0;
+        bool cancelada = false;
         foreach (PendienteSeleccionado pendiente in pendientes)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            // La cancelacion corta entre expedientes: el que esta en curso siempre termina y persiste completo.
+            if (cancelacionSolicitada is not null && await cancelacionSolicitada(cancellationToken))
+            {
+                cancelada = true;
+                break;
+            }
+
+            procesados++;
             string numeroExpediente = pendiente.NumeroGdebaCompleto;
             try
             {
@@ -79,7 +89,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         int pendientesRestantes = await _expedienteRepository.Query()
             .Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null)
             .CountAsync(cancellationToken);
-        return new DetallarExpedientesPendientesResult(pendientes.Count, detallados, errores, pendientesRestantes);
+        return new DetallarExpedientesPendientesResult(procesados, detallados, errores, pendientesRestantes, cancelada);
     }
 
     private async Task<List<PendienteSeleccionado>> SeleccionarPendientesAsync(int tamanoLote, CancellationToken cancellationToken)

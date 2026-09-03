@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Models;
@@ -229,6 +230,49 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         return new EjecucionWorkerIniciada(ejecucion.Id, solicitud.Id);
     }
 
+    public async Task SellarLoteEjecucionAsync(Guid ejecucionId, int tamanoLote, CancellationToken cancellationToken)
+    {
+        EjecucionWorker ejecucion = await this.ObtenerEjecucionAsync(ejecucionId, cancellationToken);
+        ejecucion.SellarLote(tamanoLote);
+        _ejecucionWorkerRepository.Update(ejecucion);
+        _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RegistrarAvanceEjecucionAsync(Guid ejecucionId, int procesados, CancellationToken cancellationToken)
+    {
+        EjecucionWorker ejecucion = await this.ObtenerEjecucionAsync(ejecucionId, cancellationToken);
+        ejecucion.RegistrarAvance(procesados);
+        _ejecucionWorkerRepository.Update(ejecucion);
+        _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> EstaCancelacionSolicitadaAsync(Guid ejecucionId, CancellationToken cancellationToken)
+    {
+        return await _ejecucionWorkerRepository.Queryable()
+            .AnyAsync(x => x.Id == ejecucionId && x.FechaCancelacionSolicitada != null, cancellationToken);
+    }
+
+    public async Task SolicitarCancelacionEjecucionAsync(Guid ejecucionId, CancellationToken cancellationToken)
+    {
+        EjecucionWorker ejecucion = await this.ObtenerEjecucionAsync(ejecucionId, cancellationToken);
+        ejecucion.SolicitarCancelacion(DateTimeOffset.Now);
+        _ejecucionWorkerRepository.Update(ejecucion);
+        _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<EjecucionWorker> ObtenerEjecucionAsync(Guid ejecucionId, CancellationToken cancellationToken)
+    {
+        EjecucionWorker? ejecucion = (await _ejecucionWorkerRepository.Query()
+            .Where(x => x.Id == ejecucionId)
+            .Take(1)
+            .SelectAsync(cancellationToken))
+            .SingleOrDefault();
+        return ejecucion ?? throw new InvalidOperationException("No existe la ejecucion de Worker solicitada.");
+    }
+
     public async Task FinalizarEjecucionAsync(Guid ejecucionId, EstadoEjecucionWorker estado, string? resumen, int? procesados, int? enriquecidos, int? sinDatos, int? errores, CancellationToken cancellationToken)
     {
         var ejecucion = (await _ejecucionWorkerRepository.Query()
@@ -306,7 +350,8 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
         return new EjecucionWorkerDto(
             ejecucion.Id, ejecucion.Proceso, ejecucion.Origen, ejecucion.Estado,
             ejecucion.SolicitudEjecucionWorkerId, ejecucion.FechaInicio, ejecucion.FechaFinalizacion,
-            ejecucion.Resumen, ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos,
+            ejecucion.Resumen, ejecucion.TamanoLote, ejecucion.FechaCancelacionSolicitada,
+            ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos,
             ejecucion.SinDatos, ejecucion.Errores,
             solicitudManual is null
                 ? null

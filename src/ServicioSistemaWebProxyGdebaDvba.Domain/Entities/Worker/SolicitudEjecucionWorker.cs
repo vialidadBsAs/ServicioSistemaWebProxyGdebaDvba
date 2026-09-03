@@ -92,9 +92,12 @@ public sealed class SolicitudEjecucionWorker : DomainEntity
 
     public void Finalizar(EstadoEjecucionWorker estadoEjecucion, string? mensaje, DateTimeOffset fechaFinalizacion)
     {
-        Estado = estadoEjecucion == EstadoEjecucionWorker.Fallida
-            ? EstadoSolicitudEjecucionWorker.Fallida
-            : EstadoSolicitudEjecucionWorker.Finalizada;
+        Estado = estadoEjecucion switch
+        {
+            EstadoEjecucionWorker.Fallida => EstadoSolicitudEjecucionWorker.Fallida,
+            EstadoEjecucionWorker.Cancelada => EstadoSolicitudEjecucionWorker.Cancelada,
+            _ => EstadoSolicitudEjecucionWorker.Finalizada
+        };
         FechaFinalizacion = fechaFinalizacion;
         Mensaje = string.IsNullOrWhiteSpace(mensaje) ? null : mensaje.Trim();
         this.MarcarComoModificada();

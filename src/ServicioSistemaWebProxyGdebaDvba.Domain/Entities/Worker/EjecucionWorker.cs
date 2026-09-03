@@ -26,12 +26,42 @@ public sealed partial class EjecucionWorker : DomainEntity
     public DateTimeOffset FechaInicio { get; private set; }
     public DateTimeOffset? FechaFinalizacion { get; private set; }
     public string? Resumen { get; private set; }
+    // El lote se sella al iniciar la corrida: es el denominador del avance aunque la configuracion cambie en el medio.
+    public int? TamanoLote { get; private set; }
+    public DateTimeOffset? FechaCancelacionSolicitada { get; private set; }
     public int? Procesados { get; private set; }
     public int? Creados { get; private set; }
     public int? Enriquecidos { get; private set; }
     public int? SinDatos { get; private set; }
     public int? Errores { get; private set; }
     public IReadOnlyCollection<EjecucionWorkerDescubrimientoTrataEstado> ResultadosDescubrimientoTrataEstado => _resultadosDescubrimientoTrataEstado;
+
+    public void SellarLote(int tamanoLote)
+    {
+        TamanoLote = tamanoLote;
+        this.MarcarComoModificada();
+    }
+
+    // Avance aproximado durante la corrida (por sub-lote); el cierre siempre escribe el conteo exacto.
+    public void RegistrarAvance(int procesados)
+    {
+        Procesados = procesados;
+        this.MarcarComoModificada();
+    }
+
+    public void SolicitarCancelacion(DateTimeOffset fecha)
+    {
+        if (Estado != EstadoEjecucionWorker.EnEjecucion)
+        {
+            throw new InvalidOperationException("Solo se puede cancelar una ejecucion que esta en ejecucion.");
+        }
+
+        if (FechaCancelacionSolicitada is null)
+        {
+            FechaCancelacionSolicitada = fecha;
+            this.MarcarComoModificada();
+        }
+    }
 
     public void Finalizar(EstadoEjecucionWorker estado, string? resumen, int? procesados, int? creados, int? enriquecidos, int? sinDatos, int? errores, DateTimeOffset fechaFinalizacion)
     {

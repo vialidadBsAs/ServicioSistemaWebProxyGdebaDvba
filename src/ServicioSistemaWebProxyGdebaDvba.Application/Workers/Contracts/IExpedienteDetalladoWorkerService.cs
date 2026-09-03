@@ -5,5 +5,5 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
 
 public interface IExpedienteDetalladoWorkerService
 {
-    Task<DetallarExpedientesPendientesResult> DetallarPendientesAsync(int tamanoLote, OrigenInvocacionGdeba origen, CancellationToken cancellationToken);
+    Task<DetallarExpedientesPendientesResult> DetallarPendientesAsync(int tamanoLote, OrigenInvocacionGdeba origen, Func<CancellationToken, Task<bool>>? cancelacionSolicitada, CancellationToken cancellationToken);
 }

@@ -221,6 +221,21 @@ public sealed class WorkersController : ControllerBase
         }
     }
 
+    // Cancelacion en caliente: frena la corrida en curso al terminar el expediente actual; la programada ademas no encadena mas corridas hoy.
+    [HttpPost("ejecuciones/{ejecucionId:guid}/cancelar")]
+    public async Task<ActionResult> CancelarEjecucion(Guid ejecucionId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _workerExecutionService.SolicitarCancelacionEjecucionAsync(ejecucionId, cancellationToken);
+            return this.NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return this.BadRequest(exception.Message);
+        }
+    }
+
     [HttpPut("{proceso}/omisiones/hoy")]
     public async Task<ActionResult> OmitirCorridaDelDia(string proceso, CancellationToken cancellationToken)
     {

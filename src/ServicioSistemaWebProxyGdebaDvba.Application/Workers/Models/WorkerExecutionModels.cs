@@ -27,6 +27,8 @@ public sealed record EjecucionWorkerDto(
     DateTimeOffset FechaInicio,
     DateTimeOffset? FechaFinalizacion,
     string? Resumen,
+    int? TamanoLote,
+    DateTimeOffset? FechaCancelacionSolicitada,
     int? Procesados,
     int? Creados,
     int? Enriquecidos,
