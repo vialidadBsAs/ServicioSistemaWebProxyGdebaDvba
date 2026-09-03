@@ -10,14 +10,18 @@ public sealed partial class TemaExpediente : DomainEntity
     {
     }
 
-    public TemaExpediente(string codigo, string nombre, string? descripcion = null)
+    public TemaExpediente(string codigo, string nombre, string usuarioPropietario, string? descripcion = null)
     {
         Codigo = NormalizarRequerido(codigo, nameof(codigo)).ToUpperInvariant();
         Nombre = NormalizarRequerido(nombre, nameof(nombre));
+        UsuarioPropietario = NormalizarRequerido(usuarioPropietario, nameof(usuarioPropietario));
         Descripcion = Normalizar(descripcion);
     }
 
     public string Codigo { get; private set; } = string.Empty;
+
+    // El tema es una facilidad de consulta personal: cada usuario ve y administra solo los suyos.
+    public string UsuarioPropietario { get; private set; } = string.Empty;
 
     public string Nombre { get; private set; } = string.Empty;
 

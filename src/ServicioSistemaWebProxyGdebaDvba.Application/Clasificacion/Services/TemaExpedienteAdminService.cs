@@ -21,10 +21,12 @@ public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IReadOnlyCollection<TemaExpedienteDto>> ObtenerTemasAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<TemaExpedienteDto>> ObtenerTemasAsync(string usuarioPropietario, CancellationToken cancellationToken)
     {
+        string usuario = TemaExpedienteAdminService.NormalizarUsuario(usuarioPropietario);
         var temas = await _temaRepository.Query()
             .Include($"{nameof(TemaExpediente.Tratas)}.{nameof(TemaExpedienteTrata.TrataHabilitadaVialidad)}")
+            .Where(x => x.UsuarioPropietario == usuario)
             .OrderBy(x => x.Nombre)
             .SelectAsync(cancellationToken);
 
@@ -45,10 +47,11 @@ public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
             .ToArray();
     }
 
-    public async Task<TemaExpedienteDto> CrearTemaAsync(GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)
+    public async Task<TemaExpedienteDto> CrearTemaAsync(GuardarTemaExpedienteRequest request, string usuarioPropietario, CancellationToken cancellationToken)
     {
-        await this.ValidarCodigoUnicoAsync(request.Codigo, temaIdExcluido: null, cancellationToken);
-        var tema = new TemaExpediente(request.Codigo, request.Nombre, request.Descripcion);
+        string usuario = TemaExpedienteAdminService.NormalizarUsuario(usuarioPropietario);
+        await this.ValidarCodigoUnicoAsync(request.Codigo, usuario, temaIdExcluido: null, cancellationToken);
+        var tema = new TemaExpediente(request.Codigo, request.Nombre, usuario, request.Descripcion);
         await this.AsignarTratasAsync(tema, request.TratasHabilitadasVialidadIds, cancellationToken);
 
         _temaRepository.Insert(tema);
@@ -58,14 +61,16 @@ public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
         return TemaExpedienteAdminService.MapearTema(tema);
     }
 
-    public async Task<TemaExpedienteDto> ActualizarTemaAsync(Guid temaId, GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)
+    public async Task<TemaExpedienteDto> ActualizarTemaAsync(Guid temaId, GuardarTemaExpedienteRequest request, string usuarioPropietario, CancellationToken cancellationToken)
     {
+        string usuario = TemaExpedienteAdminService.NormalizarUsuario(usuarioPropietario);
+        // El tema de otro dueno se trata como inexistente: no se revela que existe.
         var tema = await _temaRepository.Query()
             .Include($"{nameof(TemaExpediente.Tratas)}.{nameof(TemaExpedienteTrata.TrataHabilitadaVialidad)}")
-            .FirstOrDefaultAsync(x => x.Id == temaId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == temaId && x.UsuarioPropietario == usuario, cancellationToken);
         if (tema is null) throw new KeyNotFoundException("No existe el tema solicitado.");
 
-        await this.ValidarCodigoUnicoAsync(request.Codigo, tema.Id, cancellationToken);
+        await this.ValidarCodigoUnicoAsync(request.Codigo, usuario, tema.Id, cancellationToken);
         tema.Actualizar(request.Codigo, request.Nombre, request.Descripcion);
         await this.ReemplazarTratasAsync(tema, request.TratasHabilitadasVialidadIds, cancellationToken);
 
@@ -76,9 +81,10 @@ public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
         return TemaExpedienteAdminService.MapearTema(tema);
     }
 
-    public async Task EliminarTemaAsync(Guid temaId, CancellationToken cancellationToken)
+    public async Task EliminarTemaAsync(Guid temaId, string usuarioPropietario, CancellationToken cancellationToken)
     {
-        var tema = await _temaRepository.Query().FirstOrDefaultAsync(x => x.Id == temaId, cancellationToken);
+        string usuario = TemaExpedienteAdminService.NormalizarUsuario(usuarioPropietario);
+        var tema = await _temaRepository.Query().FirstOrDefaultAsync(x => x.Id == temaId && x.UsuarioPropietario == usuario, cancellationToken);
         if (tema is null) return;
 
         _temaRepository.Delete(tema);
@@ -118,14 +124,21 @@ public sealed class TemaExpedienteAdminService : ITemaExpedienteAdminService
         return tratas.ToArray();
     }
 
-    private async Task ValidarCodigoUnicoAsync(string codigo, Guid? temaIdExcluido, CancellationToken cancellationToken)
+    private async Task ValidarCodigoUnicoAsync(string codigo, string usuarioPropietario, Guid? temaIdExcluido, CancellationToken cancellationToken)
     {
         var codigoNormalizado = string.IsNullOrWhiteSpace(codigo) ? string.Empty : codigo.Trim().ToUpperInvariant();
         if (string.IsNullOrWhiteSpace(codigoNormalizado)) return;
 
         var existe = await _temaRepository.Query()
-            .AnyAsync(x => x.Codigo == codigoNormalizado && (!temaIdExcluido.HasValue || x.Id != temaIdExcluido.Value), cancellationToken);
-        if (existe) throw new InvalidOperationException($"Ya existe un tema con el código '{codigoNormalizado}'.");
+            .AnyAsync(x => x.UsuarioPropietario == usuarioPropietario && x.Codigo == codigoNormalizado && (!temaIdExcluido.HasValue || x.Id != temaIdExcluido.Value), cancellationToken);
+        if (existe) throw new InvalidOperationException($"Ya tenés un tema con el código '{codigoNormalizado}'.");
+    }
+
+    private static string NormalizarUsuario(string usuarioPropietario)
+    {
+        return string.IsNullOrWhiteSpace(usuarioPropietario)
+            ? throw new ArgumentException("Se requiere el usuario propietario del tema.", nameof(usuarioPropietario))
+            : usuarioPropietario.Trim();
     }
 
     private static TemaExpedienteDto MapearTema(TemaExpediente tema)

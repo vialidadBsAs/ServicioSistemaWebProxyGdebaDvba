@@ -18,11 +18,16 @@ public sealed class TemasExpedienteController : ControllerBase
         _temaExpedienteAdminService = temaExpedienteAdminService;
     }
 
+    // Los temas son personales: cada usuario ve y administra solo los suyos.
+    private string? UsuarioActual => User.Identity?.Name ?? User.FindFirst("unique_name")?.Value;
+
     [HttpGet]
     [Authorize(Policy = SeguridadInstitucional.PoliticaAccesoExpedientes)]
     public async Task<ActionResult<IReadOnlyCollection<TemaExpedienteDto>>> ObtenerTemas(CancellationToken cancellationToken)
     {
-        return Ok(await _temaExpedienteAdminService.ObtenerTemasAsync(cancellationToken));
+        if (string.IsNullOrWhiteSpace(UsuarioActual)) return Unauthorized();
+
+        return Ok(await _temaExpedienteAdminService.ObtenerTemasAsync(UsuarioActual, cancellationToken));
     }
 
     [HttpGet("tratas-habilitadas")]
@@ -36,7 +41,9 @@ public sealed class TemasExpedienteController : ControllerBase
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
     public async Task<ActionResult<TemaExpedienteDto>> CrearTema([FromBody] GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)
     {
-        var tema = await _temaExpedienteAdminService.CrearTemaAsync(request, cancellationToken);
+        if (string.IsNullOrWhiteSpace(UsuarioActual)) return Unauthorized();
+
+        var tema = await _temaExpedienteAdminService.CrearTemaAsync(request, UsuarioActual, cancellationToken);
         return CreatedAtAction(nameof(this.ObtenerTemas), new { id = tema.Id }, tema);
     }
 
@@ -44,14 +51,18 @@ public sealed class TemasExpedienteController : ControllerBase
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
     public async Task<ActionResult<TemaExpedienteDto>> ActualizarTema(Guid temaId, [FromBody] GuardarTemaExpedienteRequest request, CancellationToken cancellationToken)
     {
-        return Ok(await _temaExpedienteAdminService.ActualizarTemaAsync(temaId, request, cancellationToken));
+        if (string.IsNullOrWhiteSpace(UsuarioActual)) return Unauthorized();
+
+        return Ok(await _temaExpedienteAdminService.ActualizarTemaAsync(temaId, request, UsuarioActual, cancellationToken));
     }
 
     [HttpDelete("{temaId:guid}")]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
     public async Task<IActionResult> EliminarTema(Guid temaId, CancellationToken cancellationToken)
     {
-        await _temaExpedienteAdminService.EliminarTemaAsync(temaId, cancellationToken);
+        if (string.IsNullOrWhiteSpace(UsuarioActual)) return Unauthorized();
+
+        await _temaExpedienteAdminService.EliminarTemaAsync(temaId, UsuarioActual, cancellationToken);
         return NoContent();
     }
 }
