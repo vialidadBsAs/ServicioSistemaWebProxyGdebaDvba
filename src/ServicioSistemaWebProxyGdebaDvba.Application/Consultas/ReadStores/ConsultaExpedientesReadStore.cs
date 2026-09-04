@@ -100,6 +100,13 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             ? Array.Empty<MovimientoExpediente>()
             : await _movimientoRepository.Query().Where(x => ultimosMovimientosIds.Contains(x.Id)).SelectAsync(cancellationToken);
         var ultimosMovimientosPorId = ultimosMovimientos.ToDictionary(x => x.Id);
+        // El ultimo pase (EsUltimoConocido) es lo coherente para mostrar: donde esta parado hoy el expediente y cuando se movio por ultima vez.
+        var ultimosPases = await _movimientoRepository.Query()
+            .Where(x => expedientesIds.Contains(x.ExpedienteId) && x.EsUltimoConocido)
+            .SelectAsync(cancellationToken);
+        var ultimoPasePorExpedienteId = ultimosPases
+            .GroupBy(x => x.ExpedienteId)
+            .ToDictionary(x => x.Key, x => x.OrderByDescending(m => m.Orden).First());
         Guid[] trataIdsPagina = expedientes.Where(x => x.TrataId.HasValue).Select(x => x.TrataId!.Value).Distinct().ToArray();
         var tratas = await _trataRepository.Query().Where(x => trataIdsPagina.Contains(x.Id)).SelectAsync(cancellationToken);
         var tratasPorId = tratas.ToDictionary(x => x.Id);
@@ -110,6 +117,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             historialesPorExpedienteId.GetValueOrDefault(x.Id)?.UltimoMovimientoDetectadoId is Guid ultimoMovimientoId
                 ? ultimosMovimientosPorId.GetValueOrDefault(ultimoMovimientoId)
                 : null,
+            ultimoPasePorExpedienteId.GetValueOrDefault(x.Id),
             filtro.FechaConsulta)).ToArray();
 
         return new ConsultaExpedientesResult(totalRegistros, filtro.Pagina, filtro.TamanioPagina, items);
@@ -391,6 +399,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         IReadOnlyDictionary<Guid, TrataHabilitadaVialidad> tratasPorId,
         HistorialExpedienteCacheControl? historial,
         MovimientoExpediente? ultimoMovimiento,
+        MovimientoExpediente? ultimoPase,
         DateTimeOffset fechaConsulta)
     {
         if (!expediente.TrataId.HasValue || !tratasPorId.TryGetValue(expediente.TrataId.Value, out var trata))
@@ -409,7 +418,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             ultimoMovimiento?.FechaOperacion,
             estadoDetalle,
             expediente.Motivo ?? expediente.DescripcionAdicional,
-            expediente.FechaCaratulacion);
+            expediente.FechaCaratulacion,
+            ultimoPase?.ReparticionDestino,
+            ultimoPase?.FechaOperacion);
     }
 
     private async Task<IReadOnlyDictionary<string, TipoDocumentoGdeba>> CargarTiposPorCodigoAsync(IEnumerable<string?> codigosTipoDocumento, CancellationToken cancellationToken)
