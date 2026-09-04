@@ -26,7 +26,10 @@ public sealed record DocumentoExpedienteDto(
     DateTimeOffset? FechaVinculacion,
     string? UsuarioAsociacion,
     string? UsuarioGenerador,
-    int? OrdenRespuesta);
+    int? OrdenRespuesta,
+    Guid DocumentoId,
+    bool MetadataCompleta,
+    bool? PuedeVerDocumento);
 
 public sealed record ArchivoAdjuntoExpedienteDto(string NombreArchivo);
 

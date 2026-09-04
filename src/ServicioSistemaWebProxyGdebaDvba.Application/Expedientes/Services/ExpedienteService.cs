@@ -921,7 +921,10 @@ public sealed class ExpedienteService : IExpedienteService
                 x.FechaVinculacion,
                 x.UsuarioAsociacion,
                 x.UsuarioGenerador,
-                x.OrdenRespuesta))
+                x.OrdenRespuesta,
+                x.Documento.Id,
+                x.Documento.MetadataCompleta,
+                x.Documento.PuedeVerDocumento))
             .ToArray();
     }
 
