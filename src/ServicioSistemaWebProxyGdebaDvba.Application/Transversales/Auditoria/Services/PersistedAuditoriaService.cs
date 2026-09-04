@@ -25,7 +25,7 @@ public sealed class PersistedAuditoriaService : IAuditoriaService
     public Task RegistrarAsync(RegistrarAuditoriaRequest request, CancellationToken cancellationToken)
     {
         var aplicacion = this.ResolverAplicacionConsumidora(request.AplicacionConsumidoraCodigo);
-        var registro = new RegistroAuditoria(aplicacion.Id, request.OperacionSolicitada, request.OperacionGdeba, request.Recurso, request.Ambiente, request.Fuente, request.Exitoso, request.Mensaje, request.Fecha, _usuarioActualAccessor.UsuarioInstitucional);
+        var registro = new RegistroAuditoria(aplicacion.Id, request.OperacionSolicitada, request.OperacionGdeba, request.Recurso, request.Ambiente, request.Fuente, request.Exitoso, request.Mensaje, request.Fecha, _usuarioActualAccessor.UsuarioInstitucional, _usuarioActualAccessor.UsuarioGdeba);
 
         _auditoriaRepository.Insert(registro);
         return Task.CompletedTask;

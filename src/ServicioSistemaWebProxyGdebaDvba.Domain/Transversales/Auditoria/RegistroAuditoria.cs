@@ -9,9 +9,11 @@ public sealed class RegistroAuditoria : DomainEntity
     {
     }
 
-    public RegistroAuditoria(Guid aplicacionConsumidoraId, string operacionSolicitada, string? operacionGdeba, string? recurso, AmbienteGdeba ambiente, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha, string? usuarioInstitucional = null)
+    public RegistroAuditoria(Guid aplicacionConsumidoraId, string operacionSolicitada, string? operacionGdeba, string? recurso, AmbienteGdeba ambiente, FuenteRespuesta? fuente, bool exitoso, string? mensaje, DateTimeOffset fecha, string? usuarioInstitucional = null, string? usuarioGdeba = null)
     {
         UsuarioInstitucional = NormalizarOperacionOpcional(usuarioInstitucional);
+        // El usuario GDEBA solo tiene sentido cuando la respuesta vino de GDEBA (hubo consulta real). En cache queda nulo: nadie consulto GDEBA en esta operacion.
+        UsuarioGdeba = fuente == FuenteRespuesta.Gdeba ? NormalizarOperacionOpcional(usuarioGdeba) : null;
         AplicacionConsumidoraId = aplicacionConsumidoraId == Guid.Empty
             ? throw new ArgumentException("La aplicacion consumidora es requerida.", nameof(aplicacionConsumidoraId))
             : aplicacionConsumidoraId;
@@ -47,6 +49,9 @@ public sealed class RegistroAuditoria : DomainEntity
 
     // Persona que disparo la operacion (token DVBA-Auth); nulo en workers y mensajeria.
     public string? UsuarioInstitucional { get; private set; }
+
+    // Usuario GDEBA con el que se consulto GDEBA; solo se registra cuando Fuente = Gdeba (en cache queda nulo porque no hubo consulta).
+    public string? UsuarioGdeba { get; private set; }
 
     private static string? NormalizarMensaje(string? mensaje)
     {

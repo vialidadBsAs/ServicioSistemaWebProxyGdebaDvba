@@ -12,6 +12,8 @@ public sealed class RegistroAuditoriaConfiguration : IEntityTypeConfiguration<Re
 
         builder.Property(x => x.UsuarioInstitucional).HasMaxLength(200);
 
+        builder.Property(x => x.UsuarioGdeba).HasMaxLength(200);
+
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.OperacionSolicitada)
