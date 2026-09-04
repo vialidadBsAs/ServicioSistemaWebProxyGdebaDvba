@@ -31,11 +31,19 @@ public sealed class ConsultasExpedientesController : ControllerBase
 
     // Busqueda puntual por texto de caratula: operacion de usuario final, con la politica de acceso general del controller.
     [HttpGet("caratula")]
-    public async Task<ActionResult<ConsultaExpedientesResult>> BuscarPorCaratula([FromQuery] string texto, [FromQuery] Guid[]? trataIds = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaExpedientesResult>> BuscarPorCaratula([FromQuery] string texto, [FromQuery] Guid[]? trataIds = null, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? orden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] int? skip = null, [FromQuery] int? take = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3) return this.BadRequest("Indique al menos 3 caracteres del texto de la caratula.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, Pagina: 1, TamanioPagina: 100, CampoOrden: "fechaUltimoMovimiento", DireccionOrden: "desc", Caratula: texto.Trim()), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, CodigosTrata: codigosTrata, EstadosActuales: estadosActuales, Caratula: texto.Trim(), Skip: skip, Take: take, Orden: orden), cancellationToken));
+    }
+
+    [HttpGet("caratula/valores-filtro")]
+    public async Task<ActionResult<IReadOnlyCollection<string>>> ObtenerValoresFiltroCaratula([FromQuery] string texto, [FromQuery] string campo, [FromQuery] Guid[]? trataIds = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3) return this.BadRequest("Indique al menos 3 caracteres del texto de la caratula.");
+
+        return this.Ok(await _consultaExpedientesService.ObtenerValoresFiltroCaratulaAsync(new ConsultaCaratulaValoresFiltroRequest(texto, campo, trataIds), cancellationToken));
     }
 
     [HttpGet("cobertura-detalle")]

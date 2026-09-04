@@ -38,7 +38,8 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
     public async Task<ConsultaExpedientesResult> ConsultarAsync(ConsultaExpedientesFiltro filtro, CancellationToken cancellationToken)
     {
         Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(filtro.TrataIds, cancellationToken);
-        var query = _expedienteRepository.Query().Where(x => x.TrataId.HasValue);
+        // Queryable() (EF crudo) en vez de Query() (wrapper URF) para que el ThenBy del multi-sort traduzca a SQL. No hay filtros globales, trae las mismas filas.
+        IQueryable<Expediente> query = _expedienteRepository.Queryable().Where(x => x.TrataId.HasValue);
         if (trataIdsConsulta.Length > 0) query = query.Where(x => trataIdsConsulta.Contains(x.TrataId!.Value));
         if (filtro.CodigosTrata.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.CodigosTrata, x => x.Trata!.CodigoTrata));
         if (filtro.EstadosActuales.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.EstadosActuales, x => x.EstadoActual));
@@ -74,21 +75,21 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 (x.DescripcionAdicional != null && x.DescripcionAdicional.Contains(caratulaBuscada)));
         }
         var totalRegistros = await query.CountAsync(cancellationToken);
-        var queryOrdenada = filtro.CampoOrden switch
+        // Multi-sort: se aplican los criterios en orden (OrderBy + ThenBy encadenados); el desempate final es el numero de expediente.
+        IOrderedQueryable<Expediente>? queryOrdenada = null;
+        foreach (CriterioOrdenExpediente criterio in filtro.Criterios)
         {
-            "numeroGdebaCompleto" => filtro.OrdenDescendente ? query.OrderByDescending(x => x.GdebaNumeroCompleto) : query.OrderBy(x => x.GdebaNumeroCompleto),
-            "codigoTrata" => filtro.OrdenDescendente ? query.OrderByDescending(x => x.Trata!.CodigoTrata) : query.OrderBy(x => x.Trata!.CodigoTrata),
-            "descripcionTrata" => filtro.OrdenDescendente ? query.OrderByDescending(x => x.Trata!.DescripcionTrata) : query.OrderBy(x => x.Trata!.DescripcionTrata),
-            "estadoActual" => filtro.OrdenDescendente ? query.OrderByDescending(x => x.EstadoActual) : query.OrderBy(x => x.EstadoActual),
-            "estadoDetalle" => filtro.OrdenDescendente
-                ? query.OrderByDescending(x => x.HistorialCacheControl == null || !x.HistorialCacheControl.EstaCompleto)
-                : query.OrderBy(x => x.HistorialCacheControl == null || !x.HistorialCacheControl.EstaCompleto),
-            _ => filtro.OrdenDescendente ? query.OrderByDescending(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null).ThenByDescending(x => x.HistorialCacheControl!.UltimoMovimientoDetectado!.FechaOperacion) : query.OrderBy(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null).ThenBy(x => x.HistorialCacheControl!.UltimoMovimientoDetectado!.FechaOperacion)
-        };
+            queryOrdenada = ConsultaExpedientesReadStore.AplicarCriterioOrden(query, queryOrdenada, criterio, filtro.FechaConsulta);
+        }
+
+        queryOrdenada ??= ConsultaExpedientesReadStore.AplicarCriterioOrden(query, null, new CriterioOrdenExpediente("fechaUltimoMovimiento", true), filtro.FechaConsulta);
+        // Virtualizacion: si vienen skip/take se usan tal cual (startIndex/chunkSize); si no, se pagina por Pagina/TamanioPagina.
+        int saltear = filtro.Skip ?? (filtro.Pagina - 1) * filtro.TamanioPagina;
+        int tomar = filtro.Take ?? filtro.TamanioPagina;
         var expedientes = await queryOrdenada.ThenByDescending(x => x.GdebaNumeroCompleto)
-            .Skip((filtro.Pagina - 1) * filtro.TamanioPagina)
-            .Take(filtro.TamanioPagina)
-            .SelectAsync(cancellationToken);
+            .Skip(saltear)
+            .Take(tomar)
+            .ToArrayAsync(cancellationToken);
 
         var expedientesIds = expedientes.Select(x => x.Id).ToArray();
         var historiales = await _historialCacheControlRepository.Query()
@@ -357,6 +358,24 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         DateTimeOffset? FechaCreacion,
         string? Referencia);
 
+    public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroCaratulaAsync(ConsultaCaratulaValoresFiltroFiltro filtro, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(filtro.TrataIds, cancellationToken);
+        IQueryable<Expediente> query = _expedienteRepository.Queryable().Where(x => x.TrataId.HasValue);
+        if (trataIdsConsulta.Length > 0) query = query.Where(x => trataIdsConsulta.Contains(x.TrataId!.Value));
+        query = query.Where(x =>
+            (x.Motivo != null && x.Motivo.Contains(filtro.Texto)) ||
+            (x.DescripcionAdicional != null && x.DescripcionAdicional.Contains(filtro.Texto)));
+
+        if (filtro.Campo == "codigoTrata")
+        {
+            return await query.Where(x => x.Trata!.CodigoTrata != null).Select(x => x.Trata!.CodigoTrata).Distinct().OrderBy(x => x).ToArrayAsync(cancellationToken);
+        }
+
+        // estadoActual
+        return await query.Where(x => x.EstadoActual != null).Select(x => x.EstadoActual!).Distinct().OrderBy(x => x).ToArrayAsync(cancellationToken);
+    }
+
     public async Task<ConsultaCoberturaDetalleResult> ConsultarCoberturaDetalleAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)
     {
         Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(trataIds, cancellationToken);
@@ -365,6 +384,29 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         int detallados = await query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.FechaUltimaConsultaGdeba != null).CountAsync(cancellationToken);
         int sinDetallar = await query.Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null).CountAsync(cancellationToken);
         return new ConsultaCoberturaDetalleResult(detallados, sinDetallar);
+    }
+
+    // Aplica un criterio de orden encadenando OrderBy/ThenBy segun sea el primero o uno posterior. El ultimo pase y estado detalle usan subconsultas.
+    private static IOrderedQueryable<Expediente> AplicarCriterioOrden(IQueryable<Expediente> query, IOrderedQueryable<Expediente>? previa, CriterioOrdenExpediente criterio, DateTimeOffset fechaConsulta)
+    {
+        return criterio.Campo switch
+        {
+            "numeroGdebaCompleto" => Aplicar(query, previa, x => x.GdebaNumeroCompleto, criterio.Descendente),
+            "codigoTrata" => Aplicar(query, previa, x => x.Trata!.CodigoTrata, criterio.Descendente),
+            "descripcionTrata" => Aplicar(query, previa, x => x.Trata!.DescripcionTrata, criterio.Descendente),
+            "estadoActual" => Aplicar(query, previa, x => x.EstadoActual, criterio.Descendente),
+            "fechaCaratulacion" => Aplicar(query, previa, x => x.FechaCaratulacion, criterio.Descendente),
+            "ultimoPaseSectorDestino" => Aplicar(query, previa, x => x.Movimientos.Where(m => m.EsUltimoConocido).Max(m => m.ReparticionDestino), criterio.Descendente),
+            "estadoDetalle" => Aplicar(query, previa, x => x.HistorialCacheControl == null || !x.HistorialCacheControl.EstaCompleto, criterio.Descendente),
+            // fechaUltimoMovimiento y ultimoPaseFecha: por la fecha del ultimo pase real (EsUltimoConocido).
+            _ => Aplicar(query, previa, x => x.Movimientos.Where(m => m.EsUltimoConocido).Max(m => (DateTimeOffset?)m.FechaOperacion), criterio.Descendente)
+        };
+
+        static IOrderedQueryable<Expediente> Aplicar<TKey>(IQueryable<Expediente> origen, IOrderedQueryable<Expediente>? ordenada, System.Linq.Expressions.Expression<Func<Expediente, TKey>> selector, bool descendente)
+        {
+            if (ordenada is null) return descendente ? origen.OrderByDescending(selector) : origen.OrderBy(selector);
+            return descendente ? ordenada.ThenByDescending(selector) : ordenada.ThenBy(selector);
+        }
     }
 
     private static readonly MethodInfo MetodoContains = typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!;
