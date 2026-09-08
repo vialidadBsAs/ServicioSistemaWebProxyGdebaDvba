@@ -398,7 +398,7 @@ public sealed class ExpedienteService : IExpedienteService
 
                 // Marca la cache de movimientos con vigencia diaria para la consulta bajo demanda.
                 this.MarcarHistorialConsultadoCorrectamente(
-                    expediente, resolvedAt, resolvedAt, ExpedienteService.CalcularVencimientoDiario(resolvedAt), ultimoMovimiento, estaCompleto: true);
+                    expediente, resolvedAt, resolvedAt, expediente.CalcularVencimientoCache(resolvedAt), ultimoMovimiento, estaCompleto: true);
 
                 movimientos = ExpedienteService.MapearMovimientos(expediente);
                 fuente = FuenteRespuesta.Gdeba;
@@ -547,7 +547,7 @@ public sealed class ExpedienteService : IExpedienteService
         ExpedienteService.ConsolidarAdjuntos(expediente, detalle.ArchivosAdjuntos, fechaConsulta);
         ExpedienteService.ConsolidarRelaciones(expediente, detalle.Relaciones, FuenteDeteccionGdeba.ConsultarExpedienteDetallado, fechaConsulta);
 
-        this.RegistrarRespuestaExpedienteCorrecta(expediente, fechaConsulta, fechaConsulta, ExpedienteService.CalcularVencimientoDiario(fechaConsulta), estaCompleto: true);
+        this.RegistrarRespuestaExpedienteCorrecta(expediente, fechaConsulta, fechaConsulta, expediente.CalcularVencimientoCache(fechaConsulta), estaCompleto: true);
         bool cambioCabecera = !string.Equals(estadoAnterior, expediente.EstadoActual, StringComparison.Ordinal) ||
             !string.Equals(descripcionAdicionalAnterior, expediente.DescripcionAdicional, StringComparison.Ordinal);
         expediente.RegistrarNovedadesDetectadas(
@@ -1116,11 +1116,6 @@ public sealed class ExpedienteService : IExpedienteService
         }
 
         return left > right ? left : right;
-    }
-
-    private static DateTimeOffset CalcularVencimientoDiario(DateTimeOffset fechaConsulta)
-    {
-        return fechaConsulta.AddDays(1);
     }
 
     private static string CrearMensajeResultado(FuenteRespuesta fuente, bool exitoso)

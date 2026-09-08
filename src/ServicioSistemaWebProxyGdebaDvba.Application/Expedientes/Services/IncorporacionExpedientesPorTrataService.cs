@@ -131,7 +131,7 @@ public sealed class IncorporacionExpedientesPorTrataService : IIncorporacionExpe
 
             if (cacheDebeRegistrarse)
             {
-                expediente.RegistrarRespuestaExpedienteCorrecta(resolvedAt, resolvedAt, IncorporacionExpedientesPorTrataService.CalcularVencimientoDiario(resolvedAt), estaCompleto: false);
+                expediente.RegistrarRespuestaExpedienteCorrecta(resolvedAt, resolvedAt, expediente.CalcularVencimientoCache(resolvedAt), estaCompleto: false);
                 this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
             }
 
@@ -220,8 +220,4 @@ public sealed class IncorporacionExpedientesPorTrataService : IIncorporacionExpe
             : valor.Trim();
     }
 
-    private static DateTimeOffset CalcularVencimientoDiario(DateTimeOffset fechaConsulta)
-    {
-        return fechaConsulta.AddDays(1);
-    }
 }

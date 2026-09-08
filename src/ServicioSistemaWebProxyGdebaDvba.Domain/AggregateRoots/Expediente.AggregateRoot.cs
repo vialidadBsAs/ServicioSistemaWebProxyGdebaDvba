@@ -93,6 +93,13 @@ public sealed partial class Expediente : IAggregateRoot
         return HistorialCacheControl?.PuedeResponder(fechaActual) == true;
     }
 
+    // Vencimiento escalonado por antiguedad: cuanto mas viejo el expediente, mas dias vale su copia local. Los expedientes viejos cambian menos y su historial es el mas caro de traer, asi que se revalidan menos seguido. Un dia por cada anio de antiguedad (2026->1, 2025->2, 2024->3, ...) con piso de un dia. Unico lugar de calculo del vencimiento de cache; reemplaza al vencimiento diario fijo.
+    public DateTimeOffset CalcularVencimientoCache(DateTimeOffset fechaConsulta)
+    {
+        var diasValidez = Math.Max(1, (fechaConsulta.Year - GdebaAnio) + 1);
+        return fechaConsulta.AddDays(diasValidez);
+    }
+
     public ExpedienteDocumento RegistrarDocumentoDetectado(
         DocumentoGdeba documentoGdeba,
         DateTimeOffset? fechaVinculacion,
