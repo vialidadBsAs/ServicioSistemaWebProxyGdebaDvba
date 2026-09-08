@@ -284,7 +284,8 @@ public sealed partial class Expediente : IAggregateRoot
 
         CacheControl.RegistrarConsulta(
             fechaConsulta,
-            fechaActualizacionLocal,
+            // Un error/fallback no actualiza el dato: se preserva la fecha de la ultima actualizacion real.
+            CacheControl.FechaUltimaActualizacionLocal ?? fechaActualizacionLocal,
             CacheControl.FechaVencimiento,
             FuenteRespuesta.FallbackCache,
             CacheControl.EstaCompleto,
@@ -331,7 +332,8 @@ public sealed partial class Expediente : IAggregateRoot
 
         HistorialCacheControl.RegistrarConsulta(
             fechaConsulta,
-            fechaActualizacionLocal,
+            // Un error/fallback no actualiza el dato: se preserva la fecha de la ultima actualizacion real.
+            HistorialCacheControl.FechaUltimaActualizacionLocal ?? fechaActualizacionLocal,
             HistorialCacheControl.FechaVencimiento,
             FuenteRespuesta.FallbackCache,
             HistorialCacheControl.UltimoMovimientoDetectadoId,

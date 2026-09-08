@@ -1,6 +1,7 @@
 ﻿using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
@@ -48,6 +49,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly IRepository<TipoDocumentoGdeba> _tipoDocumentoRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ISensorConexionGdeba _sensorConexion;
     private readonly ILogger<ExpedienteService> _logger;
 
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
@@ -59,11 +61,12 @@ public sealed class ExpedienteService : IExpedienteService
                               IRepository<ConfiguracionDescubrimientoEstadoExpediente> configuracionDescubrimientoEstadoRepository,
                               ITrackableRepository<DocumentoGdeba> documentoRepository,
                               IRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
-                              IUnitOfWork unitOfWork, ILogger<ExpedienteService> logger)
+                              IUnitOfWork unitOfWork, ISensorConexionGdeba sensorConexion, ILogger<ExpedienteService> logger)
     {
         _expedienteCacheReadStore = expedienteCacheReadStore;
         _gdebaExpedienteGateway = gdebaExpedienteGateway;
         _gdebaExecutionContext = gdebaExecutionContext;
+        _sensorConexion = sensorConexion;
         _auditoriaService = auditoriaService;
         _currentApplicationAccessor = currentApplicationAccessor;
         _incorporacionExpedientesPorTrataService = incorporacionExpedientesPorTrataService;
@@ -115,46 +118,58 @@ public sealed class ExpedienteService : IExpedienteService
         {
             // Consulta GDEBA cuando no hay cache vigente o cuando la solicitud exige refresco.
             GdebaExpedienteDetalladoDto? detalle = null;
-            try
+            if (!_sensorConexion.Accesible && expediente is not null)
             {
-                detalle = await _gdebaExpedienteGateway.ConsultarExpedienteDetalladoAsync(
-                    numeroGdebaCompleto,
-                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh, request.Origen),
-                    cancellationToken);
-            }
-            catch (GdebaOperationException ex)
-            {
-                // GDEBA rechazo el detalle (p. ej. "no existe en EE"): se marcan ambos controles con el error para que el worker no reintente indefinidamente; la cache queda incompleta, por lo que una consulta interactiva posterior vuelve a intentar contra GDEBA.
-                if (expediente is not null)
-                {
-                    this.MarcarDetalleConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
-                    this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
-                    this.RegistrarCambiosExpediente(expediente, esNuevo: false);
-                }
-
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
-                throw;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
-                throw;
-            }
-            catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
-            {
-                // Enlace caido / sin internet: GDEBA no respondio. Si hay copia local se responde como respaldo marcando la falta de conexion; sin copia no hay nada que mostrar.
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
-                if (expediente is null)
-                {
-                    throw new GdebaOperationException(OperacionDetalle, "No hay conexion con GDEBA y no existe una copia local del expediente.", innerException: ex);
-                }
-
+                // Bandera de conexion caida: no se intenta GDEBA (evita la espera en cada pedido). Se responde la copia local y se dispara la sonda de reconexion. La auditoria se centraliza mas abajo.
+                _sensorConexion.SondearSiCorresponde(numeroGdebaCompleto.Valor);
                 sinConexion = true;
             }
-            catch (Exception ex)
+            else
             {
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
-                throw new GdebaOperationException(OperacionDetalle, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
+                try
+                {
+                    detalle = await _gdebaExpedienteGateway.ConsultarExpedienteDetalladoAsync(
+                        numeroGdebaCompleto,
+                        ExpedienteService.CrearContextoInvocacion(request.ForceRefresh, request.Origen),
+                        cancellationToken);
+                    _sensorConexion.RegistrarExito();
+                }
+                catch (GdebaOperationException ex)
+                {
+                    // GDEBA rechazo el detalle (p. ej. "no existe en EE"): respondio, o sea el enlace esta vivo. Se marcan los controles con el error para que el worker no reintente indefinidamente.
+                    _sensorConexion.RegistrarExito();
+                    if (expediente is not null)
+                    {
+                        this.MarcarDetalleConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
+                        this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
+                        this.RegistrarCambiosExpediente(expediente, esNuevo: false);
+                    }
+
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                    throw;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
+                    throw;
+                }
+                catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
+                {
+                    // Enlace caido / sin internet: GDEBA no respondio. Se marca el circuito y, si hay copia local, se responde como respaldo; sin copia no hay nada que mostrar.
+                    _sensorConexion.RegistrarFalloConexion();
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                    if (expediente is null)
+                    {
+                        throw new GdebaOperationException(OperacionDetalle, "No hay conexion con GDEBA y no existe una copia local del expediente.", innerException: ex);
+                    }
+
+                    sinConexion = true;
+                }
+                catch (Exception ex)
+                {
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                    throw new GdebaOperationException(OperacionDetalle, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
+                }
             }
 
             if (sinConexion)
@@ -263,47 +278,58 @@ public sealed class ExpedienteService : IExpedienteService
         else
         {
             // Consulta GDEBA solo cuando no hay movimientos vigentes o cuando se fuerza el refresco.
-            GdebaHistorialExpedienteDto? historialGdeba;
-            try
+            GdebaHistorialExpedienteDto? historialGdeba = null;
+            if (!_sensorConexion.Accesible && expediente is not null)
             {
-                historialGdeba = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
-                    numeroGdebaCompleto,
-                    ExpedienteService.CrearContextoInvocacion(request.ForceRefresh, request.Origen),
-                    cancellationToken);
-            }
-            catch (GdebaOperationException ex)
-            {
-                // GDEBA rechazo la operacion de pases (p. ej. historiales grandes): el control queda consultado con error para que el worker no reintente indefinidamente; la cache queda incompleta, por lo que una consulta interactiva posterior vuelve a intentar contra GDEBA.
-                if (expediente is not null)
-                {
-                    this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
-                    this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
-                }
-
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
-                throw;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
-                throw;
-            }
-            catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
-            {
-                // Enlace caido / sin internet: si hay copia local se responde con los movimientos locales marcando la falta de conexion; sin copia no hay nada que mostrar.
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
-                if (expediente is null)
-                {
-                    throw new GdebaOperationException(OperacionHistorial, "No hay conexion con GDEBA y no existe una copia local del expediente.", innerException: ex);
-                }
-
+                // Circuito abierto: no se intenta GDEBA, se responden los movimientos locales y se dispara la sonda de reconexion.
+                _sensorConexion.SondearSiCorresponde(numeroGdebaCompleto.Valor);
                 sinConexion = true;
-                historialGdeba = null;
             }
-            catch (Exception ex)
+            else
             {
-                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
-                throw new GdebaOperationException(OperacionHistorial, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
+                try
+                {
+                    historialGdeba = await _gdebaExpedienteGateway.BuscarHistorialPasesExpedienteAsync(
+                        numeroGdebaCompleto,
+                        ExpedienteService.CrearContextoInvocacion(request.ForceRefresh, request.Origen),
+                        cancellationToken);
+                    _sensorConexion.RegistrarExito();
+                }
+                catch (GdebaOperationException ex)
+                {
+                    // GDEBA rechazo la operacion de pases (p. ej. historiales grandes): respondio, el enlace esta vivo. El control queda con error para que el worker no reintente indefinidamente.
+                    _sensorConexion.RegistrarExito();
+                    if (expediente is not null)
+                    {
+                        this.MarcarHistorialConsultadoConError(expediente, resolvedAt, resolvedAt, ex.Message);
+                        this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+                    }
+
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                    throw;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
+                    throw;
+                }
+                catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
+                {
+                    // Enlace caido / sin internet: se marca el circuito y, si hay copia local, se responde con los movimientos locales; sin copia no hay nada que mostrar.
+                    _sensorConexion.RegistrarFalloConexion();
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                    if (expediente is null)
+                    {
+                        throw new GdebaOperationException(OperacionHistorial, "No hay conexion con GDEBA y no existe una copia local del expediente.", innerException: ex);
+                    }
+
+                    sinConexion = true;
+                }
+                catch (Exception ex)
+                {
+                    await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                    throw new GdebaOperationException(OperacionHistorial, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
+                }
             }
 
             if (sinConexion)
@@ -465,12 +491,15 @@ public sealed class ExpedienteService : IExpedienteService
         if (expediente is not null)
         {
             var expedienteDto = await this.MapearAsync(expediente, cancellationToken);
+            // El estado se calcula con la misma regla que la grilla: si esta consulta no refresco la copia (fallback/cache vencida), la fila no debe quedar como "Disponible".
+            var estadoDetalle = HistorialExpedienteCacheControl.CalcularEstadoDetalle(expediente.HistorialCacheControl, DateTimeOffset.Now);
             completo = new ExpedienteCompletoDto(
                 ExpedienteService.MapearCabecera(expedienteDto),
                 expedienteDto.Documentos,
                 expedienteDto.ArchivosAdjuntos,
                 ExpedienteService.MapearMovimientos(expediente),
-                expedienteDto.Relaciones);
+                expedienteDto.Relaciones,
+                estadoDetalle);
         }
 
         return ExpedienteService.CrearResultadoRecurso(

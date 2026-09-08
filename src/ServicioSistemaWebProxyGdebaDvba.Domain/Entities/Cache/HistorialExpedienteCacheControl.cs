@@ -46,6 +46,20 @@ public sealed class HistorialExpedienteCacheControl : DomainEntity
             FechaVencimiento > fechaActual;
     }
 
+    // Unico lugar donde se decide el estado de la cache de movimientos (Pendiente/Vencido/Disponible): lo consumen la grilla y el detalle del expediente para no recalcularlo por separado.
+    public const string EstadoPendiente = "Pendiente";
+    public const string EstadoVencido = "Vencido";
+    public const string EstadoDisponible = "Disponible";
+
+    public static string CalcularEstadoDetalle(HistorialExpedienteCacheControl? historial, DateTimeOffset fechaActual)
+    {
+        return historial is null || !historial.EstaCompleto
+            ? EstadoPendiente
+            : historial.FechaVencimiento is null || historial.FechaVencimiento <= fechaActual
+                ? EstadoVencido
+                : EstadoDisponible;
+    }
+
     public void RegistrarConsulta(
         DateTimeOffset fechaConsulta,
         DateTimeOffset fechaActualizacionLocal,

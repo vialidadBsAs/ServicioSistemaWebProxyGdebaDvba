@@ -48,6 +48,7 @@ app.UseHttpsRedirection();
 
 app.UseMiddleware<GdebaExceptionMiddleware>();
 app.UseMiddleware<ApplicationIdentificationMiddleware>();
+app.UseMiddleware<SensorConexionGdebaHeaderMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

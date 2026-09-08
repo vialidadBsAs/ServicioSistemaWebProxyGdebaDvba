@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
+using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Transversales.Conexion;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 
@@ -12,6 +15,9 @@ public static class GdebaDependencyInjection
         var options = section.Get<GdebaOptions>() ?? new GdebaOptions();
 
         services.Configure<GdebaOptions>(section);
+        services.Configure<GdebaConexionOptions>(configuration.GetSection(GdebaConexionOptions.SectionName));
+        // Sensor de conexion (circuit breaker): estado compartido del proceso.
+        services.AddSingleton<ISensorConexionGdeba, SensorConexionGdeba>();
         services.AddScoped<IGdebaExecutionContext, GdebaExecutionContext>();
         services.AddHttpClient<IGdebaJwtTokenProvider, GdebaJwtTokenProvider>();
         services.AddTransient<GdebaAuthenticationHandler>();

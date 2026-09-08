@@ -35,4 +35,5 @@ public sealed record ExpedienteCompletoDto(
     IReadOnlyCollection<DocumentoExpedienteDto> Documentos,
     IReadOnlyCollection<ArchivoAdjuntoExpedienteDto> ArchivosAdjuntos,
     IReadOnlyCollection<MovimientoExpedienteDto> Pases,
-    IReadOnlyCollection<RelacionExpedienteDto> Relaciones);
+    IReadOnlyCollection<RelacionExpedienteDto> Relaciones,
+    string EstadoDetalle);

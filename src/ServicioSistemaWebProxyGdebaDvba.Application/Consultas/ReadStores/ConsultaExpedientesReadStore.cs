@@ -534,9 +534,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
     private static string ObtenerEstadoDetalle(HistorialExpedienteCacheControl? historial, DateTimeOffset fechaConsulta)
     {
-        return historial is null || !historial.EstaCompleto
-            ? "Pendiente"
-            : historial.FechaVencimiento is null || historial.FechaVencimiento <= fechaConsulta ? "Vencido" : "Disponible";
+        return HistorialExpedienteCacheControl.CalcularEstadoDetalle(historial, fechaConsulta);
     }
 
 }
