@@ -8,4 +8,5 @@ public sealed record ConsultarMovimientosExpedienteResult(
     FuenteRespuesta Source,
     bool Exitoso,
     DateTimeOffset ResolvedAt,
-    DateTimeOffset? CachedAt);
+    DateTimeOffset? CachedAt,
+    bool SinConexion = false);

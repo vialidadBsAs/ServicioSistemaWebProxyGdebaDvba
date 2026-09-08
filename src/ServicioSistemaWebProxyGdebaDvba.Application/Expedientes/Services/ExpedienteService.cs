@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Net.Http;
+using Microsoft.Extensions.Logging;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
@@ -98,6 +99,7 @@ public sealed class ExpedienteService : IExpedienteService
         ExpedienteDetalladoDto? expedienteDto;
         FuenteRespuesta fuente;
         bool exitoso;
+        bool sinConexion = false;
         DateTimeOffset? cachedAt = null;
         Expediente? expedienteConsolidado = null;
 
@@ -112,7 +114,7 @@ public sealed class ExpedienteService : IExpedienteService
         else
         {
             // Consulta GDEBA cuando no hay cache vigente o cuando la solicitud exige refresco.
-            GdebaExpedienteDetalladoDto? detalle;
+            GdebaExpedienteDetalladoDto? detalle = null;
             try
             {
                 detalle = await _gdebaExpedienteGateway.ConsultarExpedienteDetalladoAsync(
@@ -133,17 +135,40 @@ public sealed class ExpedienteService : IExpedienteService
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
                 throw;
+            }
+            catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
+            {
+                // Enlace caido / sin internet: GDEBA no respondio. Si hay copia local se responde como respaldo marcando la falta de conexion; sin copia no hay nada que mostrar.
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                if (expediente is null)
+                {
+                    throw new GdebaOperationException(OperacionDetalle, "No hay conexion con GDEBA y no existe una copia local del expediente.", innerException: ex);
+                }
+
+                sinConexion = true;
             }
             catch (Exception ex)
             {
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw new GdebaOperationException(OperacionDetalle, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
             }
-            if (detalle is null)
+
+            if (sinConexion)
+            {
+                // Copia local como ultimo recurso: la fuente es respaldo de cache y se informa que no hubo conexion.
+                this.MarcarDetalleConsultadoConError(expediente!, resolvedAt, resolvedAt, "GDEBA no accesible: se respondio desde la copia local.");
+                this.RegistrarCambiosExpediente(expediente!, esNuevo: false);
+
+                expedienteDto = await this.MapearAsync(expediente!, cancellationToken);
+                fuente = FuenteRespuesta.FallbackCache;
+                exitoso = true;
+                cachedAt = expediente!.CacheControl?.FechaUltimaActualizacionLocal;
+            }
+            else if (detalle is null)
             {
                 if (expediente is not null)
                 {
@@ -188,7 +213,7 @@ public sealed class ExpedienteService : IExpedienteService
             _expedienteRepository.AcceptChanges(expedienteConsolidado);
         }
 
-        return new ConsultarExpedienteDetalladoResult(expedienteDto, fuente, resolvedAt, cachedAt);
+        return new ConsultarExpedienteDetalladoResult(expedienteDto, fuente, resolvedAt, cachedAt, sinConexion);
     }
 
     /// <summary>
@@ -215,7 +240,7 @@ public sealed class ExpedienteService : IExpedienteService
 
             if (detalle.Expediente is null)
             {
-                return new ConsultarMovimientosExpedienteResult(numeroGdebaCompleto.Valor, Array.Empty<MovimientoExpedienteDto>(), detalle.Fuente, Exitoso: false, resolvedAt, detalle.CachedAt);
+                return new ConsultarMovimientosExpedienteResult(numeroGdebaCompleto.Valor, Array.Empty<MovimientoExpedienteDto>(), detalle.Fuente, Exitoso: false, resolvedAt, detalle.CachedAt, detalle.SinConexion);
             }
 
             expediente = await _expedienteCacheReadStore.CargarExpedienteAsync(numeroGdebaCompleto.Valor, cancellationToken);
@@ -224,6 +249,7 @@ public sealed class ExpedienteService : IExpedienteService
         IReadOnlyCollection<MovimientoExpedienteDto> movimientos;
         FuenteRespuesta fuente;
         bool exitoso;
+        bool sinConexion = false;
         DateTimeOffset? cachedAt = null;
 
         if (!request.ForceRefresh && expediente?.PuedeResponderMovimientosDesdeCache(resolvedAt) == true)
@@ -257,10 +283,22 @@ public sealed class ExpedienteService : IExpedienteService
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                 throw;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, "La consulta fue cancelada.", resolvedAt, CancellationToken.None);
                 throw;
+            }
+            catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
+            {
+                // Enlace caido / sin internet: si hay copia local se responde con los movimientos locales marcando la falta de conexion; sin copia no hay nada que mostrar.
+                await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
+                if (expediente is null)
+                {
+                    throw new GdebaOperationException(OperacionHistorial, "No hay conexion con GDEBA y no existe una copia local del expediente.", innerException: ex);
+                }
+
+                sinConexion = true;
+                historialGdeba = null;
             }
             catch (Exception ex)
             {
@@ -268,7 +306,17 @@ public sealed class ExpedienteService : IExpedienteService
                 throw new GdebaOperationException(OperacionHistorial, $"No se pudo ejecutar la operacion GDEBA: {ex.Message}", innerException: ex);
             }
 
-            if (historialGdeba is null)
+            if (sinConexion)
+            {
+                // Copia local como ultimo recurso ante enlace caido: movimientos locales, fuente de respaldo y aviso de falta de conexion.
+                this.MarcarHistorialConsultadoConError(expediente!, resolvedAt, resolvedAt, "GDEBA no accesible: se respondio desde la copia local.");
+                expedienteModificado = true;
+                movimientos = ExpedienteService.MapearMovimientos(expediente!);
+                fuente = FuenteRespuesta.FallbackCache;
+                exitoso = true;
+                cachedAt = expediente!.HistorialCacheControl?.FechaUltimaActualizacionLocal;
+            }
+            else if (historialGdeba is null)
             {
                 if (expediente is not null)
                 {
@@ -344,7 +392,7 @@ public sealed class ExpedienteService : IExpedienteService
         // Persiste movimientos/cache y auditoria en una unica unidad de trabajo.
         await this.ConfirmarCambiosAsync("ConsultarMovimientosExpediente", numeroGdebaCompleto.Valor, cancellationToken);
 
-        return new ConsultarMovimientosExpedienteResult(numeroGdebaCompleto.Valor, movimientos, fuente, exitoso, resolvedAt, cachedAt);
+        return new ConsultarMovimientosExpedienteResult(numeroGdebaCompleto.Valor, movimientos, fuente, exitoso, resolvedAt, cachedAt, sinConexion);
     }
 
     public async Task<ObtenerExpedienteRecursoResult<CabeceraExpedienteDto>> ObtenerCabeceraAsync(
@@ -426,7 +474,7 @@ public sealed class ExpedienteService : IExpedienteService
         }
 
         return ExpedienteService.CrearResultadoRecurso(
-            request.NumeroGdebaCompleto, completo, ExpedienteService.CombinarFuente(detalle.Fuente, historial.Source), detalle.Expediente is not null && historial.Exitoso && completo is not null, detalle.ResolvedAt > historial.ResolvedAt ? detalle.ResolvedAt : historial.ResolvedAt, ExpedienteService.Max(detalle.CachedAt, historial.CachedAt));
+            request.NumeroGdebaCompleto, completo, ExpedienteService.CombinarFuente(detalle.Fuente, historial.Source), detalle.Expediente is not null && historial.Exitoso && completo is not null, detalle.ResolvedAt > historial.ResolvedAt ? detalle.ResolvedAt : historial.ResolvedAt, ExpedienteService.Max(detalle.CachedAt, historial.CachedAt), detalle.SinConexion || historial.SinConexion);
     }
 
     /// <summary>
@@ -997,9 +1045,16 @@ public sealed class ExpedienteService : IExpedienteService
         FuenteRespuesta fuente,
         bool exitoso,
         DateTimeOffset resolvedAt,
-        DateTimeOffset? cachedAt)
+        DateTimeOffset? cachedAt,
+        bool sinConexion = false)
     {
-        return new ObtenerExpedienteRecursoResult<T>(NumeroGdebaCompleto.Create(numeroGdebaCompleto).Valor, datos, fuente, exitoso, resolvedAt, cachedAt);
+        return new ObtenerExpedienteRecursoResult<T>(NumeroGdebaCompleto.Create(numeroGdebaCompleto).Valor, datos, fuente, exitoso, resolvedAt, cachedAt, sinConexion);
+    }
+
+    // Falla de transporte hacia GDEBA (enlace caido / sin internet / timeout), distinta de un rechazo de negocio de GDEBA.
+    private static bool EsFalloDeConexion(Exception ex)
+    {
+        return ex is HttpRequestException || ex is OperationCanceledException;
     }
 
     private static FuenteRespuesta CombinarFuente(

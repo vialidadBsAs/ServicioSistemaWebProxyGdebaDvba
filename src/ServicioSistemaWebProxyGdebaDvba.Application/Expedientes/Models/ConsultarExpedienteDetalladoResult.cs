@@ -6,4 +6,5 @@ public sealed record ConsultarExpedienteDetalladoResult(
     ExpedienteDetalladoDto? Expediente,
     FuenteRespuesta Fuente,
     DateTimeOffset ResolvedAt,
-    DateTimeOffset? CachedAt);
+    DateTimeOffset? CachedAt,
+    bool SinConexion = false);

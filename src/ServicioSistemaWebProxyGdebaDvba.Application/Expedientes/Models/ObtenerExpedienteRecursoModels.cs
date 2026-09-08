@@ -13,7 +13,8 @@ public sealed record ObtenerExpedienteRecursoResult<T>(
     FuenteRespuesta Fuente,
     bool Exitoso,
     DateTimeOffset ResolvedAt,
-    DateTimeOffset? CachedAt);
+    DateTimeOffset? CachedAt,
+    bool SinConexion = false);
 
 public sealed record CabeceraExpedienteDto(
     string NumeroGdebaCompleto,
