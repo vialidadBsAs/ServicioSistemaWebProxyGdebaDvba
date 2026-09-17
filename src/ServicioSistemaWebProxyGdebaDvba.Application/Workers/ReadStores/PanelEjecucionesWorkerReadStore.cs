@@ -14,19 +14,22 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
     private readonly IRepository<EjecucionWorker> _ejecucionRepository;
     private readonly IRepository<OmisionCorridaProgramadaWorker> _omisionRepository;
     private readonly IRepository<Expediente> _expedienteRepository;
+    private readonly IRepository<EjecucionWorkerDescubrimientoTrataEstado> _resultadoDescubrimientoRepository;
 
     public PanelEjecucionesWorkerReadStore(
         IRepository<ConfiguracionProgramadaWorker> configuracionRepository,
         IRepository<SolicitudEjecucionWorker> solicitudRepository,
         IRepository<EjecucionWorker> ejecucionRepository,
         IRepository<OmisionCorridaProgramadaWorker> omisionRepository,
-        IRepository<Expediente> expedienteRepository)
+        IRepository<Expediente> expedienteRepository,
+        IRepository<EjecucionWorkerDescubrimientoTrataEstado> resultadoDescubrimientoRepository)
     {
         _configuracionRepository = configuracionRepository;
         _solicitudRepository = solicitudRepository;
         _ejecucionRepository = ejecucionRepository;
         _omisionRepository = omisionRepository;
         _expedienteRepository = expedienteRepository;
+        _resultadoDescubrimientoRepository = resultadoDescubrimientoRepository;
     }
 
     public async Task<ConsultaPanelEjecucionesWorkerResult> ConsultarAsync(ProcesoWorker proceso, int cantidadHistorico, CancellationToken cancellationToken)
@@ -78,6 +81,9 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
                 .CountAsync(cancellationToken)
             : null;
 
+        // El avance del descubrimiento en curso se deriva de los resultados por trata y estado ya confirmados; no se persiste estado transitorio en la ejecucion.
+        Dictionary<Guid, AvanceDescubrimiento> avancePorEjecucion = await this.CargarAvanceDescubrimientoAsync(historico, cancellationToken);
+
         ConfiguracionProgramadaWorkerDto configuracionDto = PanelEjecucionesWorkerReadStore.MapearConfiguracion(configuracion);
         return new ConsultaPanelEjecucionesWorkerResult(
             proceso,
@@ -85,9 +91,36 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
             PanelEjecucionesWorkerReadStore.ProyectarCorridaAutomatica(configuracionDto, ultimaCorridaAutomatica, omisionDelDia, ahora),
             pendientesDeProceso,
             ordenesManualesVivas.Select(PanelEjecucionesWorkerReadStore.MapearSolicitud).ToArray(),
-            ejecucionesDelDia.Select(x => PanelEjecucionesWorkerReadStore.MapearEjecucion(x, solicitudesPorId)).ToArray(),
-            historico.Select(x => PanelEjecucionesWorkerReadStore.MapearEjecucion(x, solicitudesPorId)).ToArray());
+            ejecucionesDelDia.Select(x => PanelEjecucionesWorkerReadStore.MapearEjecucion(x, solicitudesPorId, avancePorEjecucion.GetValueOrDefault(x.Id))).ToArray(),
+            historico.Select(x => PanelEjecucionesWorkerReadStore.MapearEjecucion(x, solicitudesPorId, avancePorEjecucion.GetValueOrDefault(x.Id))).ToArray());
     }
+
+    private async Task<Dictionary<Guid, AvanceDescubrimiento>> CargarAvanceDescubrimientoAsync(EjecucionWorker[] ejecuciones, CancellationToken cancellationToken)
+    {
+        Guid[] enCurso = ejecuciones
+            .Where(x => x.Proceso == ProcesoWorker.DescubrimientoExpedientes && x.Estado == EstadoEjecucionWorker.EnEjecucion)
+            .Select(x => x.Id)
+            .ToArray();
+        if (enCurso.Length == 0)
+        {
+            return new Dictionary<Guid, AvanceDescubrimiento>();
+        }
+
+        IEnumerable<EjecucionWorkerDescubrimientoTrataEstado> resultados = await _resultadoDescubrimientoRepository.Query()
+            .Include(x => x.TrataHabilitadaVialidad)
+            .Include(x => x.EstadoExpedienteGdeba)
+            .Where(x => enCurso.Contains(x.EjecucionWorkerId))
+            .SelectAsync(cancellationToken);
+        return resultados
+            .GroupBy(x => x.EjecucionWorkerId)
+            .ToDictionary(grupo => grupo.Key, grupo =>
+            {
+                EjecucionWorkerDescubrimientoTrataEstado ultimo = grupo.OrderByDescending(x => x.FechaResolucion).First();
+                return new AvanceDescubrimiento(grupo.Count(), $"{ultimo.TrataHabilitadaVialidad.CodigoTrata}-{ultimo.EstadoExpedienteGdeba.NombreGdeba}");
+            });
+    }
+
+    private sealed record AvanceDescubrimiento(int ConsultasRealizadas, string UltimaConsultaTrataEstado);
 
     private static ProyeccionCorridaAutomaticaDto ProyectarCorridaAutomatica(ConfiguracionProgramadaWorkerDto configuracion, EjecucionWorker? ultimaCorrida, OmisionCorridaProgramadaWorker? omisionDelDia, DateTimeOffset ahora)
     {
@@ -170,7 +203,7 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
             solicitud.CanceladaPor, solicitud.FechaCancelacion, solicitud.Mensaje, solicitud.EjecucionWorkerId);
     }
 
-    private static EjecucionWorkerDto MapearEjecucion(EjecucionWorker ejecucion, IReadOnlyDictionary<Guid, SolicitudEjecucionWorker> solicitudesPorId)
+    private static EjecucionWorkerDto MapearEjecucion(EjecucionWorker ejecucion, IReadOnlyDictionary<Guid, SolicitudEjecucionWorker> solicitudesPorId, AvanceDescubrimiento? avance)
     {
         SolicitudManualAsociadaEjecucionWorkerDto? solicitudManual = ejecucion.SolicitudEjecucionWorkerId is Guid solicitudId && solicitudesPorId.TryGetValue(solicitudId, out SolicitudEjecucionWorker? solicitud)
             ? new SolicitudManualAsociadaEjecucionWorkerDto(solicitud.Id, solicitud.SolicitadaPor, solicitud.FechaSolicitud)
@@ -179,7 +212,7 @@ public sealed class PanelEjecucionesWorkerReadStore : IPanelEjecucionesWorkerRea
             ejecucion.Id, ejecucion.Proceso, ejecucion.Origen, ejecucion.Estado,
             ejecucion.SolicitudEjecucionWorkerId, ejecucion.FechaInicio, ejecucion.FechaFinalizacion,
             ejecucion.Resumen, ejecucion.TamanoLote, ejecucion.FechaCancelacionSolicitada,
-            ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos,
+            ejecucion.Procesados, avance?.ConsultasRealizadas, avance?.UltimaConsultaTrataEstado, ejecucion.Creados, ejecucion.Enriquecidos,
             ejecucion.SinDatos, ejecucion.Errores, solicitudManual);
     }
 }

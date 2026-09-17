@@ -204,6 +204,11 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
 
     private string CrearResumenResultado(DescubrirExpedientesProgramadosResult resultado, bool esManual, int? presupuesto = null)
     {
+        if (resultado.Cancelada)
+        {
+            return $"La ejecución fue cancelada a pedido. Consultas de trata y estado realizadas: {resultado.ConsultasRealizadas} de {resultado.ConsultasSeleccionadas}. Recibidos: {resultado.RecibidosGdeba}. Habilitados: {resultado.Habilitados}. Creados: {resultado.Creados}. Actualizados: {resultado.Actualizados}. Sin cambios: {resultado.SinCambios}.";
+        }
+
         if (resultado.ConsultasRealizadas == 0) return this.CrearResumenOmitido(resultado, esManual);
 
         var tipoEjecucion = esManual ? "Ejecucion manual completada sin limite operativo de cuota." : $"Corrida programada completada con presupuesto de {presupuesto} invocaciones.";
@@ -224,6 +229,8 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
 
     private EstadoEjecucionWorker ResolverEstadoEjecucion(DescubrirExpedientesProgramadosResult resultado)
     {
+        if (resultado.Cancelada) return EstadoEjecucionWorker.Cancelada;
+
         return resultado.ConsultasRealizadas == 0 ? EstadoEjecucionWorker.Omitida : EstadoEjecucionWorker.Finalizada;
     }
 

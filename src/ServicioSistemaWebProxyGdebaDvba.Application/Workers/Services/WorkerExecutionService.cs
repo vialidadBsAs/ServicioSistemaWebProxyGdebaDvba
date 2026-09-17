@@ -351,7 +351,7 @@ public sealed class WorkerExecutionService : IWorkerExecutionService
             ejecucion.Id, ejecucion.Proceso, ejecucion.Origen, ejecucion.Estado,
             ejecucion.SolicitudEjecucionWorkerId, ejecucion.FechaInicio, ejecucion.FechaFinalizacion,
             ejecucion.Resumen, ejecucion.TamanoLote, ejecucion.FechaCancelacionSolicitada,
-            ejecucion.Procesados, ejecucion.Creados, ejecucion.Enriquecidos,
+            ejecucion.Procesados, null, null, ejecucion.Creados, ejecucion.Enriquecidos,
             ejecucion.SinDatos, ejecucion.Errores,
             solicitudManual is null
                 ? null

@@ -30,6 +30,9 @@ public sealed record EjecucionWorkerDto(
     int? TamanoLote,
     DateTimeOffset? FechaCancelacionSolicitada,
     int? Procesados,
+    // Solo descubrimiento en ejecucion: derivados de los resultados por trata y estado ya confirmados (no se persisten en la ejecucion).
+    int? ConsultasRealizadas,
+    string? UltimaConsultaTrataEstado,
     int? Creados,
     int? Enriquecidos,
     int? SinDatos,
