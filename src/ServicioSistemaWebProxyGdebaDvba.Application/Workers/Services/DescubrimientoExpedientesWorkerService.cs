@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
@@ -118,10 +119,25 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             .Take(Math.Max(0, request.MaximoInvocaciones))
             .ToArray();
 
+        // Denominador del avance: las consultas trata-estado seleccionadas para esta corrida (ya recortadas por prioridad y cuota).
+        ejecucion.SellarLote(seleccionados.Length);
+        _ejecucionWorkerRepository.Update(ejecucion);
+        _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _ejecucionWorkerRepository.AcceptChanges(ejecucion);
+
         var resultados = new List<IncorporarExpedientesPorTrataResult>();
         var resultadosPorTrataEstado = new List<ResultadoDescubrimientoProgramadoTrataEstado>();
+        var cancelada = false;
         foreach (var candidato in seleccionados)
         {
+            // La solicitud de cancelacion la escribe la Api desde otro contexto: se lee fresca de la base, no de la entidad trackeada.
+            if (await _ejecucionWorkerRepository.Queryable().AnyAsync(x => x.Id == ejecucionWorkerId && x.FechaCancelacionSolicitada != null, cancellationToken))
+            {
+                cancelada = true;
+                break;
+            }
+
             var resultado = await _incorporacionExpedientesPorTrataService.PrepararAsync(
                 new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion),
                 cancellationToken);
@@ -150,6 +166,18 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
                 resultado.SinCambios,
                 resultado.ExpedientesNuevosIds,
                 resultado.ExpedientesActualizadosIds);
+
+            // La ejecucion se guarda completa en cada consulta. Si la Api pidio cancelar mientras corria esta consulta, la marca hay que
+            // traerla a la entidad trackeada antes de guardar: si no, el guardado la pisaria con null y la cancelacion se perderia.
+            DateTimeOffset? cancelacionSolicitada = await _ejecucionWorkerRepository.Queryable()
+                .Where(x => x.Id == ejecucionWorkerId)
+                .Select(x => x.FechaCancelacionSolicitada)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (cancelacionSolicitada is DateTimeOffset fechaCancelacion)
+            {
+                ejecucion.SolicitarCancelacion(fechaCancelacion);
+            }
+
             _ejecucionWorkerRepository.Update(ejecucion);
             _ejecucionWorkerRepository.ApplyChanges(ejecucion);
 
@@ -158,6 +186,13 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             _ejecucionWorkerRepository.AcceptChanges(ejecucion);
             resultados.Add(resultado);
             resultadosPorTrataEstado.Add(new ResultadoDescubrimientoProgramadoTrataEstado(candidato.Trata.Id, candidato.Estado.Id, resultado));
+
+            // Cancelacion pedida durante esta consulta: se conserva su resultado (ya confirmado) y no se inicia la siguiente.
+            if (cancelacionSolicitada is not null)
+            {
+                cancelada = true;
+                break;
+            }
         }
 
         return new DescubrirExpedientesProgramadosResult(
@@ -171,7 +206,9 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             omitidasPorConsultaDelDia,
             omitidasPorPausa,
             Math.Max(0, candidatos.Count - seleccionados.Length),
-            resultadosPorTrataEstado);
+            resultadosPorTrataEstado,
+            seleccionados.Length,
+            cancelada);
     }
 
     private async Task<IReadOnlyCollection<TrataDescubrimientoProgramado>> CargarTratasAsync(CancellationToken cancellationToken)

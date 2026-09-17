@@ -11,7 +11,9 @@ public sealed record DescubrirExpedientesProgramadosResult(
     int OmitidasPorConsultaDelDia,
     int OmitidasPorPausa,
     int OmitidasPorLimiteOperativo,
-    IReadOnlyCollection<ResultadoDescubrimientoProgramadoTrataEstado> ResultadosPorTrataEstado);
+    IReadOnlyCollection<ResultadoDescubrimientoProgramadoTrataEstado> ResultadosPorTrataEstado,
+    int ConsultasSeleccionadas = 0,
+    bool Cancelada = false);
 
 public sealed record ResultadoDescubrimientoProgramadoTrataEstado(
     Guid TrataHabilitadaVialidadId,
