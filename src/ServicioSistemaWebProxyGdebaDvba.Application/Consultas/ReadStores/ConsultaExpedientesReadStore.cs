@@ -57,14 +57,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
         if (filtro.NumerosExpediente.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.NumerosExpediente, x => x.GdebaNumeroCompleto));
 
-        if (filtro.FechaUltimoMovimientoDesde is DateTimeOffset fechaMovimientoDesde)
+        if (filtro.FiltroFechaUltimoMovimiento is FiltroFecha filtroFechaMovimiento)
         {
-            query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion >= fechaMovimientoDesde);
-        }
-
-        if (filtro.FechaUltimoMovimientoHasta is DateTimeOffset fechaMovimientoHasta)
-        {
-            query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion < fechaMovimientoHasta);
+            query = query.Where(ConsultaExpedientesReadStore.CumpleFiltroFecha<Expediente>(filtroFechaMovimiento, x => x.HistorialCacheControl!.UltimoMovimientoDetectado!.FechaOperacion));
         }
 
         if (!string.IsNullOrWhiteSpace(filtro.Caratula))
@@ -203,8 +198,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 : vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.TiposDocumento, x => x.Documento!.TipoDocumentoCodigo));
         }
 
-        if (filtro.FechaCreacionDesde is DateTimeOffset fechaCreacionDesde) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.FechaCreacion >= fechaCreacionDesde);
-        if (filtro.FechaCreacionHastaExclusiva is DateTimeOffset fechaCreacionHasta) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.FechaCreacion < fechaCreacionHasta);
+        if (filtro.FiltroFechaCreacion is FiltroFecha filtroFechaCreacion) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.CumpleFiltroFecha<ExpedienteDocumento>(filtroFechaCreacion, x => x.Documento!.FechaCreacion));
         if (filtro.NumerosExpediente.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosExpediente, x => x.Expediente!.GdebaNumeroCompleto));
         if (filtro.CodigosTrata.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.CodigosTrata, x => x.Expediente!.Trata!.CodigoTrata));
         if (filtro.NumerosActuacion.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosActuacion, x => x.Documento!.NumeroActuacionCompleto));
@@ -423,6 +417,42 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         }
 
         return Expression.Lambda<Func<T, bool>>(cuerpo!, parametro);
+    }
+
+    // Filtro de fecha de una columna (arbol Y/O de rangos, como lo arma la grilla) traducido a una unica expresion con el mismo
+    // mecanismo que ContieneAlguno: EF lo manda como un solo WHERE, p. ej. "mes pasado O este mes" = (f >= d1 AND f < h1) OR (f >= d2 AND f < h2).
+    private static Expression<Func<T, bool>> CumpleFiltroFecha<T>(FiltroFecha filtro, Expression<Func<T, DateTimeOffset?>> selector)
+    {
+        Expression? cuerpo = ConsultaExpedientesReadStore.ConstruirFiltroFecha(filtro, selector.Body);
+        return Expression.Lambda<Func<T, bool>>(cuerpo ?? Expression.Constant(true), selector.Parameters[0]);
+    }
+
+    private static Expression? ConstruirFiltroFecha(FiltroFecha filtro, Expression fecha)
+    {
+        bool esO = string.Equals(filtro.Operador, "or", StringComparison.OrdinalIgnoreCase);
+        IEnumerable<Expression?> terminos = (filtro.Rangos ?? Array.Empty<RangoFecha>()).Select(rango => ConsultaExpedientesReadStore.ConstruirRangoFecha(rango, fecha))
+            .Concat((filtro.Subfiltros ?? Array.Empty<FiltroFecha>()).Select(subfiltro => ConsultaExpedientesReadStore.ConstruirFiltroFecha(subfiltro, fecha)));
+        Expression? cuerpo = null;
+        foreach (Expression? termino in terminos)
+        {
+            if (termino is null) continue;
+            cuerpo = cuerpo is null ? termino : esO ? Expression.OrElse(cuerpo, termino) : Expression.AndAlso(cuerpo, termino);
+        }
+
+        return cuerpo;
+    }
+
+    private static Expression? ConstruirRangoFecha(RangoFecha rango, Expression fecha)
+    {
+        Expression? condicion = null;
+        if (rango.Desde is DateTimeOffset desde) condicion = Expression.GreaterThanOrEqual(fecha, Expression.Constant(desde, fecha.Type));
+        if (rango.Hasta is DateTimeOffset hasta)
+        {
+            Expression menor = Expression.LessThan(fecha, Expression.Constant(hasta, fecha.Type));
+            condicion = condicion is null ? menor : Expression.AndAlso(condicion, menor);
+        }
+
+        return condicion;
     }
 
     private async Task<Guid[]> ExpandirTrataIdsPorCodigoAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)
