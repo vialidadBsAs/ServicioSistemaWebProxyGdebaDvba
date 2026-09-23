@@ -235,8 +235,17 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                     Referencia = ordenaPorReferencia ? x.Documento!.Referencia : null
                 })
                 .Distinct();
-            totalRegistros = await clavesDeOrden.CountAsync(cancellationToken);
-            totalExpedientesFiltrados = await vinculosFiltrados.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+            if (filtro.IncluirTotal)
+            {
+                totalRegistros = await clavesDeOrden.CountAsync(cancellationToken);
+                totalExpedientesFiltrados = await vinculosFiltrados.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+            }
+            else
+            {
+                // Al cambiar de pagina el front conserva los totales de la primera: se evitan dos pasadas mas sobre el conjunto que matcheo.
+                totalRegistros = 0;
+                totalExpedientesFiltrados = 0;
+            }
             var clavesOrdenadas = filtro.CampoOrden switch
             {
                 "numeroActuacionCompleto" => filtro.OrdenDescendente ? clavesDeOrden.OrderByDescending(x => x.NumeroActuacionCompleto) : clavesDeOrden.OrderBy(x => x.NumeroActuacionCompleto),
