@@ -125,8 +125,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
         // Con miles de documentos por tema, materializar los vinculos completos para contar u ordenar en memoria era el cuello de botella:
         // los conteos se resuelven en SQL, el orden usa una proyeccion liviana y solo la pagina visible carga entidades completas.
+        // La lista de tratas va como constantes en el SQL y no como parametro JSON (OPENJSON): ver VinculadoAAlgunaTrata.
         IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
-            .Where(x => x.Expediente!.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente!.TrataId!.Value));
+            .Where(ConsultaExpedientesReadStore.VinculadoAAlgunaTrata(trataIdsConsulta));
 
         // El resumen del tema (agrupado + totales) solo se calcula cuando la pantalla lo necesita: la busqueda por referencia
         // nunca lo muestra, y la vista por tipo lo pide una unica vez (la paginacion posterior lo conserva del lado cliente).
@@ -397,7 +398,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         if (trataIdsConsulta.Length == 0) return new ConsultaCoberturaReferenciaResult(0, 0);
 
         IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
-            .Where(x => x.Expediente!.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente!.TrataId!.Value));
+            .Where(ConsultaExpedientesReadStore.VinculadoAAlgunaTrata(trataIdsConsulta));
         int totalDocumentos = await vinculosTema.Select(x => x.DocumentoId).Distinct().CountAsync(cancellationToken);
         int conReferencia = await vinculosTema
             .Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia != string.Empty)
@@ -433,6 +434,23 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
     private static readonly MethodInfo MetodoContains = typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!;
 
     // Filtros de texto de las grillas: cada valor tipeado se busca por "contiene", y varios valores se unen con O (LIKE encadenados, compatible con SQL Server 2008).
+    // Filtro por tratas con la lista escrita como constantes en el SQL ([TrataId] = '...' OR ...), no como parametro JSON de OPENJSON.
+    // Con OPENJSON el optimizador estima una cantidad fija de tratas y elegia loops anidados sobre los 270k documentos; con la lista
+    // real estima bien y arma el hash join sobre el indice. Mismo mecanismo que ContieneAlguno (EF 8 no tiene EF.Constant).
+    private static Expression<Func<ExpedienteDocumento, bool>> VinculadoAAlgunaTrata(IReadOnlyCollection<Guid> trataIds)
+    {
+        ParameterExpression parametro = Expression.Parameter(typeof(ExpedienteDocumento), "x");
+        Expression trataId = Expression.Property(Expression.Property(parametro, nameof(ExpedienteDocumento.Expediente)), nameof(Expediente.TrataId));
+        Expression? cuerpo = null;
+        foreach (Guid id in trataIds)
+        {
+            Expression igual = Expression.Equal(trataId, Expression.Constant(id, trataId.Type));
+            cuerpo = cuerpo is null ? igual : Expression.OrElse(cuerpo, igual);
+        }
+
+        return Expression.Lambda<Func<ExpedienteDocumento, bool>>(cuerpo ?? Expression.Constant(false), parametro);
+    }
+
     private static Expression<Func<T, bool>> ContieneAlguno<T>(IReadOnlyCollection<string> valores, Expression<Func<T, string?>> selector)
     {
         ParameterExpression parametro = selector.Parameters[0];
