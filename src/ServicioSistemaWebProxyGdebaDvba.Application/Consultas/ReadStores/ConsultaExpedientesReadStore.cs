@@ -135,20 +135,37 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         int totalDocumentos = 0;
         int totalDocumentosConMetadata = 0;
         int totalExpedientes = 0;
-        int totalDocumentosConReferencia = 0;
         if (!buscaPorReferencia && filtro.IncluirResumen)
         {
-            resumenTipos = (await vinculosTema
-                .GroupBy(x => x.Documento!.ActuacionTipoCodigo)
+            // Resumen en conjuntos, sin subconsultas correlacionadas por grupo: primero los documentos distintos con sus flags (un documento
+            // vinculado a varios expedientes cuenta una vez) y sobre eso los contadores en linea. Solo toca tipo y metadata, que estan
+            // cubiertos por el indice IX_DocumentosGdeba_ActuacionTipoCodigo: no lee la tabla ancha ni el texto de Referencia.
+            var documentosPorTipo = await vinculosTema
+                .Select(x => new
+                {
+                    x.DocumentoId,
+                    x.Documento!.ActuacionTipoCodigo,
+                    x.Documento!.MetadataCompleta
+                })
+                .Distinct()
+                .GroupBy(x => x.ActuacionTipoCodigo)
                 .Select(grupo => new
                 {
                     CodigoTipoDocumento = grupo.Key,
-                    CantidadDocumentos = grupo.Select(x => x.DocumentoId).Distinct().Count(),
-                    CantidadExpedientes = grupo.Select(x => x.ExpedienteId).Distinct().Count(),
-                    CantidadDocumentosConMetadata = grupo.Where(x => x.Documento!.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count()
+                    CantidadDocumentos = grupo.Count(),
+                    CantidadDocumentosConMetadata = grupo.Count(x => x.MetadataCompleta)
                 })
+                .ToArrayAsync(cancellationToken);
+            // Los expedientes se repiten entre tipos: se cuentan aparte, distintos por tipo, sin tocar el texto de los documentos.
+            Dictionary<string, int> expedientesPorTipo = (await vinculosTema
+                .Select(x => new { x.ExpedienteId, x.Documento!.ActuacionTipoCodigo })
+                .Distinct()
+                .GroupBy(x => x.ActuacionTipoCodigo)
+                .Select(grupo => new { CodigoTipoDocumento = grupo.Key, CantidadExpedientes = grupo.Count() })
                 .ToArrayAsync(cancellationToken))
-                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, x.CantidadExpedientes, x.CantidadDocumentosConMetadata))
+                .ToDictionary(x => x.CodigoTipoDocumento ?? string.Empty, x => x.CantidadExpedientes);
+            resumenTipos = documentosPorTipo
+                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, expedientesPorTipo.GetValueOrDefault(x.CodigoTipoDocumento ?? string.Empty), x.CantidadDocumentosConMetadata))
                 .OrderByDescending(x => x.CantidadDocumentos)
                 .ThenBy(x => x.CodigoTipoDocumento)
                 .ToArray();
@@ -156,12 +173,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             totalDocumentos = resumenTipos.Sum(x => x.CantidadDocumentos);
             totalDocumentosConMetadata = resumenTipos.Sum(x => x.CantidadDocumentosConMetadata);
             totalExpedientes = await vinculosTema.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
-            // Cobertura declarada de la busqueda por referencia: solo los documentos llegados por historial o enriquecimiento la tienen.
-            totalDocumentosConReferencia = await vinculosTema
-                .Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia != string.Empty)
-                .Select(x => x.DocumentoId)
-                .Distinct()
-                .CountAsync(cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento) && !buscaPorReferencia)
@@ -173,7 +184,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 totalDocumentos,
                 totalExpedientes,
                 totalDocumentosConMetadata,
-                totalDocumentosConReferencia,
                 0,
                 0,
                 resumenTipos,
@@ -309,7 +319,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             totalDocumentos,
             totalExpedientes,
             totalDocumentosConMetadata,
-            totalDocumentosConReferencia,
             totalRegistros,
             totalExpedientesFiltrados,
             resumenTipos,
@@ -378,6 +387,24 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         int detallados = await query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.FechaUltimaConsultaGdeba != null).CountAsync(cancellationToken);
         int sinDetallar = await query.Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null).CountAsync(cancellationToken);
         return new ConsultaCoberturaDetalleResult(detallados, sinDetallar);
+    }
+
+    // Cobertura de la busqueda por referencia. Lee el texto de Referencia de todos los documentos del tema (no hay indice posible sobre un
+    // texto largo), por eso es una consulta propia que se pide solo al abrir esa solapa y nunca junto al resumen por tipo documental.
+    public async Task<ConsultaCoberturaReferenciaResult> ConsultarCoberturaReferenciaAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(trataIds, cancellationToken);
+        if (trataIdsConsulta.Length == 0) return new ConsultaCoberturaReferenciaResult(0, 0);
+
+        IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
+            .Where(x => x.Expediente!.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente!.TrataId!.Value));
+        int totalDocumentos = await vinculosTema.Select(x => x.DocumentoId).Distinct().CountAsync(cancellationToken);
+        int conReferencia = await vinculosTema
+            .Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia != string.Empty)
+            .Select(x => x.DocumentoId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        return new ConsultaCoberturaReferenciaResult(conReferencia, Math.Max(0, totalDocumentos - conReferencia));
     }
 
     // Aplica un criterio de orden encadenando OrderBy/ThenBy segun sea el primero o uno posterior. El ultimo pase y estado detalle usan subconsultas.

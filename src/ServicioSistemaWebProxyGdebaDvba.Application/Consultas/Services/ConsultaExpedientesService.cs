@@ -34,6 +34,12 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         return await _consultaExpedientesReadStore.ConsultarCoberturaDetalleAsync(trataIdsValidos, cancellationToken);
     }
 
+    public async Task<ConsultaCoberturaReferenciaResult> ConsultarCoberturaReferenciaAsync(IReadOnlyCollection<Guid>? trataIds, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsValidos = (trataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
+        return await _consultaExpedientesReadStore.ConsultarCoberturaReferenciaAsync(trataIdsValidos, cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroCaratulaAsync(ConsultaCaratulaValoresFiltroRequest request, CancellationToken cancellationToken)
     {
         string texto = request.Texto?.Trim() ?? string.Empty;

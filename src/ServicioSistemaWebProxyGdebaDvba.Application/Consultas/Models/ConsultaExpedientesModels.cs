@@ -29,7 +29,6 @@ public sealed record ConsultaDocumentosPorTrataResult(
     int TotalDocumentos,
     int TotalExpedientes,
     int DocumentosConMetadata,
-    int DocumentosConReferencia,
     int TotalDocumentosFiltrados,
     int TotalExpedientesFiltrados,
     IReadOnlyCollection<ConsultaTipoDocumentoResumenDto> TiposDocumento,
@@ -64,3 +63,6 @@ public sealed record ConsultaDocumentoExpedienteDto(Guid Id, string Numero, stri
 public sealed record FiltroFecha(string Operador, IReadOnlyCollection<RangoFecha>? Rangos = null, IReadOnlyCollection<FiltroFecha>? Subfiltros = null);
 
 public sealed record RangoFecha(DateTimeOffset? Desde, DateTimeOffset? Hasta);
+
+// Cobertura de la busqueda por referencia: cuantos documentos del tema tienen referencia conocida (los unicos que participan) y cuantos aun no.
+public sealed record ConsultaCoberturaReferenciaResult(int ConReferencia, int SinReferencia);

@@ -61,6 +61,9 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
         builder.HasIndex(x => new { x.TipoDocumentoCodigo, x.ActuacionReparticion });
 
         builder.HasIndex(x => x.TipoDocumentoId);
+        // Resumen por tipo documental: el conteo por tipo y metadata se resuelve integramente sobre este indice angosto, sin leer la tabla ancha (Referencia es texto largo).
+        builder.HasIndex(x => x.ActuacionTipoCodigo)
+            .IncludeProperties(x => x.MetadataCompleta);
 
         builder.HasOne(x => x.TipoDocumento)
             .WithMany()

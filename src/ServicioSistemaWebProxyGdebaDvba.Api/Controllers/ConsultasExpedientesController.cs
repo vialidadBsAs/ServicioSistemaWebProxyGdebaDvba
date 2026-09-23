@@ -53,6 +53,13 @@ public sealed class ConsultasExpedientesController : ControllerBase
         return this.Ok(await _consultaExpedientesService.ConsultarCoberturaDetalleAsync(trataIds, cancellationToken));
     }
 
+    [HttpGet("documentos/cobertura-referencia")]
+    [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
+    public async Task<ActionResult<ConsultaCoberturaReferenciaResult>> ConsultarCoberturaReferencia([FromQuery] Guid[]? trataIds, CancellationToken cancellationToken = default)
+    {
+        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaReferenciaAsync(trataIds, cancellationToken));
+    }
+
     [HttpGet("documentos")]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
     public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? numerosActuacion = null, [FromQuery] string[]? referencias = null, [FromQuery] string? referenciaContiene = null, [FromQuery] string[]? tiposDocumento = null, [FromQuery] string? filtroFechaCreacion = null, [FromQuery] bool soloSinReferencia = false, [FromQuery] bool incluirResumen = true, CancellationToken cancellationToken = default)
