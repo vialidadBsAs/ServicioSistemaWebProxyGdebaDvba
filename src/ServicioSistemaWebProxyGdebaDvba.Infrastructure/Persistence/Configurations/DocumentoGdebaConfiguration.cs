@@ -61,6 +61,14 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
         builder.HasIndex(x => new { x.TipoDocumentoCodigo, x.ActuacionReparticion });
 
         builder.HasIndex(x => x.TipoDocumentoId);
+        // Resumen por tipo documental: el conteo por tipo y metadata se resuelve integramente sobre este indice angosto, sin leer la tabla ancha (Referencia es texto largo).
+        builder.HasIndex(x => x.ActuacionTipoCodigo)
+            .IncludeProperties(x => x.MetadataCompleta);
+        // Busqueda por referencia: el LIKE '%texto%' recorre este indice angosto (la referencia promedia 20 caracteres) en vez de la tabla ancha.
+        // Referencia va completa como columna incluida (los textos largos admiten INCLUDE), asi la busqueda es exacta sin recortes; la clave
+        // FechaCreacion entrega el orden por defecto ya resuelto y las demas incluidas cubren orden, filtros y pagina sin tocar la tabla.
+        builder.HasIndex(x => x.FechaCreacion)
+            .IncludeProperties(x => new { x.Referencia, x.NumeroActuacionCompleto, x.ActuacionTipoCodigo, x.TipoDocumentoCodigo });
 
         builder.HasOne(x => x.TipoDocumento)
             .WithMany()

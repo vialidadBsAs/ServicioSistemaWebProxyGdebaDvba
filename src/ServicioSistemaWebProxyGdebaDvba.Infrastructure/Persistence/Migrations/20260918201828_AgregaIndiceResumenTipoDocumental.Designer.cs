@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence;
 namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProxyGdebaDbContext))]
-    partial class ProxyGdebaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260918201828_AgregaIndiceResumenTipoDocumental")]
+    partial class AgregaIndiceResumenTipoDocumental
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -432,10 +435,6 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.HasIndex("ActuacionTipoCodigo");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ActuacionTipoCodigo"), new[] { "MetadataCompleta" });
-
-                    b.HasIndex("FechaCreacion");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("FechaCreacion"), new[] { "Referencia", "NumeroActuacionCompleto", "ActuacionTipoCodigo", "TipoDocumentoCodigo" });
 
                     b.HasIndex("NumeroActuacionCompleto")
                         .IsUnique();

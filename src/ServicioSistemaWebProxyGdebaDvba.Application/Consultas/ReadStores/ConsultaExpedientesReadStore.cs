@@ -57,14 +57,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
         if (filtro.NumerosExpediente.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.NumerosExpediente, x => x.GdebaNumeroCompleto));
 
-        if (filtro.FechaUltimoMovimientoDesde is DateTimeOffset fechaMovimientoDesde)
+        if (filtro.FiltroFechaUltimoMovimiento is FiltroFecha filtroFechaMovimiento)
         {
-            query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion >= fechaMovimientoDesde);
-        }
-
-        if (filtro.FechaUltimoMovimientoHasta is DateTimeOffset fechaMovimientoHasta)
-        {
-            query = query.Where(x => x.HistorialCacheControl != null && x.HistorialCacheControl.UltimoMovimientoDetectado != null && x.HistorialCacheControl.UltimoMovimientoDetectado.FechaOperacion < fechaMovimientoHasta);
+            query = query.Where(ConsultaExpedientesReadStore.CumpleFiltroFecha<Expediente>(filtroFechaMovimiento, x => x.HistorialCacheControl!.UltimoMovimientoDetectado!.FechaOperacion));
         }
 
         if (!string.IsNullOrWhiteSpace(filtro.Caratula))
@@ -130,8 +125,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 
         // Con miles de documentos por tema, materializar los vinculos completos para contar u ordenar en memoria era el cuello de botella:
         // los conteos se resuelven en SQL, el orden usa una proyeccion liviana y solo la pagina visible carga entidades completas.
+        // La lista de tratas va como constantes en el SQL y no como parametro JSON (OPENJSON): ver VinculadoAAlgunaTrata.
         IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
-            .Where(x => x.Expediente!.TrataId.HasValue && trataIdsConsulta.Contains(x.Expediente!.TrataId!.Value));
+            .Where(ConsultaExpedientesReadStore.VinculadoAAlgunaTrata(trataIdsConsulta));
 
         // El resumen del tema (agrupado + totales) solo se calcula cuando la pantalla lo necesita: la busqueda por referencia
         // nunca lo muestra, y la vista por tipo lo pide una unica vez (la paginacion posterior lo conserva del lado cliente).
@@ -140,20 +136,37 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         int totalDocumentos = 0;
         int totalDocumentosConMetadata = 0;
         int totalExpedientes = 0;
-        int totalDocumentosConReferencia = 0;
         if (!buscaPorReferencia && filtro.IncluirResumen)
         {
-            resumenTipos = (await vinculosTema
-                .GroupBy(x => x.Documento!.ActuacionTipoCodigo)
+            // Resumen en conjuntos, sin subconsultas correlacionadas por grupo: primero los documentos distintos con sus flags (un documento
+            // vinculado a varios expedientes cuenta una vez) y sobre eso los contadores en linea. Solo toca tipo y metadata, que estan
+            // cubiertos por el indice IX_DocumentosGdeba_ActuacionTipoCodigo: no lee la tabla ancha ni el texto de Referencia.
+            var documentosPorTipo = await vinculosTema
+                .Select(x => new
+                {
+                    x.DocumentoId,
+                    x.Documento!.ActuacionTipoCodigo,
+                    x.Documento!.MetadataCompleta
+                })
+                .Distinct()
+                .GroupBy(x => x.ActuacionTipoCodigo)
                 .Select(grupo => new
                 {
                     CodigoTipoDocumento = grupo.Key,
-                    CantidadDocumentos = grupo.Select(x => x.DocumentoId).Distinct().Count(),
-                    CantidadExpedientes = grupo.Select(x => x.ExpedienteId).Distinct().Count(),
-                    CantidadDocumentosConMetadata = grupo.Where(x => x.Documento!.MetadataCompleta).Select(x => x.DocumentoId).Distinct().Count()
+                    CantidadDocumentos = grupo.Count(),
+                    CantidadDocumentosConMetadata = grupo.Count(x => x.MetadataCompleta)
                 })
+                .ToArrayAsync(cancellationToken);
+            // Los expedientes se repiten entre tipos: se cuentan aparte, distintos por tipo, sin tocar el texto de los documentos.
+            Dictionary<string, int> expedientesPorTipo = (await vinculosTema
+                .Select(x => new { x.ExpedienteId, x.Documento!.ActuacionTipoCodigo })
+                .Distinct()
+                .GroupBy(x => x.ActuacionTipoCodigo)
+                .Select(grupo => new { CodigoTipoDocumento = grupo.Key, CantidadExpedientes = grupo.Count() })
                 .ToArrayAsync(cancellationToken))
-                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, x.CantidadExpedientes, x.CantidadDocumentosConMetadata))
+                .ToDictionary(x => x.CodigoTipoDocumento ?? string.Empty, x => x.CantidadExpedientes);
+            resumenTipos = documentosPorTipo
+                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, expedientesPorTipo.GetValueOrDefault(x.CodigoTipoDocumento ?? string.Empty), x.CantidadDocumentosConMetadata))
                 .OrderByDescending(x => x.CantidadDocumentos)
                 .ThenBy(x => x.CodigoTipoDocumento)
                 .ToArray();
@@ -161,12 +174,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             totalDocumentos = resumenTipos.Sum(x => x.CantidadDocumentos);
             totalDocumentosConMetadata = resumenTipos.Sum(x => x.CantidadDocumentosConMetadata);
             totalExpedientes = await vinculosTema.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
-            // Cobertura declarada de la busqueda por referencia: solo los documentos llegados por historial o enriquecimiento la tienen.
-            totalDocumentosConReferencia = await vinculosTema
-                .Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia != string.Empty)
-                .Select(x => x.DocumentoId)
-                .Distinct()
-                .CountAsync(cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(filtro.CodigoTipoDocumento) && !buscaPorReferencia)
@@ -178,7 +185,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 totalDocumentos,
                 totalExpedientes,
                 totalDocumentosConMetadata,
-                totalDocumentosConReferencia,
                 0,
                 0,
                 resumenTipos,
@@ -203,8 +209,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 : vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.TiposDocumento, x => x.Documento!.TipoDocumentoCodigo));
         }
 
-        if (filtro.FechaCreacionDesde is DateTimeOffset fechaCreacionDesde) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.FechaCreacion >= fechaCreacionDesde);
-        if (filtro.FechaCreacionHastaExclusiva is DateTimeOffset fechaCreacionHasta) vinculosFiltrados = vinculosFiltrados.Where(x => x.Documento!.FechaCreacion < fechaCreacionHasta);
+        if (filtro.FiltroFechaCreacion is FiltroFecha filtroFechaCreacion) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.CumpleFiltroFecha<ExpedienteDocumento>(filtroFechaCreacion, x => x.Documento!.FechaCreacion));
         if (filtro.NumerosExpediente.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosExpediente, x => x.Expediente!.GdebaNumeroCompleto));
         if (filtro.CodigosTrata.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.CodigosTrata, x => x.Expediente!.Trata!.CodigoTrata));
         if (filtro.NumerosActuacion.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosActuacion, x => x.Documento!.NumeroActuacionCompleto));
@@ -230,8 +235,17 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                     Referencia = ordenaPorReferencia ? x.Documento!.Referencia : null
                 })
                 .Distinct();
-            totalRegistros = await clavesDeOrden.CountAsync(cancellationToken);
-            totalExpedientesFiltrados = await vinculosFiltrados.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+            if (filtro.IncluirTotal)
+            {
+                totalRegistros = await clavesDeOrden.CountAsync(cancellationToken);
+                totalExpedientesFiltrados = await vinculosFiltrados.Select(x => x.ExpedienteId).Distinct().CountAsync(cancellationToken);
+            }
+            else
+            {
+                // Al cambiar de pagina el front conserva los totales de la primera: se evitan dos pasadas mas sobre el conjunto que matcheo.
+                totalRegistros = 0;
+                totalExpedientesFiltrados = 0;
+            }
             var clavesOrdenadas = filtro.CampoOrden switch
             {
                 "numeroActuacionCompleto" => filtro.OrdenDescendente ? clavesDeOrden.OrderByDescending(x => x.NumeroActuacionCompleto) : clavesDeOrden.OrderBy(x => x.NumeroActuacionCompleto),
@@ -315,7 +329,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             totalDocumentos,
             totalExpedientes,
             totalDocumentosConMetadata,
-            totalDocumentosConReferencia,
             totalRegistros,
             totalExpedientesFiltrados,
             resumenTipos,
@@ -386,6 +399,24 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         return new ConsultaCoberturaDetalleResult(detallados, sinDetallar);
     }
 
+    // Cobertura de la busqueda por referencia. Lee el texto de Referencia de todos los documentos del tema (no hay indice posible sobre un
+    // texto largo), por eso es una consulta propia que se pide solo al abrir esa solapa y nunca junto al resumen por tipo documental.
+    public async Task<ConsultaCoberturaReferenciaResult> ConsultarCoberturaReferenciaAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsConsulta = await this.ExpandirTrataIdsPorCodigoAsync(trataIds, cancellationToken);
+        if (trataIdsConsulta.Length == 0) return new ConsultaCoberturaReferenciaResult(0, 0);
+
+        IQueryable<ExpedienteDocumento> vinculosTema = _expedienteDocumentoRepository.Queryable()
+            .Where(ConsultaExpedientesReadStore.VinculadoAAlgunaTrata(trataIdsConsulta));
+        int totalDocumentos = await vinculosTema.Select(x => x.DocumentoId).Distinct().CountAsync(cancellationToken);
+        int conReferencia = await vinculosTema
+            .Where(x => x.Documento!.Referencia != null && x.Documento!.Referencia != string.Empty)
+            .Select(x => x.DocumentoId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        return new ConsultaCoberturaReferenciaResult(conReferencia, Math.Max(0, totalDocumentos - conReferencia));
+    }
+
     // Aplica un criterio de orden encadenando OrderBy/ThenBy segun sea el primero o uno posterior. El ultimo pase y estado detalle usan subconsultas.
     private static IOrderedQueryable<Expediente> AplicarCriterioOrden(IQueryable<Expediente> query, IOrderedQueryable<Expediente>? previa, CriterioOrdenExpediente criterio, DateTimeOffset fechaConsulta)
     {
@@ -412,6 +443,23 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
     private static readonly MethodInfo MetodoContains = typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!;
 
     // Filtros de texto de las grillas: cada valor tipeado se busca por "contiene", y varios valores se unen con O (LIKE encadenados, compatible con SQL Server 2008).
+    // Filtro por tratas con la lista escrita como constantes en el SQL ([TrataId] = '...' OR ...), no como parametro JSON de OPENJSON.
+    // Con OPENJSON el optimizador estima una cantidad fija de tratas y elegia loops anidados sobre los 270k documentos; con la lista
+    // real estima bien y arma el hash join sobre el indice. Mismo mecanismo que ContieneAlguno (EF 8 no tiene EF.Constant).
+    private static Expression<Func<ExpedienteDocumento, bool>> VinculadoAAlgunaTrata(IReadOnlyCollection<Guid> trataIds)
+    {
+        ParameterExpression parametro = Expression.Parameter(typeof(ExpedienteDocumento), "x");
+        Expression trataId = Expression.Property(Expression.Property(parametro, nameof(ExpedienteDocumento.Expediente)), nameof(Expediente.TrataId));
+        Expression? cuerpo = null;
+        foreach (Guid id in trataIds)
+        {
+            Expression igual = Expression.Equal(trataId, Expression.Constant(id, trataId.Type));
+            cuerpo = cuerpo is null ? igual : Expression.OrElse(cuerpo, igual);
+        }
+
+        return Expression.Lambda<Func<ExpedienteDocumento, bool>>(cuerpo ?? Expression.Constant(false), parametro);
+    }
+
     private static Expression<Func<T, bool>> ContieneAlguno<T>(IReadOnlyCollection<string> valores, Expression<Func<T, string?>> selector)
     {
         ParameterExpression parametro = selector.Parameters[0];
@@ -423,6 +471,42 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         }
 
         return Expression.Lambda<Func<T, bool>>(cuerpo!, parametro);
+    }
+
+    // Filtro de fecha de una columna (arbol Y/O de rangos, como lo arma la grilla) traducido a una unica expresion con el mismo
+    // mecanismo que ContieneAlguno: EF lo manda como un solo WHERE, p. ej. "mes pasado O este mes" = (f >= d1 AND f < h1) OR (f >= d2 AND f < h2).
+    private static Expression<Func<T, bool>> CumpleFiltroFecha<T>(FiltroFecha filtro, Expression<Func<T, DateTimeOffset?>> selector)
+    {
+        Expression? cuerpo = ConsultaExpedientesReadStore.ConstruirFiltroFecha(filtro, selector.Body);
+        return Expression.Lambda<Func<T, bool>>(cuerpo ?? Expression.Constant(true), selector.Parameters[0]);
+    }
+
+    private static Expression? ConstruirFiltroFecha(FiltroFecha filtro, Expression fecha)
+    {
+        bool esO = string.Equals(filtro.Operador, "or", StringComparison.OrdinalIgnoreCase);
+        IEnumerable<Expression?> terminos = (filtro.Rangos ?? Array.Empty<RangoFecha>()).Select(rango => ConsultaExpedientesReadStore.ConstruirRangoFecha(rango, fecha))
+            .Concat((filtro.Subfiltros ?? Array.Empty<FiltroFecha>()).Select(subfiltro => ConsultaExpedientesReadStore.ConstruirFiltroFecha(subfiltro, fecha)));
+        Expression? cuerpo = null;
+        foreach (Expression? termino in terminos)
+        {
+            if (termino is null) continue;
+            cuerpo = cuerpo is null ? termino : esO ? Expression.OrElse(cuerpo, termino) : Expression.AndAlso(cuerpo, termino);
+        }
+
+        return cuerpo;
+    }
+
+    private static Expression? ConstruirRangoFecha(RangoFecha rango, Expression fecha)
+    {
+        Expression? condicion = null;
+        if (rango.Desde is DateTimeOffset desde) condicion = Expression.GreaterThanOrEqual(fecha, Expression.Constant(desde, fecha.Type));
+        if (rango.Hasta is DateTimeOffset hasta)
+        {
+            Expression menor = Expression.LessThan(fecha, Expression.Constant(hasta, fecha.Type));
+            condicion = condicion is null ? menor : Expression.AndAlso(condicion, menor);
+        }
+
+        return condicion;
     }
 
     private async Task<Guid[]> ExpandirTrataIdsPorCodigoAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)

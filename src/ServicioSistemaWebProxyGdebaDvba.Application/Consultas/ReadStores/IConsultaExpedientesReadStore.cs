@@ -8,6 +8,7 @@ public interface IConsultaExpedientesReadStore
     Task<ConsultaDocumentosPorTrataResult> ConsultarDocumentosAsync(ConsultaDocumentosPorTrataFiltro filtro, CancellationToken cancellationToken);
 
     Task<ConsultaCoberturaDetalleResult> ConsultarCoberturaDetalleAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken);
+    Task<ConsultaCoberturaReferenciaResult> ConsultarCoberturaReferenciaAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken);
 
     Task<IReadOnlyCollection<string>> ObtenerValoresFiltroCaratulaAsync(ConsultaCaratulaValoresFiltroFiltro filtro, CancellationToken cancellationToken);
 }

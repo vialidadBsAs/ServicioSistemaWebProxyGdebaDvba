@@ -25,13 +25,19 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         // Virtualizacion: skip/take arbitrarios (startIndex/chunkSize). Si no vienen, se pagina por Pagina/TamanioPagina.
         int? skip = request.Skip is int s ? Math.Max(0, s) : null;
         int? take = request.Take is int t ? Math.Clamp(t, 1, 200) : null;
-        return await _consultaExpedientesReadStore.ConsultarAsync(new ConsultaExpedientesFiltro(trataIds, pagina, tamanioPagina, DateTimeOffset.Now, criterios, ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.EstadosActuales), ConsultaExpedientesService.Normalizar(request.EstadosDetalle), ConsultaExpedientesService.Normalizar(request.NumerosExpediente), request.FechaUltimoMovimientoDesde, request.FechaUltimoMovimientoHasta, caratula, skip, take), cancellationToken);
+        return await _consultaExpedientesReadStore.ConsultarAsync(new ConsultaExpedientesFiltro(trataIds, pagina, tamanioPagina, DateTimeOffset.Now, criterios, ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.EstadosActuales), ConsultaExpedientesService.Normalizar(request.EstadosDetalle), ConsultaExpedientesService.Normalizar(request.NumerosExpediente), request.FiltroFechaUltimoMovimiento, caratula, skip, take), cancellationToken);
     }
 
     public async Task<ConsultaCoberturaDetalleResult> ConsultarCoberturaDetalleAsync(IReadOnlyCollection<Guid>? trataIds, CancellationToken cancellationToken)
     {
         Guid[] trataIdsValidos = (trataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
         return await _consultaExpedientesReadStore.ConsultarCoberturaDetalleAsync(trataIdsValidos, cancellationToken);
+    }
+
+    public async Task<ConsultaCoberturaReferenciaResult> ConsultarCoberturaReferenciaAsync(IReadOnlyCollection<Guid>? trataIds, CancellationToken cancellationToken)
+    {
+        Guid[] trataIdsValidos = (trataIds ?? Array.Empty<Guid>()).Where(x => x != Guid.Empty).Distinct().ToArray();
+        return await _consultaExpedientesReadStore.ConsultarCoberturaReferenciaAsync(trataIdsValidos, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<string>> ObtenerValoresFiltroCaratulaAsync(ConsultaCaratulaValoresFiltroRequest request, CancellationToken cancellationToken)
@@ -57,7 +63,7 @@ public sealed class ConsultaExpedientesService : IConsultaExpedientesService
         var campoOrden = request.CampoOrden?.Trim() switch { "numeroExpediente" or "codigoTrata" or "numeroActuacionCompleto" or "fechaCreacion" or "ultimaActividad" or "fechaUltimaActividad" or "referencia" => request.CampoOrden.Trim(), _ => "fechaVinculacion" };
         var descendente = !string.Equals(request.DireccionOrden, "asc", StringComparison.OrdinalIgnoreCase);
         // La fecha hasta llega exclusiva desde los filtros de grilla, la misma convencion que fechaUltimoMovimientoHasta en expedientes.
-        return await _consultaExpedientesReadStore.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataFiltro(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.NumerosExpediente), ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.NumerosActuacion), ConsultaExpedientesService.Normalizar(request.Referencias), referenciaContiene, ConsultaExpedientesService.Normalizar(request.TiposDocumento), request.FechaCreacionDesde, request.FechaCreacionHasta, request.SoloSinReferencia, request.IncluirResumen), cancellationToken);
+        return await _consultaExpedientesReadStore.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataFiltro(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, descendente, ConsultaExpedientesService.Normalizar(request.NumerosExpediente), ConsultaExpedientesService.Normalizar(request.CodigosTrata), ConsultaExpedientesService.Normalizar(request.NumerosActuacion), ConsultaExpedientesService.Normalizar(request.Referencias), referenciaContiene, ConsultaExpedientesService.Normalizar(request.TiposDocumento), request.FiltroFechaCreacion, request.SoloSinReferencia, request.IncluirResumen, request.IncluirTotal), cancellationToken);
     }
 
     private static IReadOnlyCollection<string> Normalizar(IEnumerable<string>? valores) => (valores ?? Array.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();

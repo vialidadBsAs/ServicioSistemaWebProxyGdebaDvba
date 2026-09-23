@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Contracts;
@@ -22,11 +23,11 @@ public sealed class ConsultasExpedientesController : ControllerBase
     // Consulta masiva por tratas: respaldo exclusivo de la pantalla de temas y tratas.
     [HttpGet]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
-    public async Task<ActionResult<ConsultaExpedientesResult>> Consultar([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] string[]? estadosDetalle = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] DateTimeOffset? fechaUltimoMovimientoDesde = null, [FromQuery] DateTimeOffset? fechaUltimoMovimientoHasta = null, [FromQuery] string? caratula = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaExpedientesResult>> Consultar([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] string[]? estadosDetalle = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string? filtroFechaUltimoMovimiento = null, [FromQuery] string? caratula = null, CancellationToken cancellationToken = default)
     {
         if ((trataIds is null || trataIds.Length == 0) && string.IsNullOrWhiteSpace(caratula)) return this.BadRequest("Debe seleccionar al menos una trata.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, campoOrden, direccionOrden, codigosTrata, estadosActuales, estadosDetalle, numerosExpediente, fechaUltimoMovimientoDesde, fechaUltimoMovimientoHasta, caratula), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, campoOrden, direccionOrden, codigosTrata, estadosActuales, estadosDetalle, numerosExpediente, ConsultasExpedientesController.LeerFiltroFecha(filtroFechaUltimoMovimiento), caratula), cancellationToken));
     }
 
     // Busqueda puntual por texto de caratula: operacion de usuario final, con la politica de acceso general del controller.
@@ -52,12 +53,27 @@ public sealed class ConsultasExpedientesController : ControllerBase
         return this.Ok(await _consultaExpedientesService.ConsultarCoberturaDetalleAsync(trataIds, cancellationToken));
     }
 
+    [HttpGet("documentos/cobertura-referencia")]
+    [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
+    public async Task<ActionResult<ConsultaCoberturaReferenciaResult>> ConsultarCoberturaReferencia([FromQuery] Guid[]? trataIds, CancellationToken cancellationToken = default)
+    {
+        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaReferenciaAsync(trataIds, cancellationToken));
+    }
+
     [HttpGet("documentos")]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
-    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? numerosActuacion = null, [FromQuery] string[]? referencias = null, [FromQuery] string? referenciaContiene = null, [FromQuery] string[]? tiposDocumento = null, [FromQuery] DateTimeOffset? fechaCreacionDesde = null, [FromQuery] DateTimeOffset? fechaCreacionHasta = null, [FromQuery] bool soloSinReferencia = false, [FromQuery] bool incluirResumen = true, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? numerosActuacion = null, [FromQuery] string[]? referencias = null, [FromQuery] string? referenciaContiene = null, [FromQuery] string[]? tiposDocumento = null, [FromQuery] string? filtroFechaCreacion = null, [FromQuery] bool soloSinReferencia = false, [FromQuery] bool incluirResumen = true, [FromQuery] bool incluirTotal = true, CancellationToken cancellationToken = default)
     {
         if (trataIds is null || trataIds.Length == 0) return this.BadRequest("Debe seleccionar al menos una trata.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataRequest(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, direccionOrden, numerosExpediente, codigosTrata, numerosActuacion, referencias, referenciaContiene, tiposDocumento, fechaCreacionDesde, fechaCreacionHasta, soloSinReferencia, incluirResumen), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataRequest(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, direccionOrden, numerosExpediente, codigosTrata, numerosActuacion, referencias, referenciaContiene, tiposDocumento, ConsultasExpedientesController.LeerFiltroFecha(filtroFechaCreacion), soloSinReferencia, incluirResumen, incluirTotal), cancellationToken));
+    }
+
+    private static readonly JsonSerializerOptions OpcionesFiltroFecha = new(JsonSerializerDefaults.Web);
+
+    // El filtro de fecha de una columna viaja como JSON en la query: el arbol Y/O de rangos tal como lo arma la grilla.
+    private static FiltroFecha? LeerFiltroFecha(string? json)
+    {
+        return string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<FiltroFecha>(json, ConsultasExpedientesController.OpcionesFiltroFecha);
     }
 }
