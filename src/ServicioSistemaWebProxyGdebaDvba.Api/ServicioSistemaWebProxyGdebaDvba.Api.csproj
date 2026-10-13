@@ -20,4 +20,9 @@
     <ProjectReference Include="..\ServicioSistemaWebProxyGdebaDvba.Infrastructure\ServicioSistemaWebProxyGdebaDvba.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- La configuracion de desarrollo no viaja a produccion. -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>
