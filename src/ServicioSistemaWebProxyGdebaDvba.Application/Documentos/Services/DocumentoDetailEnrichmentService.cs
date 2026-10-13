@@ -150,8 +150,17 @@ public sealed class DocumentoDetailEnrichmentService
                         break;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception ex) when (GdebaNoAccesibleException.EsNoAccesible(ex))
+            {
+                // Sin acceso a GDEBA no tiene sentido seguir con el lote: se confirma lo ya enriquecido y se corta.
+                await this.RegistrarAuditoriaAsync(
+                    documento.NumeroActuacionCompleto, origenInvocacion, exitoso: false,
+                    DocumentoDetailEnrichmentService.CrearMensajeError(), cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
                 throw;
             }
             catch (Exception ex)

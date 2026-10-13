@@ -5,12 +5,18 @@ using ServicioSistemaWebProxyGdebaDvba.Infrastructure;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Infrastructure.Transversales.Seguridad;
 using Microsoft.OpenApi.Models;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+// Log en archivo para el administrador del servidor: se activa con la seccion Serilog (appsettings.Production.json).
+if (builder.Configuration.GetSection("Serilog").Exists())
+{
+    builder.Logging.AddSerilog(new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger(), dispose: true);
+}
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -1,3 +1,4 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
@@ -92,9 +93,14 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                 cancellationToken);
             await ejecucionesWorker.FinalizarEjecucionDescubrimientoAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: true), resultado.Habilitados, resultado.Creados, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            string resumen = CorteGdebaNoAccesible.Registrar(_logger, exception, "el descubrimiento de expedientes");
+            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, resumen, null, null, null, 1, CancellationToken.None);
         }
         catch (Exception exception)
         {
@@ -142,9 +148,14 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                 cancellationToken);
             await ejecucionesWorker.FinalizarEjecucionDescubrimientoAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, esManual: false, presupuesto), resultado.Habilitados, resultado.Creados, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            string resumen = CorteGdebaNoAccesible.Registrar(_logger, exception, "el descubrimiento de expedientes");
+            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, resumen, null, null, null, 1, CancellationToken.None);
         }
         catch (Exception exception)
         {
@@ -209,10 +220,11 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
             return $"La ejecución fue cancelada a pedido. Consultas de trata y estado realizadas: {resultado.ConsultasRealizadas} de {resultado.ConsultasSeleccionadas}. Recibidos: {resultado.RecibidosGdeba}. Habilitados: {resultado.Habilitados}. Creados: {resultado.Creados}. Actualizados: {resultado.Actualizados}. Sin cambios: {resultado.SinCambios}.";
         }
 
-        if (resultado.ConsultasRealizadas == 0) return this.CrearResumenOmitido(resultado, esManual);
+        string rechazadas = resultado.ConsultasConError > 0 ? $" Consultas rechazadas por GDEBA: {resultado.ConsultasConError}." : string.Empty;
+        if (resultado.ConsultasRealizadas == 0 && resultado.ConsultasConError == 0) return this.CrearResumenOmitido(resultado, esManual);
 
         var tipoEjecucion = esManual ? "Ejecucion manual completada sin limite operativo de cuota." : $"Corrida programada completada con presupuesto de {presupuesto} invocaciones.";
-        return $"{tipoEjecucion} Consultas: {resultado.ConsultasRealizadas}. Recibidos: {resultado.RecibidosGdeba}. Habilitados: {resultado.Habilitados}. Descartados: {resultado.Descartados}. Creados: {resultado.Creados}. Actualizados: {resultado.Actualizados}. Sin cambios: {resultado.SinCambios}. Omitidas por consulta del día: {resultado.OmitidasPorConsultaDelDia}. Omitidas por pausa: {resultado.OmitidasPorPausa}. Omitidas por límite operativo: {resultado.OmitidasPorLimiteOperativo}.";
+        return $"{tipoEjecucion}{rechazadas} Consultas: {resultado.ConsultasRealizadas}. Recibidos: {resultado.RecibidosGdeba}. Habilitados: {resultado.Habilitados}. Descartados: {resultado.Descartados}. Creados: {resultado.Creados}. Actualizados: {resultado.Actualizados}. Sin cambios: {resultado.SinCambios}. Omitidas por consulta del día: {resultado.OmitidasPorConsultaDelDia}. Omitidas por pausa: {resultado.OmitidasPorPausa}. Omitidas por límite operativo: {resultado.OmitidasPorLimiteOperativo}.";
     }
 
     private string CrearResumenOmitido(DescubrirExpedientesProgramadosResult resultado, bool esManual)
@@ -231,7 +243,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
     {
         if (resultado.Cancelada) return EstadoEjecucionWorker.Cancelada;
 
-        return resultado.ConsultasRealizadas == 0 ? EstadoEjecucionWorker.Omitida : EstadoEjecucionWorker.Finalizada;
+        return resultado.ConsultasRealizadas == 0 && resultado.ConsultasConError == 0 ? EstadoEjecucionWorker.Omitida : EstadoEjecucionWorker.Finalizada;
     }
 
     private bool EstaDentroDeLaVentana(ConfiguracionProgramadaWorkerDto configuracion, DateTimeOffset ahora)

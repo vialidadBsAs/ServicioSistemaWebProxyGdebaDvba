@@ -270,11 +270,12 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
         catch
         {
             stopwatch.Stop();
+            // Un 401/403 es el gateway rechazando el acceso: GDEBA no proceso el pedido y no consume cuota.
             await _registroInvocaciones.AgregarInvocacionAsync(
                 ServicioConsultaExpediente,
                 operationName,
                 contextoInvocacion,
-                servidorRespondio: response is not null,
+                servidorRespondio: statusCode is not null and not (401 or 403),
                 exitosa: false,
                 statusCode,
                 stopwatch.ElapsedMilliseconds,

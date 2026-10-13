@@ -36,7 +36,15 @@ Implementaciones actuales:
 
 `buscarDetallePorNumero` requiere el usuario de consulta del ambiente. Se configura fuera del repositorio en `Gdeba:Environments:{ambiente}:Soap:Services:ConsultaDocumento:UsuarioConsulta`; el gateway arma el nodo `request` con `assignee`, `numeroDocumento`, `numeroEspecial` y `usuarioConsulta` segun el contrato SOAP.
 
-Los gateways SOAP registran invocaciones para control de cuotas mediante `IRegistroInvocacionesGdeba`. Una invocacion cuenta como consumo si el servidor respondio; ademas se registra origen, ambiente, estado HTTP, duracion y resultado.
+Los gateways SOAP registran invocaciones para control de cuotas mediante `IRegistroInvocacionesGdeba`. Una invocacion cuenta como consumo si GDEBA proceso el pedido: hubo respuesta y no fue un rechazo de acceso del gateway IOP (HTTP 401/403, por ejemplo una IP no habilitada). Ademas se registra origen, ambiente, estado HTTP, duracion y resultado.
+
+### GDEBA no accesible
+
+`GdebaNoAccesibleException.EsNoAccesible` es la unica definicion del criterio: rechazo de acceso del gateway (401/403) o ausencia de respuesta (falla de red o timeout de transporte). Todo error devuelto por GDEBA (500, 404, 200 con fallo, SOAP Fault) es una falla de ese pedido. La distincion se apoya en datos reales: los errores de expedientes antiguos llegan como HTTP 500 tras ~28-30 s y no deben confundirse con falta de acceso.
+
+- Api: ante "no accesible" se marca el sensor de conexion y se responde desde la copia local (`FallbackCache`) cuando existe; el expediente no se marca como rechazado por GDEBA.
+- Worker: la corrida en curso se corta en la primera falla de acceso (una sola llamada, sin consumo de cuota) y queda `Fallida` con el motivo. No hay reintentos fuera de agenda: cada corrida programada respeta su horario y su ventana, y la proxima corrida programada vuelve a intentar en su turno (el descubrimiento, al dia siguiente). Asi un corte de acceso nunca desplaza una corrida hacia la ventana de otro worker, y el historial no suma filas respecto de un dia normal.
+- Un rechazo de GDEBA en una consulta de descubrimiento se registra y la corrida sigue con la siguiente.
 
 Requisito tecnico:
 

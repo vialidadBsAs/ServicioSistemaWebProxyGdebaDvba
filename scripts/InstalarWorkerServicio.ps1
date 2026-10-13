@@ -33,6 +33,11 @@ if (-not [System.Diagnostics.EventLog]::SourceExists($origenEventos)) {
     [System.Diagnostics.EventLog]::CreateEventSource($origenEventos, 'Application')
 }
 
+# Carpeta del log en archivo (Serilog, appsettings.Production.json): la cuenta virtual del servicio necesita escribir en ella.
+$carpetaLogs = Join-Path $RutaInstalacion 'logs'
+New-Item -ItemType Directory -Path $carpetaLogs -Force | Out-Null
+icacls $carpetaLogs /grant "NT SERVICE\${NombreServicio}:(OI)(CI)M" | Out-Null
+
 $servicio = Get-Service -Name $NombreServicio -ErrorAction SilentlyContinue
 if ($servicio) {
     if ($servicio.Status -ne 'Stopped') { Stop-Service -Name $NombreServicio }

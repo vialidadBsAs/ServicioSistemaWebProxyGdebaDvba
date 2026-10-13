@@ -1,3 +1,4 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
@@ -79,9 +80,14 @@ public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
             var resultado = await enrichmentService.EnriquecerPendientesAsync(Math.Max(1, configuracion.TamanoLote ?? 1), OrigenInvocacionGdeba.Administrativo, cancellationToken);
             await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Finalizada, "Ejecucion manual completada sin limite operativo de cuota.", resultado.Procesados, resultado.Enriquecidos, resultado.SinDatos, resultado.Errores, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            string resumen = CorteGdebaNoAccesible.Registrar(_logger, exception, "el enriquecimiento documental");
+            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, resumen, null, null, null, 1, CancellationToken.None);
         }
         catch (Exception exception)
         {
@@ -133,9 +139,14 @@ public sealed class DocumentoDetailEnrichmentWorker : BackgroundService
             var resultado = await enrichmentService.EnriquecerPendientesAsync(loteAutorizado, OrigenInvocacionGdeba.WorkerProgramado, cancellationToken);
             await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Finalizada, $"Enriquecimiento documental finalizado. Lote autorizado: {loteAutorizado}.", resultado.Procesados, resultado.Enriquecidos, resultado.SinDatos, resultado.Errores, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            string resumen = CorteGdebaNoAccesible.Registrar(_logger, exception, "el enriquecimiento documental");
+            await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, resumen, null, null, null, 1, CancellationToken.None);
         }
         catch (Exception exception)
         {

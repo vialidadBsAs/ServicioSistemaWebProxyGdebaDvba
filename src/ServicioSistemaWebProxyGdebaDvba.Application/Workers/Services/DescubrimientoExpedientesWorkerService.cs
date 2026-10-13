@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
@@ -25,6 +27,7 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
     private readonly ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> _procesoDescubrimientoRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<DescubrimientoExpedientesWorkerService> _logger;
 
     public DescubrimientoExpedientesWorkerService(
         IIncorporacionExpedientesPorTrataService incorporacionExpedientesPorTrataService,
@@ -36,7 +39,8 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
         IRepository<TrataHabilitadaVialidad> trataHabilitadaVialidadRepository,
         IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
         ITrackableRepository<ProcesoDescubrimientoTrataEstadoExpediente> procesoDescubrimientoRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<DescubrimientoExpedientesWorkerService> logger)
     {
         _incorporacionExpedientesPorTrataService = incorporacionExpedientesPorTrataService;
         _ejecucionWorkerRepository = ejecucionWorkerRepository;
@@ -48,6 +52,7 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
         _estadoExpedienteGdebaRepository = estadoExpedienteGdebaRepository;
         _procesoDescubrimientoRepository = procesoDescubrimientoRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<DescubrirExpedientesProgramadosResult> EjecutarAsync(
@@ -129,6 +134,7 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
         var resultados = new List<IncorporarExpedientesPorTrataResult>();
         var resultadosPorTrataEstado = new List<ResultadoDescubrimientoProgramadoTrataEstado>();
         var cancelada = false;
+        int consultasConError = 0;
         foreach (var candidato in seleccionados)
         {
             // La solicitud de cancelacion la escribe la Api desde otro contexto: se lee fresca de la base, no de la entidad trackeada.
@@ -138,9 +144,22 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
                 break;
             }
 
-            var resultado = await _incorporacionExpedientesPorTrataService.PrepararAsync(
-                new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion),
-                cancellationToken);
+            IncorporarExpedientesPorTrataResult resultado;
+            try
+            {
+                resultado = await _incorporacionExpedientesPorTrataService.PrepararAsync(
+                    new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion),
+                    cancellationToken);
+            }
+            catch (GdebaOperationException exception) when (!GdebaNoAccesibleException.EsNoAccesible(exception))
+            {
+                // GDEBA proceso el pedido y lo rechazo: es una falla de esta consulta, la corrida sigue con la siguiente.
+                // La auditoria de la falla queda pendiente en la unidad de trabajo y se confirma con el proximo guardado.
+                consultasConError++;
+                _logger.LogWarning("GDEBA rechazo la consulta de descubrimiento {CodigoTrata}/{Estado}: {Motivo}", candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, exception.Message);
+                continue;
+            }
+
             var procesoEsNuevo = candidato.Proceso is null;
             var proceso = candidato.Proceso ?? new ProcesoDescubrimientoTrataEstadoExpediente(candidato.Trata.CodigoTrata, candidato.Estado.Id);
             proceso.RegistrarResultado(resultado.ResolvedAt, resultado.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
@@ -208,7 +227,8 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             Math.Max(0, candidatos.Count - seleccionados.Length),
             resultadosPorTrataEstado,
             seleccionados.Length,
-            cancelada);
+            cancelada,
+            consultasConError);
     }
 
     private async Task<IReadOnlyCollection<TrataDescubrimientoProgramado>> CargarTratasAsync(CancellationToken cancellationToken)

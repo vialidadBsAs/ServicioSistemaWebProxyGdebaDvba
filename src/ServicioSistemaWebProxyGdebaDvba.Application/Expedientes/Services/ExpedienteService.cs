@@ -134,7 +134,7 @@ public sealed class ExpedienteService : IExpedienteService
                         cancellationToken);
                     _sensorConexion.RegistrarExito();
                 }
-                catch (GdebaOperationException ex)
+                catch (GdebaOperationException ex) when (!GdebaNoAccesibleException.EsNoAccesible(ex))
                 {
                     // GDEBA rechazo el detalle (p. ej. "no existe en EE"): respondio, o sea el enlace esta vivo. Se marcan los controles con el error para que el worker no reintente indefinidamente.
                     _sensorConexion.RegistrarExito();
@@ -295,7 +295,7 @@ public sealed class ExpedienteService : IExpedienteService
                         cancellationToken);
                     _sensorConexion.RegistrarExito();
                 }
-                catch (GdebaOperationException ex)
+                catch (GdebaOperationException ex) when (!GdebaNoAccesibleException.EsNoAccesible(ex))
                 {
                     // GDEBA rechazo la operacion de pases (p. ej. historiales grandes): respondio, el enlace esta vivo. El control queda con error para que el worker no reintente indefinidamente.
                     _sensorConexion.RegistrarExito();
@@ -1083,7 +1083,8 @@ public sealed class ExpedienteService : IExpedienteService
     // Falla de transporte hacia GDEBA (enlace caido / sin internet / timeout), distinta de un rechazo de negocio de GDEBA.
     private static bool EsFalloDeConexion(Exception ex)
     {
-        return ex is HttpRequestException || ex is OperationCanceledException;
+        // Incluye el rechazo de acceso del gateway (401/403): GDEBA nunca vio el pedido, igual que con el enlace caido.
+        return GdebaNoAccesibleException.EsNoAccesible(ex);
     }
 
     private static FuenteRespuesta CombinarFuente(

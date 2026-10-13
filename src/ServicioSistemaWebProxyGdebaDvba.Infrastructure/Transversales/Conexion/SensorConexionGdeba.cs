@@ -75,14 +75,14 @@ public sealed class SensorConexionGdeba : ISensorConexionGdeba
                 CancellationToken.None);
             this.RegistrarExito();
         }
-        catch (GdebaOperationException)
+        catch (GdebaOperationException ex) when (!GdebaNoAccesibleException.EsNoAccesible(ex))
         {
             // GDEBA respondio aunque haya rechazado el pedido: el enlace esta vivo.
             this.RegistrarExito();
         }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
+        catch (Exception ex) when (GdebaNoAccesibleException.EsNoAccesible(ex))
         {
-            // Sigue caido: la proxima actividad volvera a intentar pasado el freno.
+            // Sigue caido o el gateway sigue rechazando el acceso: la proxima actividad volvera a intentar pasado el freno.
             this.RegistrarFalloConexion();
         }
         catch (Exception ex)
