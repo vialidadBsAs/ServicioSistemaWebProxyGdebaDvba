@@ -54,5 +54,12 @@ foreach ($nombre in $variables.Keys) {
 }
 Stop-IISCommitDelay
 
+# Carpeta del log en archivo (Serilog, appsettings.Production.json): la identidad del app pool necesita escribir en ella.
+$aplicacion = (Get-IISServerManager).Sites[$SitioIis].Applications["/$RutaAplicacion"]
+$carpetaLogs = Join-Path ([Environment]::ExpandEnvironmentVariables($aplicacion.VirtualDirectories['/'].PhysicalPath)) 'logs'
+New-Item -ItemType Directory -Path $carpetaLogs -Force | Out-Null
+icacls $carpetaLogs /grant "IIS AppPool\$($aplicacion.ApplicationPoolName):(OI)(CI)M" | Out-Null
+
 Write-Host "Variables cargadas en '$ubicacion': $($variables.Keys -join ', ')"
+Write-Host "Carpeta de logs con escritura para el app pool: $carpetaLogs"
 Write-Host "Reciclar el app pool de la Api para que tome los valores."

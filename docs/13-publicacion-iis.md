@@ -105,14 +105,21 @@ Orden ante cambios de esquema: migracion -> Api -> Worker -> Front.
 
 ## 6. Diagnostico
 
-- Worker: visor de eventos, log *Application*, origen
+- Log en archivo (Serilog), uno por dia, 30 dias de retencion:
+  - Api: `<carpeta de la Api>\logs\api-AAAAMMDD.log`.
+  - Worker: `C:\Servicios\ProxyGdebaDvbaWorker\logs\worker-AAAAMMDD.log`.
+  - Nivel, retencion y ruta se ajustan en la seccion `Serilog` de
+    `appsettings.Production.json`. Se excluyen el SQL de EF y el envelope SOAP.
+  - La identidad de cada proceso necesita escritura en su carpeta `logs`; los
+    scripts de instalacion la otorgan. En una instalacion existente:
+    `icacls "<carpeta de la Api>\logs" /grant "IIS AppPool\<pool>:(OI)(CI)M"` y
+    `icacls "C:\Servicios\ProxyGdebaDvbaWorker\logs" /grant "NT SERVICE\ProxyGdebaDvbaWorker:(OI)(CI)M"`.
+- Worker: ademas, visor de eventos, log *Application*, origen
   `ServicioSistemaWebProxyGdebaDvba.Worker` (Warning en adelante, mas arranque
   y parada).
-- Api: si no levanta (HTTP 500.30 / 500.31), activar temporalmente
-  `stdoutLogEnabled="true"` en el `web.config` desplegado y crear la carpeta
-  `logs` con escritura para `IIS AppPool\<pool>`. Volver a desactivarlo.
-- La Api hoy solo registra en Console/Debug; un log persistente en produccion
-  queda pendiente.
+- Api: si no levanta (HTTP 500.30 / 500.31), el error es previo a Serilog:
+  activar temporalmente `stdoutLogEnabled="true"` en el `web.config`
+  desplegado. Volver a desactivarlo.
 
 ## 7. Pendientes asociados
 

@@ -13,7 +13,8 @@ public sealed record DescubrirExpedientesProgramadosResult(
     int OmitidasPorLimiteOperativo,
     IReadOnlyCollection<ResultadoDescubrimientoProgramadoTrataEstado> ResultadosPorTrataEstado,
     int ConsultasSeleccionadas = 0,
-    bool Cancelada = false);
+    bool Cancelada = false,
+    int ConsultasConError = 0);
 
 public sealed record ResultadoDescubrimientoProgramadoTrataEstado(
     Guid TrataHabilitadaVialidadId,

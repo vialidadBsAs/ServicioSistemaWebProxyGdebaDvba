@@ -1,7 +1,9 @@
 using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
@@ -20,6 +22,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
     private readonly IRepository<TemaExpedienteTrata> _temaExpedienteTrataRepository;
     private readonly IRepository<TrataHabilitadaVialidad> _trataHabilitadaVialidadRepository;
     private readonly IExpedienteService _expedienteService;
+    private readonly ISensorConexionGdeba _sensorConexion;
     private readonly ILogger<ExpedienteDetalladoWorkerService> _logger;
 
     public ExpedienteDetalladoWorkerService(
@@ -30,6 +33,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         IRepository<TemaExpedienteTrata> temaExpedienteTrataRepository,
         IRepository<TrataHabilitadaVialidad> trataHabilitadaVialidadRepository,
         IExpedienteService expedienteService,
+        ISensorConexionGdeba sensorConexion,
         ILogger<ExpedienteDetalladoWorkerService> logger)
     {
         _expedienteRepository = expedienteRepository;
@@ -39,6 +43,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         _temaExpedienteTrataRepository = temaExpedienteTrataRepository;
         _trataHabilitadaVialidadRepository = trataHabilitadaVialidadRepository;
         _expedienteService = expedienteService;
+        _sensorConexion = sensorConexion;
         _logger = logger;
     }
 
@@ -60,8 +65,16 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
                 break;
             }
 
-            procesados++;
             string numeroExpediente = pendiente.NumeroGdebaCompleto;
+            // Con GDEBA marcado como no accesible el servicio responderia desde la copia local y marcaria el expediente como consultado:
+            // se corta antes de tocarlo y se deja en marcha la sonda de reconexion, que restablece el sensor cuando GDEBA vuelve.
+            if (!_sensorConexion.Accesible)
+            {
+                _sensorConexion.SondearSiCorresponde(numeroExpediente);
+                throw new GdebaNoAccesibleException("GDEBA figura como no accesible desde este servidor.");
+            }
+
+            procesados++;
             try
             {
                 ObtenerExpedienteRecursoResult<ExpedienteCompletoDto> resultado = await _expedienteService.ObtenerCompletoAsync(
@@ -75,7 +88,11 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
                     errores++;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
             {
                 throw;
             }

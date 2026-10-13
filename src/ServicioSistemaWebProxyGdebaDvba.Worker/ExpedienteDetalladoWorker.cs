@@ -1,3 +1,4 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Workers.Contracts;
@@ -77,9 +78,14 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
             DetallarExpedientesPendientesResult resultado = await this.DetallarEnSubLotesAsync(ejecucion.EjecucionId, Math.Max(1, configuracion.TamanoLote ?? 1), OrigenInvocacionGdeba.Administrativo, cancellationToken);
             await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, Math.Max(1, configuracion.TamanoLote ?? 1), esManual: true), resultado.Procesados, resultado.Detallados, resultado.Errores);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            string resumen = CorteGdebaNoAccesible.Registrar(_logger, exception, "el detalle de expedientes");
+            await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, resumen, null, null, 1);
         }
         catch (Exception exception)
         {
@@ -107,9 +113,15 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
             await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, this.ResolverEstadoEjecucion(resultado), this.CrearResumenResultado(resultado, Math.Max(1, configuracion.TamanoLote ?? 1), esManual: false), resultado.Procesados, resultado.Detallados, resultado.Errores);
             return resultado.Cancelada;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            string resumen = CorteGdebaNoAccesible.Registrar(_logger, exception, "el detalle de expedientes");
+            await this.FinalizarEnScopeLimpioAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, resumen, null, null, 1);
+            return false;
         }
         catch (Exception exception)
         {
