@@ -42,3 +42,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+
+# Salida de publicacion local (perfiles SiIntravial)
+publish/
