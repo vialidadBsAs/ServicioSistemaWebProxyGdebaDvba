@@ -241,3 +241,42 @@ Consecuencias:
   `ApplicationClaimsTransformation` de una aplicacion institucional existente,
   para reproducir el contrato real sin copiar configuracion obsoleta.
 
+
+## ADR-012: GDEBA no accesible: corte sin reintentos fuera de agenda
+
+Fecha: 2026-10-13
+
+Decision:
+
+"GDEBA no accesible" se limita a lo inequivoco: rechazo de acceso del gateway
+IOP (HTTP 401/403) o ausencia de respuesta (falla de red o timeout de
+transporte), definido en un unico lugar (`GdebaNoAccesibleException.EsNoAccesible`).
+Esas invocaciones no consumen cuota. Ante esa condicion cada corrida de worker
+se corta en la primera llamada y queda `Fallida` con el motivo; no hay
+reintentos ni pausas fuera de la agenda configurada: la proxima corrida
+programada vuelve a intentar en su turno.
+
+Contexto:
+
+Al publicar en SI-INTRAVIAL, con la IP aun no habilitada en el gateway, el
+gateway devolvia 403: cada llamada contaba como consumo, la corrida abortaba con
+stack trace y no quedaba claro el motivo. Los datos de
+`IntegracionGdeba_Invocaciones` mostraron que los errores lentos de expedientes
+antiguos llegan como HTTP 500 tras ~28-30 s: son respuestas de GDEBA y no deben
+confundirse con falta de acceso (ver `11-analisis-rendimiento-worker-detallado.md`,
+donde tambien se decidio no agregar timeout propio).
+
+Se implemento y descarto una pausa compartida entre workers con reintentos
+escalonados: desplazaba corridas a horarios no planificados, podia superponerlas
+con la ventana de otro worker (las ventanas se separan a proposito) y sumaba
+filas al historial.
+
+Consecuencias:
+
+- Un corte de acceso nunca mueve una corrida fuera de su horario ni de su
+  ventana; el historial tiene las mismas filas que un dia normal, en `Fallida`.
+- Un error devuelto por GDEBA sigue siendo falla de ese pedido: consume cuota y
+  la corrida continua (el descubrimiento sigue con la siguiente consulta).
+- La Api trata el 403 como sin conexion: responde desde la copia local y marca
+  el sensor de conexion, sin registrar el expediente como rechazado por GDEBA.
+- Las ordenes manuales se ejecutan siempre y sirven para verificar el acceso.
