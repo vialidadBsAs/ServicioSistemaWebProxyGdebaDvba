@@ -162,6 +162,14 @@ Si la politica de ejecucion bloquea los scripts:
     `icacls "C:\Servicios\ProxyGdebaDvbaWorker\logs" /grant "NT SERVICE\ProxyGdebaDvbaWorker:(OI)(CI)M"`.
     El selector de usuarios de Windows suele no encontrar las identidades
     `IIS AppPool\...`; `icacls` si.
+- Latido del Worker: al arrancar y todos los dias a `Latido:HoraLocal`
+  (`appsettings.json`, por defecto 08:00) escribe una linea por worker con su
+  estado (habilitado o no), su agenda, las ejecuciones por estado desde el latido
+  anterior (al arrancar, las ultimas 24 h) y la ultima ejecucion. Un dia sin
+  latido indica que el servicio no estuvo activo; un "Application started" sin
+  "Application is shutting down" previo indica una caida (el detalle queda en el
+  visor de eventos, *Sistema*, origen *Service Control Manager*; el servicio se
+  reinicia solo).
 - Worker: ademas, visor de eventos, log *Application*, origen
   `ServicioSistemaWebProxyGdebaDvba.Worker` (Warning en adelante, mas arranque
   y parada).
