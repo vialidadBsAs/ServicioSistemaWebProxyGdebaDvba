@@ -45,3 +45,6 @@ Desktop.ini
 
 # Salida de publicacion local (perfiles SiIntravial)
 publish/
+
+# Copias de User Secrets (credenciales): nunca al repositorio
+secrets.json
