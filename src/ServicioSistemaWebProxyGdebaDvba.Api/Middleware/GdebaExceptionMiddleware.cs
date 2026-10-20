@@ -22,6 +22,25 @@ public sealed class GdebaExceptionMiddleware
         {
             await _next(context);
         }
+        catch (Exception ex) when (!context.RequestAborted.IsCancellationRequested && GdebaNoAccesibleException.EsNoAccesible(ex))
+        {
+            // GDEBA no accesible (rechazo del gateway 401/403 o sin respuesta) en una operacion sin copia local desde la cual responder:
+            // es el mismo estado que muestra el cartel de "sin conexion", no un error devuelto por GDEBA.
+            string motivo = GdebaNoAccesibleException.DescribirMotivo(ex);
+            _logger.LogWarning(ex, "GDEBA no accesible al atender {Ruta}: {Motivo}.", context.Request.Path, motivo);
+
+            ProblemDetails problem = new()
+            {
+                Status = StatusCodes.Status503ServiceUnavailable,
+                Title = "Sin conexión con GDEBA",
+                Detail = $"GDEBA no es accesible en este momento ({motivo}) y esta operación no tiene una copia local desde la cual responder.",
+                Instance = context.Request.Path
+            };
+            problem.Extensions["codigo"] = "GDEBA_NO_ACCESIBLE";
+
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await context.Response.WriteAsJsonAsync(problem, cancellationToken: context.RequestAborted);
+        }
         catch (GdebaOperationException ex)
         {
             _logger.LogError(
