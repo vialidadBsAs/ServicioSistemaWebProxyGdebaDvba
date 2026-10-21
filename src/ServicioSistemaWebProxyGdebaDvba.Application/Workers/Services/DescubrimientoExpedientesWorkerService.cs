@@ -139,31 +139,31 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
                 new IncorporarExpedientesPorTrataRequest(consulta.CodigoTrata, consulta.NombreEstado, request.OrigenInvocacion),
                 cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (GdebaOperationException exception) when (!GdebaNoAccesibleException.EsNoAccesible(exception))
         {
-            // GDEBA proceso el pedido y lo rechazo: es una falla de esta consulta, la corrida sigue con la siguiente.
-            // La auditoria de la falla quedo pendiente en la unidad de trabajo y se confirma aca, porque esta unidad termina con la consulta.
+            // GDEBA proceso el pedido y lo rechazo (fault, respuesta que supera sus limites): falla de esta consulta, la corrida sigue.
+            // Se registra como consulta fallida para que no vuelva a quedar primera por "nunca consultada" y la auditoria pendiente se confirma aca.
             _logger.LogWarning("GDEBA rechazo la consulta de descubrimiento {CodigoTrata}/{Estado}: {Motivo}", consulta.CodigoTrata, consulta.NombreEstado, exception.Message);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await this.RegistrarConsultaFallidaAsync(consulta, request, cancellationToken);
             return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.RechazadaPorGdeba, null, false);
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            // Rechazo del gateway o sin respuesta. Aislado puede ser propio de esta combinacion (en octubre de 2026 el gateway devolvio 403 para
+            // una trata-estado cuya respuesta supera los limites de GDEBA); el host decide el corte cuando se repite en consultas seguidas.
+            _logger.LogWarning("Rechazo de acceso en la consulta de descubrimiento {CodigoTrata}/{Estado}: {Motivo}", consulta.CodigoTrata, consulta.NombreEstado, GdebaNoAccesibleException.DescribirMotivo(exception));
+            await this.RegistrarConsultaFallidaAsync(consulta, request, cancellationToken);
+            return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.RechazoDeAcceso, null, false);
         }
 
         EjecucionWorker ejecucion = await this.CargarEjecucionAsync(ejecucionWorkerId, cancellationToken);
-        ProcesoDescubrimientoTrataEstadoExpediente? procesoExistente = (await _procesoDescubrimientoRepository.Query()
-            .Where(x => x.CodigoTrata == consulta.CodigoTrata && x.EstadoExpedienteGdebaId == consulta.EstadoExpedienteGdebaId)
-            .SelectAsync(cancellationToken))
-            .FirstOrDefault();
-        ProcesoDescubrimientoTrataEstadoExpediente proceso = procesoExistente ?? new ProcesoDescubrimientoTrataEstadoExpediente(consulta.CodigoTrata, consulta.EstadoExpedienteGdebaId);
+        (ProcesoDescubrimientoTrataEstadoExpediente proceso, bool procesoEsNuevo) = await this.CargarProcesoAsync(consulta, cancellationToken);
         proceso.RegistrarResultado(incorporacion.ResolvedAt, incorporacion.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
-        if (procesoExistente is null)
-        {
-            _procesoDescubrimientoRepository.Insert(proceso);
-        }
-        else
-        {
-            _procesoDescubrimientoRepository.Update(proceso);
-            _procesoDescubrimientoRepository.ApplyChanges(proceso);
-        }
+        this.PersistirProceso(proceso, procesoEsNuevo);
 
         ejecucion.RegistrarResultadoDescubrimiento(
             consulta.TrataHabilitadaVialidadId,
@@ -206,6 +206,39 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
         }
 
         return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.Realizada, incorporacion, cancelacionSolicitada is not null);
+    }
+
+    private async Task RegistrarConsultaFallidaAsync(ConsultaDescubrimientoProgramada consulta, DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
+    {
+        (ProcesoDescubrimientoTrataEstadoExpediente proceso, bool procesoEsNuevo) = await this.CargarProcesoAsync(consulta, cancellationToken);
+        proceso.RegistrarConsultaFallida(DateTimeOffset.Now, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
+        this.PersistirProceso(proceso, procesoEsNuevo);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    // El control por trata-estado se crea en la primera consulta de la combinacion.
+    private async Task<(ProcesoDescubrimientoTrataEstadoExpediente Proceso, bool EsNuevo)> CargarProcesoAsync(ConsultaDescubrimientoProgramada consulta, CancellationToken cancellationToken)
+    {
+        ProcesoDescubrimientoTrataEstadoExpediente? existente = (await _procesoDescubrimientoRepository.Query()
+            .Where(x => x.CodigoTrata == consulta.CodigoTrata && x.EstadoExpedienteGdebaId == consulta.EstadoExpedienteGdebaId)
+            .SelectAsync(cancellationToken))
+            .FirstOrDefault();
+
+        return existente is null
+            ? (new ProcesoDescubrimientoTrataEstadoExpediente(consulta.CodigoTrata, consulta.EstadoExpedienteGdebaId), true)
+            : (existente, false);
+    }
+
+    private void PersistirProceso(ProcesoDescubrimientoTrataEstadoExpediente proceso, bool esNuevo)
+    {
+        if (esNuevo)
+        {
+            _procesoDescubrimientoRepository.Insert(proceso);
+            return;
+        }
+
+        _procesoDescubrimientoRepository.Update(proceso);
+        _procesoDescubrimientoRepository.ApplyChanges(proceso);
     }
 
     private async Task<EjecucionWorker> CargarEjecucionAsync(Guid ejecucionWorkerId, CancellationToken cancellationToken)

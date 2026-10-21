@@ -38,4 +38,14 @@ public sealed class ProcesoDescubrimientoTrataEstadoExpediente : DomainEntity
 
         MarcarComoModificada();
     }
+
+    /// <summary>
+    /// GDEBA no pudo responder la consulta (fault del servicio, respuesta que supera sus limites, rechazo del gateway). Cuenta como
+    /// consulta realizada sin resultados: asi la combinacion no vuelve a quedar primera por "nunca consultada", el interruptor del dia la
+    /// saltea y, si falla de forma consecutiva, entra en pausa como una combinacion vacia.
+    /// </summary>
+    public void RegistrarConsultaFallida(DateTimeOffset fecha, int umbralPausa, int diasPausa)
+    {
+        this.RegistrarResultado(fecha, huboResultadosHabilitados: false, umbralPausa, diasPausa);
+    }
 }

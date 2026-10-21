@@ -12,6 +12,10 @@ namespace ServicioSistemaWebProxyGdebaDvba.Worker;
 
 public sealed class DescubrimientoExpedientesWorker : BackgroundService
 {
+    // Un rechazo de acceso aislado (401/403 o sin respuesta) puede ser propio de una combinacion trata-estado; recien cuando se repite en
+    // consultas seguidas la corrida da por cierto que GDEBA no es accesible y se corta.
+    private const int RechazosDeAccesoConsecutivosParaCorte = 3;
+
     private const string ServicioCuota = "ws_gdeba_consultaExpediente";
     private const string MetodoCuota = "buscarDatosExpedientePorCodigosTrata";
 
@@ -176,6 +180,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
         }
 
         List<ResultadoConsultaDescubrimiento> resultados = new(plan.Consultas.Count);
+        int rechazosDeAccesoConsecutivos = 0;
         foreach (ConsultaDescubrimientoProgramada consulta in plan.Consultas)
         {
             using IServiceScope scopeConsulta = _scopeFactory.CreateScope();
@@ -183,6 +188,12 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
             IDescubrimientoExpedientesWorkerService descubrimiento = scopeConsulta.ServiceProvider.GetRequiredService<IDescubrimientoExpedientesWorkerService>();
             ResultadoConsultaDescubrimiento resultado = await descubrimiento.ConsultarAsync(ejecucionId, consulta, request, cancellationToken);
             resultados.Add(resultado);
+
+            rechazosDeAccesoConsecutivos = resultado.Estado == EstadoConsultaDescubrimiento.RechazoDeAcceso ? rechazosDeAccesoConsecutivos + 1 : 0;
+            if (rechazosDeAccesoConsecutivos >= DescubrimientoExpedientesWorker.RechazosDeAccesoConsecutivosParaCorte)
+            {
+                throw new GdebaNoAccesibleException($"{rechazosDeAccesoConsecutivos} consultas de trata y estado seguidas fueron rechazadas por el gateway o quedaron sin respuesta");
+            }
 
             // Cancelacion pedida: se conserva lo ya confirmado y no se inicia la siguiente consulta.
             if (resultado.CancelacionSolicitada) break;

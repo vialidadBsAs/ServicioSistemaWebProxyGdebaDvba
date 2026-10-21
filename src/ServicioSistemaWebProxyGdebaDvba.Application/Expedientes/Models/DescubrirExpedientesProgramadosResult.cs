@@ -36,7 +36,7 @@ public sealed record DescubrirExpedientesProgramadosResult(
             realizadas.Select(x => new ResultadoDescubrimientoProgramadoTrataEstado(x.Consulta.TrataHabilitadaVialidadId, x.Consulta.EstadoExpedienteGdebaId, x.Incorporacion!)).ToArray(),
             plan.Consultas.Count,
             consultas.Any(x => x.Estado == EstadoConsultaDescubrimiento.CanceladaAntesDeConsultar || x.CancelacionSolicitada),
-            consultas.Count(x => x.Estado == EstadoConsultaDescubrimiento.RechazadaPorGdeba));
+            consultas.Count(x => x.Estado is EstadoConsultaDescubrimiento.RechazadaPorGdeba or EstadoConsultaDescubrimiento.RechazoDeAcceso));
     }
 }
 
@@ -63,6 +63,8 @@ public enum EstadoConsultaDescubrimiento
     Realizada,
     /// <summary>GDEBA proceso el pedido y lo rechazo: falla de esta consulta, la corrida sigue.</summary>
     RechazadaPorGdeba,
+    /// <summary>El gateway rechazo el acceso (401/403) o no hubo respuesta. Aislado es una falla de esta consulta; varios seguidos, GDEBA no accesible.</summary>
+    RechazoDeAcceso,
     /// <summary>La cancelacion ya estaba pedida: no se invoco GDEBA.</summary>
     CanceladaAntesDeConsultar
 }
