@@ -4,6 +4,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Documentos.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Enums;
@@ -25,6 +26,7 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGdebaExecutionContext _gdebaExecutionContext;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
+    private readonly ISensorConexionGdeba _sensorConexion;
 
     public DocumentoPdfDownloadService(
         IRepository<DocumentoGdeba> documentoRepository,
@@ -33,7 +35,8 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
         IAuditoriaService auditoriaService,
         IUnitOfWork unitOfWork,
         IGdebaExecutionContext gdebaExecutionContext,
-        ICurrentApplicationAccessor currentApplicationAccessor)
+        ICurrentApplicationAccessor currentApplicationAccessor,
+        ISensorConexionGdeba sensorConexion)
     {
         _documentoRepository = documentoRepository;
         _gdebaDocumentoGateway = gdebaDocumentoGateway;
@@ -42,6 +45,7 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
         _unitOfWork = unitOfWork;
         _gdebaExecutionContext = gdebaExecutionContext;
         _currentApplicationAccessor = currentApplicationAccessor;
+        _sensorConexion = sensorConexion;
     }
 
     public async Task<DocumentoPdfDescargaResult> DescargarPdfAsync(Guid documentoId, OrigenInvocacionGdeba origenInvocacion, CancellationToken cancellationToken)
@@ -72,6 +76,7 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
         {
             var contextoInvocacion = ContextoInvocacionGdeba.Crear(origenInvocacion);
             var pdf = await _gdebaDocumentoGateway.BuscarPdfPorNumeroAsync(documento.NumeroActuacionCompleto, contextoInvocacion, cancellationToken);
+            _sensorConexion.RegistrarExito();
             if (pdf is null && metadataPrevia)
             {
                 // Auto-reparacion: la metadata previa pudo quedar vieja; se refresca una unica vez y se reintenta.
@@ -95,8 +100,17 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return new DocumentoPdfDescargaResult(true, true, pdf.NumeroDocumento, pdf.Contenido);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            throw;
+        }
+        catch (Exception ex) when (GdebaNoAccesibleException.EsNoAccesible(ex))
+        {
+            // Rechazo del gateway (401/403) o sin respuesta: GDEBA no vio el pedido. Se marca el circuito, como hace el detalle del expediente, y el
+            // middleware lo responde como "sin conexion"; el PDF no tiene copia local desde la cual responder.
+            _sensorConexion.RegistrarFalloConexion();
+            await this.RegistrarAuditoriaAsync(documento.NumeroActuacionCompleto, origenInvocacion, exitoso: false, "Sin conexion con GDEBA: no se pudo descargar el PDF.", cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw;
         }
         catch
