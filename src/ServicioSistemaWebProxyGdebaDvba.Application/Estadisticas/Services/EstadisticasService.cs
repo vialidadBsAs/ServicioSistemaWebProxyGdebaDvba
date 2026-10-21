@@ -30,6 +30,19 @@ public sealed class EstadisticasService : IEstadisticasService
             tratas);
     }
 
+    // Tope de expedientes por trata en el detalle: evita respuestas enormes en rangos amplios; el resultado informa si se recorto.
+    private const int MaximoExpedientesCaratulados = 2000;
+
+    public async Task<EstadisticaExpedientesCaratuladosResult> ObtenerExpedientesCaratuladosAsync(EstadisticaExpedientesCaratuladosRequest request, CancellationToken cancellationToken)
+    {
+        string codigoTrata = EstadisticasService.Normalizar(request.CodigoTrata) ?? throw new ArgumentException("Debe indicar el codigo de trata.", nameof(request));
+        EstadisticaExpedientesCaratuladosFiltro filtro = new(codigoTrata, this.CrearInicioDia(request.FechaDesde), this.CrearInicioDia(request.FechaHasta?.AddDays(1)));
+        IReadOnlyCollection<ExpedienteCaratuladoDto> expedientes = await _estadisticasReadStore.ConsultarExpedientesCaratuladosAsync(filtro, EstadisticasService.MaximoExpedientesCaratulados + 1, cancellationToken);
+        bool limitado = expedientes.Count > EstadisticasService.MaximoExpedientesCaratulados;
+
+        return new EstadisticaExpedientesCaratuladosResult(DateTimeOffset.Now, codigoTrata, limitado, limitado ? expedientes.Take(EstadisticasService.MaximoExpedientesCaratulados).ToArray() : expedientes);
+    }
+
     private EstadisticaExpedientesPorTrataFiltrosAplicadosDto CrearFiltrosAplicados(
         EstadisticaExpedientesPorTrataRequest request)
     {

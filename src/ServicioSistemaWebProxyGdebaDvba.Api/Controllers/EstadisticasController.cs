@@ -35,4 +35,13 @@ public sealed class EstadisticasController : ControllerBase
 
         return Ok(result);
     }
+
+    // Detalle de una trata del bloque "expedientes caratulados": se pide al desplegar la fila, no junto con los totales.
+    [HttpGet("expedientes-caratulados")]
+    public async Task<ActionResult<EstadisticaExpedientesCaratuladosResult>> ObtenerExpedientesCaratulados([FromQuery] string? codigoTrata, [FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(codigoTrata)) return this.BadRequest("Debe indicar el codigo de trata.");
+
+        return this.Ok(await _estadisticasService.ObtenerExpedientesCaratuladosAsync(new EstadisticaExpedientesCaratuladosRequest(codigoTrata, fechaDesde, fechaHasta), cancellationToken));
+    }
 }
