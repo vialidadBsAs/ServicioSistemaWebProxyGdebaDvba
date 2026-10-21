@@ -13,7 +13,7 @@ using URF.Core.Abstractions.Trackable;
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Workers.Services;
 
 /// <summary>
-/// Coordina el descubrimiento programado y confirma cada trata/estado como una unidad local atomica.
+/// Coordina el descubrimiento programado: arma el plan de consultas y confirma cada trata/estado como una unidad local atomica, en su propio scope.
 /// </summary>
 public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpedientesWorkerService
 {
@@ -55,49 +55,36 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
         _logger = logger;
     }
 
-    public async Task<DescubrirExpedientesProgramadosResult> EjecutarAsync(
-        Guid ejecucionWorkerId,
-        DescubrirExpedientesProgramadosRequest request,
-        CancellationToken cancellationToken)
+    public async Task<PlanDescubrimientoProgramado> PrepararAsync(Guid ejecucionWorkerId, DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
     {
-        var ejecucion = (await _ejecucionWorkerRepository.Query()
-            .Include(x => x.ResultadosDescubrimientoTrataEstado)
-            .Where(x => x.Id == ejecucionWorkerId)
-            .Take(1)
-            .SelectAsync(cancellationToken))
-            .SingleOrDefault();
-        if (ejecucion is null)
-        {
-            throw new InvalidOperationException("No existe la ejecucion de descubrimiento de expedientes indicada.");
-        }
-
-        var fecha = DateTimeOffset.Now;
-        var fechaLocal = DateOnly.FromDateTime(fecha.LocalDateTime);
-        var tratas = await this.CargarTratasAsync(cancellationToken);
-        var configuracionesEstados = await _configuracionDescubrimientoEstadoRepository.Query()
+        EjecucionWorker ejecucion = await this.CargarEjecucionAsync(ejecucionWorkerId, cancellationToken);
+        DateTimeOffset fecha = DateTimeOffset.Now;
+        DateOnly fechaLocal = DateOnly.FromDateTime(fecha.LocalDateTime);
+        IReadOnlyCollection<TrataDescubrimientoProgramado> tratas = await this.CargarTratasAsync(cancellationToken);
+        IEnumerable<ConfiguracionDescubrimientoEstadoExpediente> configuracionesEstados = await _configuracionDescubrimientoEstadoRepository.Query()
             .Where(x => x.Habilitado)
             .OrderBy(x => x.Prioridad)
             .SelectAsync(cancellationToken);
-        var estadosPorId = (await _estadoExpedienteGdebaRepository.Query()
+        Dictionary<Guid, EstadoExpedienteGdeba> estadosPorId = (await _estadoExpedienteGdebaRepository.Query()
                 .Where(x => configuracionesEstados.Select(y => y.EstadoExpedienteGdebaId).Contains(x.Id))
                 .SelectAsync(cancellationToken))
             .ToDictionary(x => x.Id);
-        var procesos = await _procesoDescubrimientoRepository.Query().SelectAsync(cancellationToken);
-        var procesosPorClave = procesos.ToDictionary(x => (x.CodigoTrata.Trim().ToUpperInvariant(), x.EstadoExpedienteGdebaId));
-        var candidatos = new List<CandidatoDescubrimientoProgramado>();
-        var omitidasPorConsultaDelDia = 0;
-        var omitidasPorPausa = 0;
+        IEnumerable<ProcesoDescubrimientoTrataEstadoExpediente> procesos = await _procesoDescubrimientoRepository.Query().SelectAsync(cancellationToken);
+        Dictionary<(string, Guid), ProcesoDescubrimientoTrataEstadoExpediente> procesosPorClave = procesos.ToDictionary(x => (x.CodigoTrata.Trim().ToUpperInvariant(), x.EstadoExpedienteGdebaId));
+        List<CandidatoDescubrimientoProgramado> candidatos = new();
+        int omitidasPorConsultaDelDia = 0;
+        int omitidasPorPausa = 0;
 
-        foreach (var trata in tratas)
+        foreach (TrataDescubrimientoProgramado trata in tratas)
         {
-            foreach (var configuracionEstado in configuracionesEstados)
+            foreach (ConfiguracionDescubrimientoEstadoExpediente configuracionEstado in configuracionesEstados)
             {
-                if (!estadosPorId.TryGetValue(configuracionEstado.EstadoExpedienteGdebaId, out var estado))
+                if (!estadosPorId.TryGetValue(configuracionEstado.EstadoExpedienteGdebaId, out EstadoExpedienteGdeba? estado))
                 {
                     continue;
                 }
 
-                procesosPorClave.TryGetValue((trata.CodigoTrata, estado.Id), out var proceso);
+                procesosPorClave.TryGetValue((trata.CodigoTrata, estado.Id), out ProcesoDescubrimientoTrataEstadoExpediente? proceso);
                 if (request.OmitirConsultasRealizadasEnElDia && proceso?.FechaUltimaConsulta is DateTimeOffset fechaUltimaConsulta && DateOnly.FromDateTime(fechaUltimaConsulta.LocalDateTime) == fechaLocal)
                 {
                     omitidasPorConsultaDelDia++;
@@ -114,121 +101,164 @@ public sealed class DescubrimientoExpedientesWorkerService : IDescubrimientoExpe
             }
         }
 
-        var seleccionados = candidatos
-            .OrderBy(x => x.Proceso?.FechaUltimaConsulta is not null)
-            .ThenBy(x => x.Proceso?.FechaUltimaConsulta)
-            .ThenBy(x => x.Trata.PrioridadTema)
+        // Primero la prioridad (tema, trata, estado) y recien despues la antiguedad: las combinaciones prioritarias se consultan todos los dias
+        // y el resto rota de la consulta mas vieja a la mas nueva, con las nunca consultadas como las mas viejas. Antes la antiguedad iba primero,
+        // criterio de carga inicial que, hecha la corrida total, ponia cualquier combinacion nueva por delante de las prioritarias.
+        ConsultaDescubrimientoProgramada[] seleccionadas = candidatos
+            .OrderBy(x => x.Trata.PrioridadTema)
             .ThenBy(x => x.Trata.PrioridadTrata)
             .ThenBy(x => x.PrioridadEstado)
+            .ThenBy(x => x.Proceso?.FechaUltimaConsulta ?? DateTimeOffset.MinValue)
             .ThenBy(x => x.Trata.CodigoTrata)
             .Take(Math.Max(0, request.MaximoInvocaciones))
+            .Select(x => new ConsultaDescubrimientoProgramada(x.Trata.Id, x.Trata.CodigoTrata, x.Estado.Id, x.Estado.NombreGdeba))
             .ToArray();
 
         // Denominador del avance: las consultas trata-estado seleccionadas para esta corrida (ya recortadas por prioridad y cuota).
-        ejecucion.SellarLote(seleccionados.Length);
+        ejecucion.SellarLote(seleccionadas.Length);
         _ejecucionWorkerRepository.Update(ejecucion);
         _ejecucionWorkerRepository.ApplyChanges(ejecucion);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         _ejecucionWorkerRepository.AcceptChanges(ejecucion);
 
-        var resultados = new List<IncorporarExpedientesPorTrataResult>();
-        var resultadosPorTrataEstado = new List<ResultadoDescubrimientoProgramadoTrataEstado>();
-        var cancelada = false;
-        int consultasConError = 0;
-        foreach (var candidato in seleccionados)
+        return new PlanDescubrimientoProgramado(seleccionadas, omitidasPorConsultaDelDia, omitidasPorPausa, Math.Max(0, candidatos.Count - seleccionadas.Length));
+    }
+
+    public async Task<ResultadoConsultaDescubrimiento> ConsultarAsync(Guid ejecucionWorkerId, ConsultaDescubrimientoProgramada consulta, DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
+    {
+        // La solicitud de cancelacion la escribe la Api desde otro contexto: se lee de la base antes de invocar GDEBA.
+        if (await this.CancelacionSolicitadaAsync(ejecucionWorkerId, cancellationToken) is not null)
         {
-            // La solicitud de cancelacion la escribe la Api desde otro contexto: se lee fresca de la base, no de la entidad trackeada.
-            if (await _ejecucionWorkerRepository.Queryable().AnyAsync(x => x.Id == ejecucionWorkerId && x.FechaCancelacionSolicitada != null, cancellationToken))
-            {
-                cancelada = true;
-                break;
-            }
-
-            IncorporarExpedientesPorTrataResult resultado;
-            try
-            {
-                resultado = await _incorporacionExpedientesPorTrataService.PrepararAsync(
-                    new IncorporarExpedientesPorTrataRequest(candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, request.OrigenInvocacion),
-                    cancellationToken);
-            }
-            catch (GdebaOperationException exception) when (!GdebaNoAccesibleException.EsNoAccesible(exception))
-            {
-                // GDEBA proceso el pedido y lo rechazo: es una falla de esta consulta, la corrida sigue con la siguiente.
-                // La auditoria de la falla queda pendiente en la unidad de trabajo y se confirma con el proximo guardado.
-                consultasConError++;
-                _logger.LogWarning("GDEBA rechazo la consulta de descubrimiento {CodigoTrata}/{Estado}: {Motivo}", candidato.Trata.CodigoTrata, candidato.Estado.NombreGdeba, exception.Message);
-                continue;
-            }
-
-            var procesoEsNuevo = candidato.Proceso is null;
-            var proceso = candidato.Proceso ?? new ProcesoDescubrimientoTrataEstadoExpediente(candidato.Trata.CodigoTrata, candidato.Estado.Id);
-            proceso.RegistrarResultado(resultado.ResolvedAt, resultado.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
-            if (procesoEsNuevo)
-            {
-                _procesoDescubrimientoRepository.Insert(proceso);
-            }
-            else
-            {
-                _procesoDescubrimientoRepository.Update(proceso);
-                _procesoDescubrimientoRepository.ApplyChanges(proceso);
-            }
-
-            ejecucion.RegistrarResultadoDescubrimiento(
-                candidato.Trata.Id,
-                candidato.Estado.Id,
-                resultado.ResolvedAt,
-                resultado.RecibidosGdeba,
-                resultado.Habilitados,
-                resultado.Descartados,
-                resultado.Creados,
-                resultado.Actualizados,
-                resultado.SinCambios,
-                resultado.ExpedientesNuevosIds,
-                resultado.ExpedientesActualizadosIds);
-
-            // La ejecucion se guarda completa en cada consulta. Si la Api pidio cancelar mientras corria esta consulta, la marca hay que
-            // traerla a la entidad trackeada antes de guardar: si no, el guardado la pisaria con null y la cancelacion se perderia.
-            DateTimeOffset? cancelacionSolicitada = await _ejecucionWorkerRepository.Queryable()
-                .Where(x => x.Id == ejecucionWorkerId)
-                .Select(x => x.FechaCancelacionSolicitada)
-                .FirstOrDefaultAsync(cancellationToken);
-            if (cancelacionSolicitada is DateTimeOffset fechaCancelacion)
-            {
-                ejecucion.SolicitarCancelacion(fechaCancelacion);
-            }
-
-            _ejecucionWorkerRepository.Update(ejecucion);
-            _ejecucionWorkerRepository.ApplyChanges(ejecucion);
-
-            // Una unica confirmacion persiste expediente, control operativo, auditoria y resultado de esta combinacion.
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _ejecucionWorkerRepository.AcceptChanges(ejecucion);
-            resultados.Add(resultado);
-            resultadosPorTrataEstado.Add(new ResultadoDescubrimientoProgramadoTrataEstado(candidato.Trata.Id, candidato.Estado.Id, resultado));
-
-            // Cancelacion pedida durante esta consulta: se conserva su resultado (ya confirmado) y no se inicia la siguiente.
-            if (cancelacionSolicitada is not null)
-            {
-                cancelada = true;
-                break;
-            }
+            return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.CanceladaAntesDeConsultar, null, true);
         }
 
-        return new DescubrirExpedientesProgramadosResult(
-            resultados.Count,
-            resultados.Sum(x => x.RecibidosGdeba),
-            resultados.Sum(x => x.Habilitados),
-            resultados.Sum(x => x.Descartados),
-            resultados.Sum(x => x.Creados),
-            resultados.Sum(x => x.Actualizados),
-            resultados.Sum(x => x.SinCambios),
-            omitidasPorConsultaDelDia,
-            omitidasPorPausa,
-            Math.Max(0, candidatos.Count - seleccionados.Length),
-            resultadosPorTrataEstado,
-            seleccionados.Length,
-            cancelada,
-            consultasConError);
+        IncorporarExpedientesPorTrataResult incorporacion;
+        try
+        {
+            incorporacion = await _incorporacionExpedientesPorTrataService.PrepararAsync(
+                new IncorporarExpedientesPorTrataRequest(consulta.CodigoTrata, consulta.NombreEstado, request.OrigenInvocacion),
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (GdebaOperationException exception) when (!GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            // GDEBA proceso el pedido y lo rechazo (fault, respuesta que supera sus limites): falla de esta consulta, la corrida sigue.
+            // Se registra como consulta fallida para que no vuelva a quedar primera por "nunca consultada" y la auditoria pendiente se confirma aca.
+            _logger.LogWarning("GDEBA rechazo la consulta de descubrimiento {CodigoTrata}/{Estado}: {Motivo}", consulta.CodigoTrata, consulta.NombreEstado, exception.Message);
+            await this.RegistrarConsultaFallidaAsync(consulta, request, cancellationToken);
+            return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.RechazadaPorGdeba, null, false);
+        }
+        catch (Exception exception) when (GdebaNoAccesibleException.EsNoAccesible(exception))
+        {
+            // Rechazo del gateway o sin respuesta. Aislado puede ser propio de esta combinacion (en octubre de 2026 el gateway devolvio 403 para
+            // una trata-estado cuya respuesta supera los limites de GDEBA); el host decide el corte cuando se repite en consultas seguidas.
+            _logger.LogWarning("Rechazo de acceso en la consulta de descubrimiento {CodigoTrata}/{Estado}: {Motivo}", consulta.CodigoTrata, consulta.NombreEstado, GdebaNoAccesibleException.DescribirMotivo(exception));
+            await this.RegistrarConsultaFallidaAsync(consulta, request, cancellationToken);
+            return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.RechazoDeAcceso, null, false);
+        }
+
+        EjecucionWorker ejecucion = await this.CargarEjecucionAsync(ejecucionWorkerId, cancellationToken);
+        (ProcesoDescubrimientoTrataEstadoExpediente proceso, bool procesoEsNuevo) = await this.CargarProcesoAsync(consulta, cancellationToken);
+        proceso.RegistrarResultado(incorporacion.ResolvedAt, incorporacion.Habilitados > 0, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
+        this.PersistirProceso(proceso, procesoEsNuevo);
+
+        ejecucion.RegistrarResultadoDescubrimiento(
+            consulta.TrataHabilitadaVialidadId,
+            consulta.EstadoExpedienteGdebaId,
+            incorporacion.ResolvedAt,
+            incorporacion.RecibidosGdeba,
+            incorporacion.Habilitados,
+            incorporacion.Descartados,
+            incorporacion.Creados,
+            incorporacion.Actualizados,
+            incorporacion.SinCambios,
+            incorporacion.ExpedientesNuevosIds,
+            incorporacion.ExpedientesActualizadosIds);
+
+        // La ejecucion se guarda completa: si la Api pidio cancelar mientras corria la consulta, la marca se trae a la entidad antes de guardar
+        // para que el guardado no la pise con null.
+        DateTimeOffset? cancelacionSolicitada = await this.CancelacionSolicitadaAsync(ejecucionWorkerId, cancellationToken);
+        if (cancelacionSolicitada is DateTimeOffset fechaCancelacion)
+        {
+            ejecucion.SolicitarCancelacion(fechaCancelacion);
+        }
+
+        _ejecucionWorkerRepository.Update(ejecucion);
+        _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+
+        // Una unica confirmacion persiste expediente, control operativo, auditoria y resultado de esta combinacion.
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _ejecucionWorkerRepository.AcceptChanges(ejecucion);
+
+        // Segunda lectura, despues de guardar: si la cancelacion entro entre la lectura anterior y el guardado, este la piso en la base;
+        // se restituye y la corrida se detiene igual. Cierra la carrera sin depender de cuanto tarde el guardado.
+        if (cancelacionSolicitada is null && await this.CancelacionSolicitadaAsync(ejecucionWorkerId, cancellationToken) is DateTimeOffset cancelacionTardia)
+        {
+            ejecucion.SolicitarCancelacion(cancelacionTardia);
+            _ejecucionWorkerRepository.Update(ejecucion);
+            _ejecucionWorkerRepository.ApplyChanges(ejecucion);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _ejecucionWorkerRepository.AcceptChanges(ejecucion);
+            cancelacionSolicitada = cancelacionTardia;
+        }
+
+        return new ResultadoConsultaDescubrimiento(consulta, EstadoConsultaDescubrimiento.Realizada, incorporacion, cancelacionSolicitada is not null);
+    }
+
+    private async Task RegistrarConsultaFallidaAsync(ConsultaDescubrimientoProgramada consulta, DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
+    {
+        (ProcesoDescubrimientoTrataEstadoExpediente proceso, bool procesoEsNuevo) = await this.CargarProcesoAsync(consulta, cancellationToken);
+        proceso.RegistrarConsultaFallida(DateTimeOffset.Now, request.ConsultasVaciasParaPausa, request.DiasPausaSinResultados);
+        this.PersistirProceso(proceso, procesoEsNuevo);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    // El control por trata-estado se crea en la primera consulta de la combinacion.
+    private async Task<(ProcesoDescubrimientoTrataEstadoExpediente Proceso, bool EsNuevo)> CargarProcesoAsync(ConsultaDescubrimientoProgramada consulta, CancellationToken cancellationToken)
+    {
+        ProcesoDescubrimientoTrataEstadoExpediente? existente = (await _procesoDescubrimientoRepository.Query()
+            .Where(x => x.CodigoTrata == consulta.CodigoTrata && x.EstadoExpedienteGdebaId == consulta.EstadoExpedienteGdebaId)
+            .SelectAsync(cancellationToken))
+            .FirstOrDefault();
+
+        return existente is null
+            ? (new ProcesoDescubrimientoTrataEstadoExpediente(consulta.CodigoTrata, consulta.EstadoExpedienteGdebaId), true)
+            : (existente, false);
+    }
+
+    private void PersistirProceso(ProcesoDescubrimientoTrataEstadoExpediente proceso, bool esNuevo)
+    {
+        if (esNuevo)
+        {
+            _procesoDescubrimientoRepository.Insert(proceso);
+            return;
+        }
+
+        _procesoDescubrimientoRepository.Update(proceso);
+        _procesoDescubrimientoRepository.ApplyChanges(proceso);
+    }
+
+    private async Task<EjecucionWorker> CargarEjecucionAsync(Guid ejecucionWorkerId, CancellationToken cancellationToken)
+    {
+        EjecucionWorker? ejecucion = (await _ejecucionWorkerRepository.Query()
+            .Include(x => x.ResultadosDescubrimientoTrataEstado)
+            .Where(x => x.Id == ejecucionWorkerId)
+            .Take(1)
+            .SelectAsync(cancellationToken))
+            .SingleOrDefault();
+
+        return ejecucion ?? throw new InvalidOperationException("No existe la ejecucion de descubrimiento de expedientes indicada.");
+    }
+
+    private Task<DateTimeOffset?> CancelacionSolicitadaAsync(Guid ejecucionWorkerId, CancellationToken cancellationToken)
+    {
+        return _ejecucionWorkerRepository.Queryable()
+            .Where(x => x.Id == ejecucionWorkerId)
+            .Select(x => x.FechaCancelacionSolicitada)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<TrataDescubrimientoProgramado>> CargarTratasAsync(CancellationToken cancellationToken)

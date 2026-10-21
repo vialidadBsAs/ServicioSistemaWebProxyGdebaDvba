@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 using URF.Core.Abstractions;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Estadisticas.ReadStores;
@@ -9,14 +10,33 @@ public sealed class EstadisticasReadStore : IEstadisticasReadStore
 {
     private readonly IRepository<EstadisticaExpedientesPorTrataReadModel>
         _estadisticasRepository;
+    private readonly IRepository<Expediente> _expedienteRepository;
     private readonly ILogger<EstadisticasReadStore> _logger;
 
     public EstadisticasReadStore(
         IRepository<EstadisticaExpedientesPorTrataReadModel> estadisticasRepository,
+        IRepository<Expediente> expedienteRepository,
         ILogger<EstadisticasReadStore> logger)
     {
         _estadisticasRepository = estadisticasRepository;
+        _expedienteRepository = expedienteRepository;
         _logger = logger;
+    }
+
+    public async Task<IReadOnlyCollection<ExpedienteCaratuladoDto>> ConsultarExpedientesCaratuladosAsync(EstadisticaExpedientesCaratuladosFiltro filtro, int maximo, CancellationToken cancellationToken)
+    {
+        IQuery<Expediente> query = _expedienteRepository.Query().Where(x => x.Trata != null && x.Trata.CodigoTrata == filtro.CodigoTrata);
+        if (filtro.FechaDesde is DateTimeOffset desde) query = query.Where(x => x.FechaCaratulacion >= desde);
+        if (filtro.FechaHastaExclusiva is DateTimeOffset hastaExclusiva) query = query.Where(x => x.FechaCaratulacion < hastaExclusiva);
+
+        IEnumerable<Expediente> expedientes = await query
+            .OrderByDescending(x => x.FechaCaratulacion)
+            .Take(maximo)
+            .SelectAsync(cancellationToken);
+
+        return expedientes
+            .Select(x => new ExpedienteCaratuladoDto(x.Id, x.GdebaNumeroCompleto, x.FechaCaratulacion, x.EstadoActual, x.Motivo ?? x.DescripcionAdicional, x.SectorDestino))
+            .ToArray();
     }
 
     public async Task<IReadOnlyCollection<EstadisticaExpedientesPorTrataDto>> ConsultarTotalesExpedientesPorTrataAsync(

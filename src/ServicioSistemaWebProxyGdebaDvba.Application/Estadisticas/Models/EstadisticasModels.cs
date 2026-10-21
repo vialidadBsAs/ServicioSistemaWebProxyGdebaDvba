@@ -34,6 +34,25 @@ public sealed record EstadisticaExpedientesPorTrataEstadoDto(
     string? Estado,
     int TotalExpedientes);
 
+// Detalle de una trata dentro de un rango de caratulacion: los expedientes concretos, del mas nuevo al mas viejo.
+public sealed record EstadisticaExpedientesCaratuladosRequest(string CodigoTrata, DateOnly? FechaDesde = null, DateOnly? FechaHasta = null);
+
+public sealed record EstadisticaExpedientesCaratuladosFiltro(string CodigoTrata, DateTimeOffset? FechaDesde, DateTimeOffset? FechaHastaExclusiva);
+
+public sealed record EstadisticaExpedientesCaratuladosResult(
+    DateTimeOffset ResolvedAt,
+    string CodigoTrata,
+    bool Limitado,
+    IReadOnlyCollection<ExpedienteCaratuladoDto> Expedientes);
+
+public sealed record ExpedienteCaratuladoDto(
+    Guid Id,
+    string NumeroGdebaCompleto,
+    DateTimeOffset? FechaCaratulacion,
+    string? EstadoActual,
+    string? Caratula,
+    string? SectorDestino);
+
 public sealed class EstadisticaExpedientesPorTrataReadModel
 {
     public string CodigoTrata { get; set; } = string.Empty;

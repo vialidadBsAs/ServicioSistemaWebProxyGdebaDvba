@@ -7,4 +7,6 @@ public interface IEstadisticasService
     Task<EstadisticaExpedientesPorTrataResult> ObtenerTotalesExpedientesPorTrataAsync(
         EstadisticaExpedientesPorTrataRequest request,
         CancellationToken cancellationToken);
+
+    Task<EstadisticaExpedientesCaratuladosResult> ObtenerExpedientesCaratuladosAsync(EstadisticaExpedientesCaratuladosRequest request, CancellationToken cancellationToken);
 }
