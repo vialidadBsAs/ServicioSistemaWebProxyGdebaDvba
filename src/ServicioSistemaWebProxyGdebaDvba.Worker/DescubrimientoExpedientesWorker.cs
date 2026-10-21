@@ -85,9 +85,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
 
         try
         {
-            var descubrimientoExpedientesWorkerService = scope.ServiceProvider.GetRequiredService<IDescubrimientoExpedientesWorkerService>();
-            this.ConfigurarAplicacionActual(scope.ServiceProvider);
-            var resultado = await descubrimientoExpedientesWorkerService.EjecutarAsync(
+            DescubrirExpedientesProgramadosResult resultado = await this.DescubrirAsync(
                 ejecucion.EjecucionId,
                 new DescubrirExpedientesProgramadosRequest(int.MaxValue, configuracion.ConsultasVaciasParaPausa ?? 1, configuracion.DiasPausaSinResultados ?? 1, configuracion.OmitirConsultasRealizadasEnElDia, OrigenInvocacionGdeba.Administrativo),
                 cancellationToken);
@@ -121,7 +119,6 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
             _logger.LogInformation("Iniciando corrida programada de descubrimiento. Fecha={Fecha}.", fecha);
             var cuotas = scope.ServiceProvider.GetRequiredService<IConsultaCuotasGdeba>();
             var expedienteService = scope.ServiceProvider.GetRequiredService<IExpedienteService>();
-            var descubrimientoExpedientesWorkerService = scope.ServiceProvider.GetRequiredService<IDescubrimientoExpedientesWorkerService>();
             this.ConfigurarAplicacionActual(scope.ServiceProvider);
             var cuota = (await cuotas.ConsultarCuotasAsync(fecha, cancellationToken)).Operaciones.FirstOrDefault(x => x.Servicio == DescubrimientoExpedientesWorker.ServicioCuota && x.Operacion == DescubrimientoExpedientesWorker.MetodoCuota);
             var reserva = Math.Max(0, configuracion.CupoReservaDiaria);
@@ -142,7 +139,7 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
                 return;
             }
 
-            var resultado = await descubrimientoExpedientesWorkerService.EjecutarAsync(
+            DescubrirExpedientesProgramadosResult resultado = await this.DescubrirAsync(
                 ejecucion.EjecucionId,
                 new DescubrirExpedientesProgramadosRequest(presupuesto, configuracion.ConsultasVaciasParaPausa ?? 1, configuracion.DiasPausaSinResultados ?? 1, configuracion.OmitirConsultasRealizadasEnElDia, OrigenInvocacionGdeba.WorkerProgramado),
                 cancellationToken);
@@ -162,6 +159,36 @@ public sealed class DescubrimientoExpedientesWorker : BackgroundService
             _logger.LogError(exception, "La corrida programada de descubrimiento de expedientes finalizo con error.");
             await ejecucionesWorker.FinalizarEjecucionAsync(ejecucion.EjecucionId, EstadoEjecucionWorker.Fallida, "La corrida programada finalizo con error. Consulte el registro tecnico.", null, null, null, 1, CancellationToken.None);
         }
+    }
+
+    // Recorre el plan con un scope (y por lo tanto un contexto de datos) por consulta trata-estado: cada consulta es una unidad de trabajo que
+    // se confirma y se descarta. Con un unico scope para toda la corrida, el contexto acumulaba todo lo incorporado y cada guardado era mas
+    // lento que el anterior (1 s al inicio, 10 s con 30 mil expedientes trackeados), y ademas agrandaba la ventana en la que un pedido de
+    // cancelacion podia perderse.
+    private async Task<DescubrirExpedientesProgramadosResult> DescubrirAsync(Guid ejecucionId, DescubrirExpedientesProgramadosRequest request, CancellationToken cancellationToken)
+    {
+        PlanDescubrimientoProgramado plan;
+        using (IServiceScope scopePlan = _scopeFactory.CreateScope())
+        {
+            this.ConfigurarAplicacionActual(scopePlan.ServiceProvider);
+            IDescubrimientoExpedientesWorkerService descubrimiento = scopePlan.ServiceProvider.GetRequiredService<IDescubrimientoExpedientesWorkerService>();
+            plan = await descubrimiento.PrepararAsync(ejecucionId, request, cancellationToken);
+        }
+
+        List<ResultadoConsultaDescubrimiento> resultados = new(plan.Consultas.Count);
+        foreach (ConsultaDescubrimientoProgramada consulta in plan.Consultas)
+        {
+            using IServiceScope scopeConsulta = _scopeFactory.CreateScope();
+            this.ConfigurarAplicacionActual(scopeConsulta.ServiceProvider);
+            IDescubrimientoExpedientesWorkerService descubrimiento = scopeConsulta.ServiceProvider.GetRequiredService<IDescubrimientoExpedientesWorkerService>();
+            ResultadoConsultaDescubrimiento resultado = await descubrimiento.ConsultarAsync(ejecucionId, consulta, request, cancellationToken);
+            resultados.Add(resultado);
+
+            // Cancelacion pedida: se conserva lo ya confirmado y no se inicia la siguiente consulta.
+            if (resultado.CancelacionSolicitada) break;
+        }
+
+        return DescubrirExpedientesProgramadosResult.Desde(plan, resultados);
     }
 
     private async Task<ConfiguracionProgramadaWorkerDto> ObtenerConfiguracionAsync(CancellationToken cancellationToken)
