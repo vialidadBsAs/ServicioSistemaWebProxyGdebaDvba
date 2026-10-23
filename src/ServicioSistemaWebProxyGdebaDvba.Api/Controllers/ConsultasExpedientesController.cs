@@ -1,12 +1,14 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServicioSistemaWebProxyGdebaDvba.Api.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Seguridad;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
 
+// Todas las consultas reciben el filtro en el cuerpo (POST con JSON): la seleccion de tratas es una lista que no entra en una query
+// string cuando abarca el catalogo entero. Siguen siendo lecturas; el metodo es solo el transporte del filtro.
 [ApiController]
 [Authorize(Policy = SeguridadInstitucional.PoliticaAccesoExpedientes)]
 [Route("api/gdeba/consultas/expedientes")]
@@ -21,59 +23,57 @@ public sealed class ConsultasExpedientesController : ControllerBase
     }
 
     // Consulta masiva por tratas: respaldo exclusivo de la pantalla de temas y tratas.
-    [HttpGet]
+    [HttpPost]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
-    public async Task<ActionResult<ConsultaExpedientesResult>> Consultar([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] string[]? estadosDetalle = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string? filtroFechaUltimoMovimiento = null, [FromQuery] string? caratula = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaExpedientesResult>> Consultar([FromBody] ConsultarExpedientesPorTratasApiRequest request, CancellationToken cancellationToken)
     {
-        if ((trataIds is null || trataIds.Length == 0) && string.IsNullOrWhiteSpace(caratula)) return this.BadRequest("Debe seleccionar al menos una trata.");
+        if ((request.TrataIds is null || request.TrataIds.Length == 0) && string.IsNullOrWhiteSpace(request.Caratula)) return this.BadRequest("Debe seleccionar al menos una trata.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, campoOrden, direccionOrden, codigosTrata, estadosActuales, estadosDetalle, numerosExpediente, ConsultasExpedientesController.LeerFiltroFecha(filtroFechaUltimoMovimiento), caratula), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarAsync(
+            new ConsultaExpedientesRequest(request.TrataIds, request.Pagina, request.TamanioPagina, request.CampoOrden, request.DireccionOrden, request.CodigosTrata, request.EstadosActuales, request.EstadosDetalle, request.NumerosExpediente, request.FiltroFechaUltimoMovimiento, request.Caratula),
+            cancellationToken));
     }
 
     // Busqueda puntual por texto de caratula: operacion de usuario final, con la politica de acceso general del controller.
-    [HttpGet("caratula")]
-    public async Task<ActionResult<ConsultaExpedientesResult>> BuscarPorCaratula([FromQuery] string texto, [FromQuery] Guid[]? trataIds = null, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? orden = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? estadosActuales = null, [FromQuery] int? skip = null, [FromQuery] int? take = null, CancellationToken cancellationToken = default)
+    [HttpPost("caratula")]
+    public async Task<ActionResult<ConsultaExpedientesResult>> BuscarPorCaratula([FromBody] BuscarExpedientesPorCaratulaApiRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3) return this.BadRequest("Indique al menos 3 caracteres del texto de la caratula.");
+        if (string.IsNullOrWhiteSpace(request.Texto) || request.Texto.Trim().Length < 3) return this.BadRequest("Indique al menos 3 caracteres del texto de la caratula.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarAsync(new ConsultaExpedientesRequest(trataIds, pagina, tamanioPagina, CodigosTrata: codigosTrata, EstadosActuales: estadosActuales, Caratula: texto.Trim(), Skip: skip, Take: take, Orden: orden), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarAsync(
+            new ConsultaExpedientesRequest(request.TrataIds, request.Pagina, request.TamanioPagina, CodigosTrata: request.CodigosTrata, EstadosActuales: request.EstadosActuales, Caratula: request.Texto.Trim(), Skip: request.Skip, Take: request.Take, Orden: request.Orden),
+            cancellationToken));
     }
 
-    [HttpGet("caratula/valores-filtro")]
-    public async Task<ActionResult<IReadOnlyCollection<string>>> ObtenerValoresFiltroCaratula([FromQuery] string texto, [FromQuery] string campo, [FromQuery] Guid[]? trataIds = null, CancellationToken cancellationToken = default)
+    [HttpPost("caratula/valores-filtro")]
+    public async Task<ActionResult<IReadOnlyCollection<string>>> ObtenerValoresFiltroCaratula([FromBody] ValoresFiltroCaratulaApiRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3) return this.BadRequest("Indique al menos 3 caracteres del texto de la caratula.");
+        if (string.IsNullOrWhiteSpace(request.Texto) || request.Texto.Trim().Length < 3) return this.BadRequest("Indique al menos 3 caracteres del texto de la caratula.");
 
-        return this.Ok(await _consultaExpedientesService.ObtenerValoresFiltroCaratulaAsync(new ConsultaCaratulaValoresFiltroRequest(texto, campo, trataIds), cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ObtenerValoresFiltroCaratulaAsync(new ConsultaCaratulaValoresFiltroRequest(request.Texto, request.Campo, request.TrataIds), cancellationToken));
     }
 
-    [HttpGet("cobertura-detalle")]
-    public async Task<ActionResult<ConsultaCoberturaDetalleResult>> ConsultarCoberturaDetalle([FromQuery] Guid[]? trataIds, CancellationToken cancellationToken = default)
+    [HttpPost("cobertura-detalle")]
+    public async Task<ActionResult<ConsultaCoberturaDetalleResult>> ConsultarCoberturaDetalle([FromBody] SeleccionTratasApiRequest request, CancellationToken cancellationToken)
     {
-        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaDetalleAsync(trataIds, cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaDetalleAsync(request.TrataIds, cancellationToken));
     }
 
-    [HttpGet("documentos/cobertura-referencia")]
+    [HttpPost("documentos/cobertura-referencia")]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
-    public async Task<ActionResult<ConsultaCoberturaReferenciaResult>> ConsultarCoberturaReferencia([FromQuery] Guid[]? trataIds, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaCoberturaReferenciaResult>> ConsultarCoberturaReferencia([FromBody] SeleccionTratasApiRequest request, CancellationToken cancellationToken)
     {
-        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaReferenciaAsync(trataIds, cancellationToken));
+        return this.Ok(await _consultaExpedientesService.ConsultarCoberturaReferenciaAsync(request.TrataIds, cancellationToken));
     }
 
-    [HttpGet("documentos")]
+    [HttpPost("documentos")]
     [Authorize(Policy = SeguridadInstitucional.PoliticaGestionTemasExpedientes)]
-    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromQuery] Guid[]? trataIds, [FromQuery] int pagina = 1, [FromQuery] int tamanioPagina = 50, [FromQuery] string? codigoTipoDocumento = null, [FromQuery] string? campoOrden = null, [FromQuery] string? direccionOrden = null, [FromQuery] string[]? numerosExpediente = null, [FromQuery] string[]? codigosTrata = null, [FromQuery] string[]? numerosActuacion = null, [FromQuery] string[]? referencias = null, [FromQuery] string? referenciaContiene = null, [FromQuery] string[]? tiposDocumento = null, [FromQuery] string? filtroFechaCreacion = null, [FromQuery] bool soloSinReferencia = false, [FromQuery] bool incluirResumen = true, [FromQuery] bool incluirTotal = true, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ConsultaDocumentosPorTrataResult>> ConsultarDocumentos([FromBody] ConsultarDocumentosPorTratasApiRequest request, CancellationToken cancellationToken)
     {
-        if (trataIds is null || trataIds.Length == 0) return this.BadRequest("Debe seleccionar al menos una trata.");
+        if (request.TrataIds is null || request.TrataIds.Length == 0) return this.BadRequest("Debe seleccionar al menos una trata.");
 
-        return this.Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(new ConsultaDocumentosPorTrataRequest(trataIds, pagina, tamanioPagina, codigoTipoDocumento, campoOrden, direccionOrden, numerosExpediente, codigosTrata, numerosActuacion, referencias, referenciaContiene, tiposDocumento, ConsultasExpedientesController.LeerFiltroFecha(filtroFechaCreacion), soloSinReferencia, incluirResumen, incluirTotal), cancellationToken));
-    }
-
-    private static readonly JsonSerializerOptions OpcionesFiltroFecha = new(JsonSerializerDefaults.Web);
-
-    // El filtro de fecha de una columna viaja como JSON en la query: el arbol Y/O de rangos tal como lo arma la grilla.
-    private static FiltroFecha? LeerFiltroFecha(string? json)
-    {
-        return string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<FiltroFecha>(json, ConsultasExpedientesController.OpcionesFiltroFecha);
+        return this.Ok(await _consultaExpedientesService.ConsultarDocumentosAsync(
+            new ConsultaDocumentosPorTrataRequest(request.TrataIds, request.Pagina, request.TamanioPagina, request.CodigoTipoDocumento, request.CampoOrden, request.DireccionOrden, request.NumerosExpediente, request.CodigosTrata, request.NumerosActuacion, request.Referencias, request.ReferenciaContiene, request.TiposDocumento, request.FiltroFechaCreacion, request.SoloSinReferencia, request.IncluirResumen, request.IncluirTotal),
+            cancellationToken));
     }
 }
