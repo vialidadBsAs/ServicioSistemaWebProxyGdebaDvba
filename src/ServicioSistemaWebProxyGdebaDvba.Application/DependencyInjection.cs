@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
+        services.AddScoped<ICatalogoReparticionesGdebaService, CatalogoReparticionesGdebaService>();
         services.AddScoped<IIncorporacionExpedientesPorTrataService, IncorporacionExpedientesPorTrataService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();
@@ -67,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
         services.AddScoped<IExpedienteService, ExpedienteService>();
+        services.AddScoped<ICatalogoReparticionesGdebaService, CatalogoReparticionesGdebaService>();
         services.AddScoped<IIncorporacionExpedientesPorTrataService, IncorporacionExpedientesPorTrataService>();
         services.AddScoped<IExpedienteCacheAsyncProcessor, ExpedienteCacheAsyncProcessor>();
         services.AddScoped<IExpedienteCacheReadStore, ExpedienteCacheReadStore>();

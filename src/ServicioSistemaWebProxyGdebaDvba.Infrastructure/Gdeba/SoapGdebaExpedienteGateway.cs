@@ -496,7 +496,12 @@ public sealed class SoapGdebaExpedienteGateway : IGdebaExpedienteGateway
                 ReparticionDestino: SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseCodigoReparticion") ??
                     SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionReparticion"),
                 SectorDestino: SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseCodigoSector") ??
-                    SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionSector")))
+                    SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionSector"),
+                ReparticionOrigenDescripcion: SoapGdebaExpedienteGateway.GetValue(x, "origenPaseDescripcionReparticion"),
+                ReparticionDestinoDescripcion: SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionReparticion"),
+                SectorOrigen: SoapGdebaExpedienteGateway.GetValue(x, "origenPaseCodigoSector"),
+                SectorOrigenDescripcion: SoapGdebaExpedienteGateway.GetValue(x, "origenPaseDescripcionSector"),
+                SectorDestinoDescripcion: SoapGdebaExpedienteGateway.GetValue(x, "destinoPaseDescripcionSector")))
             .ToArray();
     }
 

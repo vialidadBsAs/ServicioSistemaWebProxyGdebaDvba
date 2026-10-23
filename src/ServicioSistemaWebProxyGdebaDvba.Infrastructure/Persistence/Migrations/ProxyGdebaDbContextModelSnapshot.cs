@@ -1087,6 +1087,57 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.ToTable("Auditoria_Registros", (string)null);
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.ReparticionGdeba", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("ReparticionesGdeba", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.SectorGdeba", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CodigoReparticion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoReparticion", "Codigo")
+                        .IsUnique();
+
+                    b.ToTable("SectoresGdeba", (string)null);
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.SeguimientoExpediente", b =>
                 {
                     b.Property<Guid>("Id")

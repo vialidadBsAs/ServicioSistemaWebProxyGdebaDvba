@@ -42,6 +42,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly IAuditoriaService _auditoriaService;
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly IIncorporacionExpedientesPorTrataService _incorporacionExpedientesPorTrataService;
+    private readonly ICatalogoReparticionesGdebaService _catalogoReparticionesGdeba;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
     private readonly IRepository<TrataHabilitadaVialidad> _trataHabilitadaVialidadRepository;
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
@@ -55,6 +56,7 @@ public sealed class ExpedienteService : IExpedienteService
     public ExpedienteService( IExpedienteCacheReadStore expedienteCacheReadStore, IGdebaExpedienteGateway gdebaExpedienteGateway, IGdebaExecutionContext gdebaExecutionContext,
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor,
                               IIncorporacionExpedientesPorTrataService incorporacionExpedientesPorTrataService,
+                              ICatalogoReparticionesGdebaService catalogoReparticionesGdeba,
                               ITrackableRepository<Expediente> expedienteRepository,
                               IRepository<TrataHabilitadaVialidad> trataHabilitadaVialidadRepository,
                               IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
@@ -64,6 +66,7 @@ public sealed class ExpedienteService : IExpedienteService
                               IUnitOfWork unitOfWork, ISensorConexionGdeba sensorConexion, ILogger<ExpedienteService> logger)
     {
         _expedienteCacheReadStore = expedienteCacheReadStore;
+        _catalogoReparticionesGdeba = catalogoReparticionesGdeba;
         _gdebaExpedienteGateway = gdebaExpedienteGateway;
         _gdebaExecutionContext = gdebaExecutionContext;
         _sensorConexion = sensorConexion;
@@ -381,6 +384,9 @@ public sealed class ExpedienteService : IExpedienteService
                     .Select(x => new MovimientoExpedienteDetectado(x.Orden, x.FechaOperacion, x.EstadoOrigen, x.EstadoDestino, x.UsuarioOrigen, x.UsuarioDestino, x.Motivo, x.ReparticionOrigen, x.ReparticionDestino))
                     .ToArray();
                 var ultimoMovimiento = expediente.ConsolidarMovimientosDetectados(movimientosDetectados);
+
+                // El historial trae codigo y descripcion de cada reparticion y sector por pase: se vuelcan al catalogo local en esta misma unidad de trabajo.
+                await _catalogoReparticionesGdeba.RegistrarDesdeMovimientosAsync(historialGdeba.Movimientos, cancellationToken);
                 var ultimoMovimientoGdeba = ExpedienteService.ResolverUltimoMovimiento(historialGdeba.Movimientos);
                 if (ultimoMovimientoGdeba is not null)
                 {
@@ -427,7 +433,9 @@ public sealed class ExpedienteService : IExpedienteService
     {
         var result = await this.ConsultarDetalleAsync(new ConsultarExpedienteDetalladoRequest(request.NumeroGdebaCompleto, request.ForceRefresh, OperacionObtenerCabecera), cancellationToken);
 
-        var cabecera = result.Expediente is null ? null : ExpedienteService.MapearCabecera(result.Expediente);
+        CabeceraExpedienteDto? cabecera = result.Expediente is null
+            ? null
+            : await _catalogoReparticionesGdeba.CompletarDescripcionesAsync(ExpedienteService.MapearCabecera(result.Expediente), cancellationToken);
         return ExpedienteService.CrearResultadoRecurso(request.NumeroGdebaCompleto, cabecera, result.Fuente, cabecera is not null, result.ResolvedAt, result.CachedAt);
     }
 
@@ -493,8 +501,9 @@ public sealed class ExpedienteService : IExpedienteService
             var expedienteDto = await this.MapearAsync(expediente, cancellationToken);
             // El estado se calcula con la misma regla que la grilla: si esta consulta no refresco la copia (fallback/cache vencida), la fila no debe quedar como "Disponible".
             var estadoDetalle = HistorialExpedienteCacheControl.CalcularEstadoDetalle(expediente.HistorialCacheControl, DateTimeOffset.Now);
+            CabeceraExpedienteDto cabecera = await _catalogoReparticionesGdeba.CompletarDescripcionesAsync(ExpedienteService.MapearCabecera(expedienteDto), cancellationToken);
             completo = new ExpedienteCompletoDto(
-                ExpedienteService.MapearCabecera(expedienteDto),
+                cabecera,
                 expedienteDto.Documentos,
                 expedienteDto.ArchivosAdjuntos,
                 ExpedienteService.MapearMovimientos(expediente),
