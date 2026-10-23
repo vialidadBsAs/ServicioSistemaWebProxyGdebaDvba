@@ -238,4 +238,4 @@ Notas operativas:
   `Expedientes-Admin` (rol `admin`), `Expedientes-GestionTemas` (rol `super` o
   `admin`; protege la consulta masiva por tratas, la consulta de documentos,
   los valores de filtro y el CRUD de temas). La busqueda puntual por caratula
-  (`GET consultas/expedientes/caratula`) es de acceso general.
+  (`POST consultas/expedientes/caratula`, con el filtro en el cuerpo) es de acceso general.

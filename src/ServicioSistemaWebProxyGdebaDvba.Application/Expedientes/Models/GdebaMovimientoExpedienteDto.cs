@@ -10,4 +10,10 @@ public sealed record GdebaMovimientoExpedienteDto(
     string? Motivo,
     string? ReparticionOrigen,
     string? ReparticionDestino,
-    string? SectorDestino);
+    string? SectorDestino,
+    // GDEBA informa en cada pase la descripcion de reparticion y sector junto con el codigo; alimentan el catalogo local, no se guardan por pase.
+    string? ReparticionOrigenDescripcion = null,
+    string? ReparticionDestinoDescripcion = null,
+    string? SectorOrigen = null,
+    string? SectorOrigenDescripcion = null,
+    string? SectorDestinoDescripcion = null);

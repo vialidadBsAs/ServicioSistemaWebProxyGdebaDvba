@@ -28,7 +28,12 @@ public sealed record CabeceraExpedienteDto(
     string? UsuarioCaratulador,
     string? UsuarioDestino,
     string? SectorDestino,
-    string? ReparticionActual);
+    string? ReparticionActual,
+    // Descripciones resueltas por el catalogo local de reparticiones y sectores; la caratuladora sale de la reparticion del numero GDEBA.
+    string? ReparticionCaratuladora = null,
+    string? ReparticionCaratuladoraDescripcion = null,
+    string? ReparticionActualDescripcion = null,
+    string? SectorDestinoDescripcion = null);
 
 public sealed record ExpedienteCompletoDto(
     CabeceraExpedienteDto Cabecera,

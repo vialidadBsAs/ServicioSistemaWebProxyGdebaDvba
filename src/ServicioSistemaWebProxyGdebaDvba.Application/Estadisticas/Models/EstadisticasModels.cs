@@ -53,6 +53,10 @@ public sealed record ExpedienteCaratuladoDto(
     string? Caratula,
     string? SectorDestino);
 
+// Ultima corrida de descubrimiento que incorporo expedientes: cuando fue, cuantos entraron y entre que fechas de caratulacion estan.
+// Es el rango por defecto del bloque "Expedientes nuevos": la corrida es nocturna, asi que lo del dia nunca esta y lo util es lo ultimo incorporado.
+public sealed record UltimaDeteccionExpedientesResult(DateTimeOffset FechaDeteccion, int ExpedientesNuevos, DateOnly? CaratulacionDesde, DateOnly? CaratulacionHasta);
+
 public sealed class EstadisticaExpedientesPorTrataReadModel
 {
     public string CodigoTrata { get; set; } = string.Empty;

@@ -36,6 +36,14 @@ public sealed class EstadisticasController : ControllerBase
         return Ok(result);
     }
 
+    // Ultima corrida de descubrimiento con expedientes nuevos: rango por defecto del bloque "Expedientes nuevos". 204 si todavia no hubo ninguna.
+    [HttpGet("ultima-deteccion")]
+    public async Task<ActionResult<UltimaDeteccionExpedientesResult>> ObtenerUltimaDeteccion(CancellationToken cancellationToken)
+    {
+        UltimaDeteccionExpedientesResult? ultima = await _estadisticasService.ObtenerUltimaDeteccionAsync(cancellationToken);
+        return ultima is null ? this.NoContent() : this.Ok(ultima);
+    }
+
     // Detalle de una trata del bloque "expedientes caratulados": se pide al desplegar la fila, no junto con los totales.
     [HttpGet("expedientes-caratulados")]
     public async Task<ActionResult<EstadisticaExpedientesCaratuladosResult>> ObtenerExpedientesCaratulados([FromQuery] string? codigoTrata, [FromQuery] DateOnly? fechaDesde, [FromQuery] DateOnly? fechaHasta, CancellationToken cancellationToken)

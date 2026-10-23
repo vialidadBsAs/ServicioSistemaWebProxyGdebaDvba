@@ -155,6 +155,8 @@ El tipo documental se separa en codigo, codigo GDEBA, nombre, descripcion, famil
 
 Una respuesta real de `consultarTipoDocumento` para `RESO` mostro que `acronimo` y `codigoTipoDocumentoGDEBA` no significan lo mismo: `acronimo=RESO` y `codigoTipoDocumentoGDEBA=RS`. Tambien confirmo atributos booleanos como `esAutomatica`, `esComunicable`, `esConfidencial`, `esEmbebido`, `esEspecial`, `esFirmaConjunta`, `esFirmaExterna`, `esManual`, `esNotificable`, `tieneTemplate` y `tieneToken`.
 
+`ReparticionGdeba` y `SectorGdeba` son catalogos locales de solo codigo y descripcion, sin fechas de deteccion ni otro seguimiento (tablas `ReparticionesGdeba` y `SectoresGdeba`; el sector se identifica por reparticion + codigo porque el mismo codigo de sector existe en distintas reparticiones). No se cargan a mano ni desde un catalogo externo: cada historial de pases de GDEBA informa codigo y descripcion de la reparticion y del sector de origen y de destino de cada pase, y `ICatalogoReparticionesGdebaService` los vuelca al catalogo dentro de la misma unidad de trabajo con la que `ExpedienteService` aplica el historial. Los movimientos persistidos siguen guardando solo el codigo; la descripcion se resuelve por el catalogo. La cabecera del expediente (`CabeceraExpedienteDto`) sale completada con la reparticion caratuladora (la del numero GDEBA) y las descripciones de reparticion caratuladora, reparticion actual y sector destino, resueltas por `ICatalogoReparticionesGdebaService.CompletarDescripcionesAsync`; si el catalogo todavia no conoce un codigo, la descripcion viaja nula y la pantalla muestra solo el codigo. Hasta octubre de 2026 esas descripciones se descartaban en el gateway y solo existia el nombre de la reparticion de Vialidad en el catalogo de tratas.
+
 `TipoDocumentoGdeba` se mantiene como catalogo local por acronimo. Al enriquecer un documento, el proxy primero busca el tipo local; si no existe y queda cuota disponible, invoca `consultarTipoDocumento`, incorpora el catalogo completo y asigna `DocumentoGdeba.TipoDocumentoId`. `DocumentoGdeba` no repite nombre ni descripcion del tipo: conserva el codigo detectado y el vinculo opcional, para permitir que el resto de su metadata se guarde aunque GDEBA no devuelva el catalogo del tipo.
 
 El tipo (`EX`, `IF`, etc.) diferencia si el identificador corresponde a expediente, informe/documento u otro elemento. Por eso no corresponde tener value objects separados solo por llamarse expediente o documento si el formato base es el mismo.
@@ -220,6 +222,8 @@ La API debe encargarse de:
 - Ejecutar middleware transversal.
 
 La API no debe construir XML SOAP, no debe leer credenciales GDEBA y no debe implementar reglas de cache directamente.
+
+Las consultas de la pantalla de temas y tratas (`api/gdeba/consultas/expedientes` y sus rutas `caratula`, `caratula/valores-filtro`, `cobertura-detalle`, `documentos` y `documentos/cobertura-referencia`) reciben el filtro en el cuerpo por `POST` con JSON. Son lecturas; el metodo es solo el transporte: la seleccion de tratas es una lista que puede abarcar el catalogo entero (280 ids, unos 13 KB) y no entra en una query string, que Kestrel corta en 8 KB de linea de pedido e IIS en 2 KB. Hasta octubre de 2026 viajaban por `GET` con la lista repetida en la query y el tema "Todas" fallaba sin mensaje.
 
 ### 3.5 Worker
 
