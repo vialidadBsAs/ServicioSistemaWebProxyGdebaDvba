@@ -10,4 +10,6 @@ public interface IEstadisticasReadStore
         CancellationToken cancellationToken);
 
     Task<IReadOnlyCollection<ExpedienteCaratuladoDto>> ConsultarExpedientesCaratuladosAsync(EstadisticaExpedientesCaratuladosFiltro filtro, int maximo, CancellationToken cancellationToken);
+
+    Task<UltimaDeteccionExpedientesResult?> ConsultarUltimaDeteccionAsync(CancellationToken cancellationToken);
 }

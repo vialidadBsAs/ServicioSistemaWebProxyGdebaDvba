@@ -9,4 +9,6 @@ public interface IEstadisticasService
         CancellationToken cancellationToken);
 
     Task<EstadisticaExpedientesCaratuladosResult> ObtenerExpedientesCaratuladosAsync(EstadisticaExpedientesCaratuladosRequest request, CancellationToken cancellationToken);
+
+    Task<UltimaDeteccionExpedientesResult?> ObtenerUltimaDeteccionAsync(CancellationToken cancellationToken);
 }

@@ -43,6 +43,11 @@ public sealed class EstadisticasService : IEstadisticasService
         return new EstadisticaExpedientesCaratuladosResult(DateTimeOffset.Now, codigoTrata, limitado, limitado ? expedientes.Take(EstadisticasService.MaximoExpedientesCaratulados).ToArray() : expedientes);
     }
 
+    public Task<UltimaDeteccionExpedientesResult?> ObtenerUltimaDeteccionAsync(CancellationToken cancellationToken)
+    {
+        return _estadisticasReadStore.ConsultarUltimaDeteccionAsync(cancellationToken);
+    }
+
     private EstadisticaExpedientesPorTrataFiltrosAplicadosDto CrearFiltrosAplicados(
         EstadisticaExpedientesPorTrataRequest request)
     {
