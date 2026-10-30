@@ -56,6 +56,10 @@ public sealed partial class Expediente : DomainEntity
 
     public string? ReparticionActual { get; private set; }
 
+    // Ultima modificacion del expediente segun GDEBA, tal como la informa la busqueda por trata y estado del descubrimiento.
+    // Es un dato del expediente, no de nuestro cache: dice cuando GDEBA lo toco por ultima vez, no cuando lo consultamos.
+    public DateTimeOffset? FechaModificacionGdeba { get; private set; }
+
     public ExpedienteCacheControl? CacheControl { get; private set; }
 
     public HistorialExpedienteCacheControl? HistorialCacheControl { get; private set; }

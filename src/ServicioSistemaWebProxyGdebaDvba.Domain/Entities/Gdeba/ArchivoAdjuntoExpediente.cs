@@ -38,10 +38,4 @@ public sealed class ArchivoAdjuntoExpediente : DomainEntity
 
     public DateTimeOffset FechaUltimaDeteccion { get; private set; }
 
-    public void RegistrarDeteccion(FuenteDeteccionGdeba fuenteDeteccion, DateTimeOffset fechaDeteccion)
-    {
-        MarcarComoModificada();
-        FuenteDeteccion = fuenteDeteccion;
-        FechaUltimaDeteccion = fechaDeteccion;
-    }
 }

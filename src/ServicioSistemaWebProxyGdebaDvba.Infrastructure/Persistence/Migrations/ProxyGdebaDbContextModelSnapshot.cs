@@ -522,6 +522,9 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("FechaCaratulacion")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("FechaModificacionGdeba")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<int>("GdebaAnio")
                         .HasColumnType("int");
 

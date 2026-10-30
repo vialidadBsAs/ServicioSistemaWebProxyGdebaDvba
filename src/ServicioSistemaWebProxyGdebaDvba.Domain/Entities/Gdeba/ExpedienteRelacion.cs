@@ -66,13 +66,33 @@ public sealed class ExpedienteRelacion : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
+        // Solo escribe si algun dato de la relacion cambio; una deteccion repetida sin novedades no toca la fila (una relacion recien
+        // creada nace sin datos, asi que lo informado siempre difiere). Fuente y fecha de ultima deteccion quedan como la ultima
+        // deteccion que aporto datos.
+        Guid? expedienteRelacionadoInformado = expedienteRelacionadoId ?? ExpedienteRelacionadoId;
+        string? codigoTrataInformado = Normalizar(codigoTrataRelacionado) ?? CodigoTrataRelacionado;
+        string? descripcionTrataInformada = Normalizar(descripcionTrataRelacionado) ?? DescripcionTrataRelacionado;
+        DateTimeOffset? fechaRelacionInformada = fechaRelacion ?? FechaRelacion;
+        string? usuarioRelacionInformado = Normalizar(usuarioRelacion) ?? UsuarioRelacion;
+        bool? esCabeceraInformado = esCabecera ?? EsCabecera;
+        bool hayCambios = expedienteRelacionadoInformado != ExpedienteRelacionadoId ||
+            !string.Equals(codigoTrataInformado, CodigoTrataRelacionado, StringComparison.Ordinal) ||
+            !string.Equals(descripcionTrataInformada, DescripcionTrataRelacionado, StringComparison.Ordinal) ||
+            fechaRelacionInformada != FechaRelacion ||
+            !string.Equals(usuarioRelacionInformado, UsuarioRelacion, StringComparison.Ordinal) ||
+            esCabeceraInformado != EsCabecera;
+        if (!hayCambios)
+        {
+            return;
+        }
+
         MarcarComoModificada();
-        ExpedienteRelacionadoId = expedienteRelacionadoId ?? ExpedienteRelacionadoId;
-        CodigoTrataRelacionado = Normalizar(codigoTrataRelacionado) ?? CodigoTrataRelacionado;
-        DescripcionTrataRelacionado = Normalizar(descripcionTrataRelacionado) ?? DescripcionTrataRelacionado;
-        FechaRelacion = fechaRelacion ?? FechaRelacion;
-        UsuarioRelacion = Normalizar(usuarioRelacion) ?? UsuarioRelacion;
-        EsCabecera = esCabecera ?? EsCabecera;
+        ExpedienteRelacionadoId = expedienteRelacionadoInformado;
+        CodigoTrataRelacionado = codigoTrataInformado;
+        DescripcionTrataRelacionado = descripcionTrataInformada;
+        FechaRelacion = fechaRelacionInformada;
+        UsuarioRelacion = usuarioRelacionInformado;
+        EsCabecera = esCabeceraInformado;
         FuenteDeteccion = fuenteDeteccion;
         FechaUltimaDeteccion = fechaDeteccion;
     }

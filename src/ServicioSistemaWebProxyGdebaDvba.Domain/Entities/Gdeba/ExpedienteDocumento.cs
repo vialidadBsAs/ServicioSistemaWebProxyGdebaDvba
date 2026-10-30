@@ -58,14 +58,32 @@ public sealed class ExpedienteDocumento : DomainEntity
         FuenteDeteccionGdeba fuenteDeteccion,
         DateTimeOffset fechaDeteccion)
     {
+        // Solo escribe si algun dato del vinculo cambio o es la primera deteccion. Antes cada consulta reescribia todos los vinculos del
+        // expediente (fecha y fuente de deteccion) aunque nada hubiera cambiado, y esas escrituras dominaban el costo de refrescar un
+        // expediente ya detallado. Fuente y fecha de ultima deteccion quedan como la ultima deteccion que aporto datos.
+        DateTimeOffset? fechaVinculacionInformada = fechaVinculacion ?? FechaVinculacion;
+        int? ordenRespuestaInformado = ordenRespuesta ?? OrdenRespuesta;
+        string? usuarioAsociacionInformado = Normalizar(usuarioAsociacion) ?? UsuarioAsociacion;
+        string? usuarioGeneradorInformado = Normalizar(usuarioGenerador) ?? UsuarioGenerador;
+        bool esPrimeraDeteccion = FechaPrimeraDeteccion == default;
+        bool hayCambios = esPrimeraDeteccion ||
+            fechaVinculacionInformada != FechaVinculacion ||
+            ordenRespuestaInformado != OrdenRespuesta ||
+            !string.Equals(usuarioAsociacionInformado, UsuarioAsociacion, StringComparison.Ordinal) ||
+            !string.Equals(usuarioGeneradorInformado, UsuarioGenerador, StringComparison.Ordinal);
+        if (!hayCambios)
+        {
+            return;
+        }
+
         MarcarComoModificada();
-        FechaVinculacion = fechaVinculacion ?? FechaVinculacion;
-        OrdenRespuesta = ordenRespuesta ?? OrdenRespuesta;
-        UsuarioAsociacion = Normalizar(usuarioAsociacion) ?? UsuarioAsociacion;
-        UsuarioGenerador = Normalizar(usuarioGenerador) ?? UsuarioGenerador;
+        FechaVinculacion = fechaVinculacionInformada;
+        OrdenRespuesta = ordenRespuestaInformado;
+        UsuarioAsociacion = usuarioAsociacionInformado;
+        UsuarioGenerador = usuarioGeneradorInformado;
         FuenteDeteccion = fuenteDeteccion;
 
-        if (FechaPrimeraDeteccion == default)
+        if (esPrimeraDeteccion)
         {
             FechaPrimeraDeteccion = fechaDeteccion;
         }
