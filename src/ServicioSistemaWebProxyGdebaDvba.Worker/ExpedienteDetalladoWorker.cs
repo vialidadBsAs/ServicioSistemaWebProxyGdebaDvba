@@ -140,7 +140,11 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
         int detallados = 0;
         int errores = 0;
         int pendientesRestantes = 0;
+        int refrescados = 0;
+        int refrescosPendientes = 0;
         bool cancelada = false;
+        // El lote acota la ejecucion completa; el refresco por modificacion va primero en cada sub-lote, asi lo modificado del dia se trae
+        // antes que el drenaje. Un atraso mayor al lote (p. ej. el saneamiento inicial) se reparte entre corridas: el resumen informa cuantos quedan.
         while (procesados < tamanoLote)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -155,7 +159,9 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
             procesados += resultado.Procesados;
             detallados += resultado.Detallados;
             errores += resultado.Errores;
+            refrescados += resultado.Refrescados;
             pendientesRestantes = resultado.PendientesRestantes;
+            refrescosPendientes = resultado.RefrescosPendientes;
             await ejecucionesWorker.RegistrarAvanceEjecucionAsync(ejecucionId, procesados, CancellationToken.None);
             if (resultado.Cancelada)
             {
@@ -169,7 +175,7 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
             }
         }
 
-        return new DetallarExpedientesPendientesResult(procesados, detallados, errores, pendientesRestantes, cancelada);
+        return new DetallarExpedientesPendientesResult(procesados, detallados, errores, pendientesRestantes, refrescados, refrescosPendientes, cancelada);
     }
 
     private async Task SellarLoteEnScopeLimpioAsync(Guid ejecucionId, int tamanoLote)
@@ -229,18 +235,18 @@ public sealed class ExpedienteDetalladoWorker : BackgroundService
     {
         if (resultado.Cancelada)
         {
-            return $"La ejecución fue cancelada a pedido. Expedientes procesados: {resultado.Procesados} de {tamanoLote}. Detallados: {resultado.Detallados}. Errores: {resultado.Errores}. Quedan {resultado.PendientesRestantes} expedientes sin detallar.";
+            return $"La ejecución fue cancelada a pedido. Expedientes procesados: {resultado.Procesados} de {tamanoLote}. Detallados: {resultado.Detallados} (refrescados por modificación en GDEBA: {resultado.Refrescados}). Errores: {resultado.Errores}. Quedan {resultado.PendientesRestantes} expedientes sin detallar y {resultado.RefrescosPendientes} por refrescar.";
         }
 
         if (resultado.Procesados == 0)
         {
             return esManual
-                ? "La ejecución manual fue omitida: no hay expedientes pendientes de detalle."
-                : "La corrida programada fue omitida: no hay expedientes pendientes de detalle.";
+                ? "La ejecución manual fue omitida: no hay expedientes pendientes de detalle ni de refresco."
+                : "La corrida programada fue omitida: no hay expedientes pendientes de detalle ni de refresco.";
         }
 
         string tipoEjecucion = esManual ? "Ejecución manual completada." : "Corrida programada completada.";
-        return $"{tipoEjecucion} Expedientes procesados: {resultado.Procesados}. Detallados: {resultado.Detallados}. Errores: {resultado.Errores}. Quedan {resultado.PendientesRestantes} expedientes sin detallar.";
+        return $"{tipoEjecucion} Expedientes procesados: {resultado.Procesados}. Detallados: {resultado.Detallados} (refrescados por modificación en GDEBA: {resultado.Refrescados}). Errores: {resultado.Errores}. Quedan {resultado.PendientesRestantes} expedientes sin detallar y {resultado.RefrescosPendientes} por refrescar.";
     }
 
     private EstadoEjecucionWorker ResolverEstadoEjecucion(DetallarExpedientesPendientesResult resultado)

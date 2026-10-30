@@ -15,6 +15,9 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Workers.Services;
 
 public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorkerService
 {
+    // Operacion solicitada con la que quedan auditadas las consultas del worker (antes figuraban como ObtenerCompleto).
+    private const string OperacionDetalleProgramado = "DetallarExpedienteProgramado";
+
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<SeguimientoExpediente> _seguimientoRepository;
     private readonly IRepository<ConfiguracionDescubrimientoTemaExpediente> _configuracionDescubrimientoTemaRepository;
@@ -54,6 +57,7 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         int procesados = 0;
         int detallados = 0;
         int errores = 0;
+        int refrescados = 0;
         bool cancelada = false;
         foreach (PendienteSeleccionado pendiente in pendientes)
         {
@@ -77,11 +81,16 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
             procesados++;
             try
             {
-                ObtenerExpedienteRecursoResult<ExpedienteCompletoDto> resultado = await _expedienteService.ObtenerCompletoAsync(
-                    new ObtenerExpedienteRecursoRequest(numeroExpediente, ForceRefresh: pendiente.ForceRefresh, Origen: origen), cancellationToken);
-                if (resultado.Exitoso)
+                // Detalle e historial por separado, sin armar el DTO completo: ese mapeo (una carga mas del expediente, tipos de documento,
+                // descripciones) existe para la pantalla y el worker solo necesita saber si ambas consultas consolidaron.
+                ConsultarExpedienteDetalladoResult detalle = await _expedienteService.ConsultarDetalleAsync(
+                    new ConsultarExpedienteDetalladoRequest(numeroExpediente, pendiente.ForceRefresh, OperacionDetalleProgramado, origen), cancellationToken);
+                ConsultarMovimientosExpedienteResult historial = await _expedienteService.ConsultarMovimientosAsync(
+                    new ConsultarMovimientosExpedienteRequest(numeroExpediente, pendiente.ForceRefresh, OperacionDetalleProgramado, origen), cancellationToken);
+                if (detalle.Expediente is not null && historial.Exitoso)
                 {
                     detallados++;
+                    if (pendiente.EsRefrescoPorModificacion) refrescados++;
                 }
                 else
                 {
@@ -104,10 +113,23 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
         }
 
         int pendientesRestantes = await _expedienteRepository.Query()
-            .Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null)
+            .Where(ExpedienteDetalladoWorkerService.NuncaDetallado)
             .CountAsync(cancellationToken);
-        return new DetallarExpedientesPendientesResult(procesados, detallados, errores, pendientesRestantes, cancelada);
+        int refrescosPendientes = await _expedienteRepository.Query()
+            .Where(ExpedienteDetalladoWorkerService.ModificadoDespuesDelUltimoDetalle)
+            .CountAsync(cancellationToken);
+        return new DetallarExpedientesPendientesResult(procesados, detallados, errores, pendientesRestantes, refrescados, refrescosPendientes, cancelada);
     }
+
+    // Nunca detallado: el historial de pases no se consulto a GDEBA ni una vez.
+    private static readonly Expression<Func<Expediente, bool>> NuncaDetallado =
+        x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null;
+
+    // Ya detallado, pero el descubrimiento informo una modificacion en GDEBA posterior a la ultima consulta del historial: hay cambios que
+    // la copia local no tiene. Validado en octubre de 2026 contra 14 mil expedientes: la fecha informada refleja todo pase o documento.
+    private static readonly Expression<Func<Expediente, bool>> ModificadoDespuesDelUltimoDetalle =
+        x => x.HistorialCacheControl != null && x.HistorialCacheControl.FechaUltimaConsultaGdeba != null &&
+            x.FechaModificacionGdeba != null && x.FechaModificacionGdeba > x.HistorialCacheControl.FechaUltimaConsultaGdeba;
 
     private async Task<List<PendienteSeleccionado>> SeleccionarPendientesAsync(int tamanoLote, CancellationToken cancellationToken)
     {
@@ -132,39 +154,52 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
 
             if (numerosSeleccionados.Add(seguido.GdebaNumeroCompleto))
             {
-                seleccion.Add(new PendienteSeleccionado(seguido.GdebaNumeroCompleto, ForceRefresh: true));
+                seleccion.Add(new PendienteSeleccionado(seguido.GdebaNumeroCompleto, ForceRefresh: true, EsRefrescoPorModificacion: false));
             }
         }
 
-        // Fases siguientes: nunca consultados por prioridad de trata (la misma configuracion del descubrimiento) y relleno general, siempre del caratulado mas nuevo al mas viejo; anio y numero GDEBA reflejan el orden de caratulacion porque la fecha explicita recien llega con el detalle.
+        // Las fases siguientes recorren las tratas por prioridad (la misma configuracion del descubrimiento) y al final el resto.
         Dictionary<Guid, int> prioridadPorTrataId = await this.CargarPrioridadesPorTrataAsync(cancellationToken);
-        foreach (IGrouping<int, Guid> grupo in prioridadPorTrataId.GroupBy(x => x.Value, x => x.Key).OrderBy(x => x.Key))
+        Guid[] tratasPriorizadas = prioridadPorTrataId.Keys.ToArray();
+        List<Expression<Func<Expediente, bool>>> filtrosPorPrioridad = prioridadPorTrataId
+            .GroupBy(x => x.Value, x => x.Key)
+            .OrderBy(x => x.Key)
+            .Select(grupo => grupo.ToArray())
+            .Select(tratasDelGrupo => (Expression<Func<Expediente, bool>>)(x => x.TrataId.HasValue && tratasDelGrupo.Contains(x.TrataId.Value)))
+            .Append(x => !x.TrataId.HasValue || !tratasPriorizadas.Contains(x.TrataId.Value))
+            .ToList();
+
+        // Fase 1: refresco por evidencia. Ya detallados con modificacion en GDEBA posterior a su ultimo detalle, la mas reciente primero
+        // dentro de cada prioridad. Va antes del drenaje para que lo modificado del dia nunca espere detras de lo nunca detallado.
+        // ForceRefresh porque la vigencia por calendario puede seguir vigente.
+        foreach (Expression<Func<Expediente, bool>> filtroTrata in filtrosPorPrioridad)
         {
             if (seleccion.Count >= tamanoLote)
             {
                 break;
             }
 
-            Guid[] tratasDelGrupo = grupo.ToArray();
-            ExpedienteDetalladoWorkerService.AgregarPendientes(seleccion, numerosSeleccionados, tamanoLote, await this.ConsultarPendientesAsync(
-                x => x.TrataId.HasValue && tratasDelGrupo.Contains(x.TrataId.Value),
-                tamanoLote - seleccion.Count + numerosSeleccionados.Count,
-                cancellationToken));
+            ExpedienteDetalladoWorkerService.AgregarPendientes(seleccion, numerosSeleccionados, tamanoLote, esRefrescoPorModificacion: true,
+                await this.ConsultarModificadosAsync(filtroTrata, tamanoLote - seleccion.Count + numerosSeleccionados.Count, cancellationToken));
         }
 
-        if (seleccion.Count < tamanoLote)
+        // Fase 2: drenaje de nunca detallados con lo que queda del lote, siempre del caratulado mas nuevo al mas viejo; anio y numero GDEBA
+        // reflejan el orden de caratulacion porque la fecha explicita recien llega con el detalle.
+        foreach (Expression<Func<Expediente, bool>> filtroTrata in filtrosPorPrioridad)
         {
-            Guid[] tratasPriorizadas = prioridadPorTrataId.Keys.ToArray();
-            ExpedienteDetalladoWorkerService.AgregarPendientes(seleccion, numerosSeleccionados, tamanoLote, await this.ConsultarPendientesAsync(
-                x => !x.TrataId.HasValue || !tratasPriorizadas.Contains(x.TrataId.Value),
-                tamanoLote - seleccion.Count + numerosSeleccionados.Count,
-                cancellationToken));
+            if (seleccion.Count >= tamanoLote)
+            {
+                break;
+            }
+
+            ExpedienteDetalladoWorkerService.AgregarPendientes(seleccion, numerosSeleccionados, tamanoLote, esRefrescoPorModificacion: false,
+                await this.ConsultarNuncaDetalladosAsync(filtroTrata, tamanoLote - seleccion.Count + numerosSeleccionados.Count, cancellationToken));
         }
 
         return seleccion;
     }
 
-    private static void AgregarPendientes(List<PendienteSeleccionado> seleccion, HashSet<string> numerosSeleccionados, int tamanoLote, IEnumerable<string> numeros)
+    private static void AgregarPendientes(List<PendienteSeleccionado> seleccion, HashSet<string> numerosSeleccionados, int tamanoLote, bool esRefrescoPorModificacion, IEnumerable<string> numeros)
     {
         foreach (string numero in numeros)
         {
@@ -175,16 +210,27 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
 
             if (numerosSeleccionados.Add(numero))
             {
-                seleccion.Add(new PendienteSeleccionado(numero, ForceRefresh: false));
+                seleccion.Add(new PendienteSeleccionado(numero, ForceRefresh: esRefrescoPorModificacion, esRefrescoPorModificacion));
             }
         }
     }
 
-    private async Task<IEnumerable<string>> ConsultarPendientesAsync(Expression<Func<Expediente, bool>> filtroTrata, int cantidad, CancellationToken cancellationToken)
+    private async Task<IEnumerable<string>> ConsultarModificadosAsync(Expression<Func<Expediente, bool>> filtroTrata, int cantidad, CancellationToken cancellationToken)
+    {
+        return (await _expedienteRepository.Query()
+            .Where(ExpedienteDetalladoWorkerService.ModificadoDespuesDelUltimoDetalle)
+            .Where(filtroTrata)
+            .OrderByDescending(x => x.FechaModificacionGdeba)
+            .Take(cantidad)
+            .SelectAsync(cancellationToken))
+            .Select(x => x.GdebaNumeroCompleto);
+    }
+
+    private async Task<IEnumerable<string>> ConsultarNuncaDetalladosAsync(Expression<Func<Expediente, bool>> filtroTrata, int cantidad, CancellationToken cancellationToken)
     {
         // El orden se expresa en una sola clave (anio y numero combinados) porque el ThenBy del wrapper de URF no llega al SQL y dejaria el orden dentro del anio indefinido.
         return (await _expedienteRepository.Query()
-            .Where(x => x.HistorialCacheControl == null || x.HistorialCacheControl.FechaUltimaConsultaGdeba == null)
+            .Where(ExpedienteDetalladoWorkerService.NuncaDetallado)
             .Where(filtroTrata)
             .OrderByDescending(x => (long)x.GdebaAnio * 100000000L + x.GdebaNumero)
             .Take(cantidad)
@@ -244,5 +290,5 @@ public sealed class ExpedienteDetalladoWorkerService : IExpedienteDetalladoWorke
             : prioridad;
     }
 
-    private sealed record PendienteSeleccionado(string NumeroGdebaCompleto, bool ForceRefresh);
+    private sealed record PendienteSeleccionado(string NumeroGdebaCompleto, bool ForceRefresh, bool EsRefrescoPorModificacion);
 }

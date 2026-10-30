@@ -126,13 +126,19 @@ public sealed class IncorporacionExpedientesPorTrataService : IIncorporacionExpe
         {
             var expedienteEsNuevo = !expedientesLocales.TryGetValue(numero.Valor, out var expediente);
             expediente ??= new Expediente(numero.Valor);
-            var datosCambiaron = expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
-            var cacheDebeRegistrarse = expedienteEsNuevo || datosCambiaron || expediente.CacheControl is null;
+            bool datosCambiaron = expediente.AplicarDatosDescubiertosPorTrata(trata.Id, datos.Estado);
+            // La fecha de modificacion informada por GDEBA se anota siempre, pero no altera los contadores ni la vigencia del cache.
+            bool fechaModificacionCambio = expediente.RegistrarModificacionInformadaPorGdeba(datos.FechaModificacion);
+            bool cacheDebeRegistrarse = expedienteEsNuevo || datosCambiaron || expediente.CacheControl is null;
 
             if (cacheDebeRegistrarse)
             {
                 expediente.RegistrarRespuestaExpedienteCorrecta(resolvedAt, resolvedAt, expediente.CalcularVencimientoCache(resolvedAt), estaCompleto: false);
                 this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+            }
+            else if (fechaModificacionCambio)
+            {
+                this.RegistrarCambiosExpediente(expediente, esNuevo: false);
             }
 
             if (expedienteEsNuevo)

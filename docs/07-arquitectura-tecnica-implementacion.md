@@ -259,11 +259,29 @@ Al arrancar, cada Worker cierra ademas las ejecuciones de su proceso que quedaro
 
 Las ordenes manuales siguen el ciclo de vida definido en `10-diseno-pantallas-workers.md`. Una solicitud puede crearse con un horario de inicio (`FechaInicioProgramada`, estado `Programada`): al tomar solicitudes, el Worker encola primero las programadas cuyo horario ya llego, en la misma unidad de trabajo. Una solicitud que el Worker todavia no tomo puede cancelarse (`Cancelada`, con usuario y fecha de cancelacion). La corrida programada diaria de descubrimiento puede omitirse por fecha mediante `Worker_OmisionesCorridaProgramada`; si existe la omision del dia, el Worker registra una ejecucion `Omitida` que menciona al operador y no consume cuota. Los procesos por intervalo no admiten omision: se pausan deshabilitando su configuracion programada.
 
-El worker `ExpedienteDetallado` cierra el eslabon faltante del pipeline: detalla
-de forma programada los expedientes descubiertos cuyo historial nunca fue
-consultado a GDEBA, completando por orden de deteccion del mas viejo al mas
-nuevo. No tiene alcance de datos configurable ni control de cuota: el lote por
-intervalo es el unico regulador y las invocaciones quedan registradas por el
+El worker `ExpedienteDetallado` cierra el eslabon faltante del pipeline:
+mantiene al dia el detalle (cabecera, documentos e historial de pases) de los
+expedientes descubiertos. Cada corrida selecciona en tres fases, por prioridad
+de trata (la misma configuracion del descubrimiento):
+
+1. Seguidos por alguna persona cuyo detalle es anterior al dia de hoy.
+2. Refresco por evidencia: ya detallados cuya `FechaModificacionGdeba`, la que
+   informa la busqueda del descubrimiento, es posterior a la ultima consulta de
+   su historial; la modificacion mas reciente primero. Es la unica senal de que
+   hay cambios que la copia local no tiene: validada en octubre de 2026 contra
+   14 mil expedientes, la fecha refleja todo pase o documento vinculado (puede
+   moverse sin novedad visible, por ejemplo una reasignacion de tarea, pero
+   nunca al reves).
+3. Drenaje de nunca detallados, del caratulado mas nuevo al mas viejo.
+
+El lote por intervalo acota la corrida completa y el refresco va primero: con el
+volumen medido (50 a 250 modificados por dia habil) lo que GDEBA toco el dia
+anterior entra entero en la primera corrida de la noche y el drenaje usa el
+resto; un atraso mayor al lote se reparte entre corridas y el resumen informa
+cuantos refrescos quedan. El vencimiento por calendario del cache queda como
+respaldo para lo que el descubrimiento no alcanza (otras reparticiones,
+aperturas manuales por numero); la apertura interactiva no cambia. No tiene
+alcance de datos configurable y las invocaciones quedan registradas por el
 modulo transversal. No agrega logica de consulta: `ExpedienteDetalladoWorkerService`
 selecciona los candidatos y delega cada uno en `IExpedienteService.ObtenerCompletoAsync`
 con origen `WorkerProgramado` (el origen viaja opcionalmente en los requests del
@@ -1364,3 +1382,11 @@ Cada expediente detectado por una combinacion trata-estado se persiste con su
 consulta detecto un cambio, tipicamente de estado). Las filas anteriores a esta
 distincion quedaron como `Nuevo` por default de migracion; para esas corridas los
 actualizados solo existen como contador.
+
+La busqueda por trata y estado informa ademas, por expediente, la fecha de
+ultima modificacion en GDEBA. El descubrimiento la anota en
+`Expedientes.FechaModificacionGdeba` como dato del expediente (cuando GDEBA lo
+toco por ultima vez, no cuando lo consultamos). Un cambio de esa fecha no cuenta
+como `Actualizado` ni renueva la vigencia del cache: se registra para validar,
+con datos, si refleja movimientos reales y puede reemplazar al vencimiento por
+calendario como disparador del refresco del detalle.

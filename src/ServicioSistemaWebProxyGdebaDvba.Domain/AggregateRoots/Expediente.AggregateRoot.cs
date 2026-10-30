@@ -24,6 +24,21 @@ public sealed partial class Expediente : IAggregateRoot
         return true;
     }
 
+    // Anota la fecha de ultima modificacion que GDEBA informa en la busqueda por trata y estado. Se registra aparte de los datos
+    // descubiertos: un cambio de fecha no cuenta como expediente "actualizado" (eso sigue siendo trata o estado) hasta validar
+    // que refleje movimientos reales. Devuelve si la fecha cambio, para escribir la fila solo cuando hace falta.
+    public bool RegistrarModificacionInformadaPorGdeba(DateTimeOffset? fechaModificacion)
+    {
+        if (fechaModificacion is null || fechaModificacion == FechaModificacionGdeba)
+        {
+            return false;
+        }
+
+        MarcarComoModificada();
+        FechaModificacionGdeba = fechaModificacion;
+        return true;
+    }
+
     public void AplicarCabeceraDetallada(
         Guid? trataId,
         string? estadoActual,
@@ -144,10 +159,9 @@ public sealed partial class Expediente : IAggregateRoot
             archivo = new ArchivoAdjuntoExpediente(Id, nombreNormalizado, fuenteDeteccion, fechaDeteccion);
             archivo.TrackingState = TrackingState.Added;
             _archivosAdjuntos.Add(archivo);
-            return archivo;
         }
 
-        archivo.RegistrarDeteccion(fuenteDeteccion, fechaDeteccion);
+        // Un adjunto ya conocido no tiene datos que cambien: volver a verlo no escribe la fila.
         return archivo;
     }
 
