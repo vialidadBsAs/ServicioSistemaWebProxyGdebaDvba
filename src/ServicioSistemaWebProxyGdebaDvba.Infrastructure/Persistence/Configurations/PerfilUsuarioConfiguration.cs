@@ -31,5 +31,10 @@ public sealed class PerfilUsuarioConfiguration : IEntityTypeConfiguration<Perfil
             .WithOne(x => x.PerfilUsuario)
             .HasForeignKey(x => x.PerfilUsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.AlertasDocumentales)
+            .WithOne(x => x.PerfilUsuario)
+            .HasForeignKey(x => x.PerfilUsuarioId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

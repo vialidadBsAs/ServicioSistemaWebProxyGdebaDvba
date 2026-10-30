@@ -5,6 +5,7 @@ using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contra
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Persistence;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Expedientes.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Auditoria.Models;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.ControlCuotas.Models;
@@ -43,6 +44,7 @@ public sealed class ExpedienteService : IExpedienteService
     private readonly ICurrentApplicationAccessor _currentApplicationAccessor;
     private readonly IIncorporacionExpedientesPorTrataService _incorporacionExpedientesPorTrataService;
     private readonly ICatalogoReparticionesGdebaService _catalogoReparticionesGdeba;
+    private readonly IDetectorCoincidenciasAlertaDocumental _detectorCoincidenciasAlertaDocumental;
     private readonly ITrackableRepository<Expediente> _expedienteRepository;
     private readonly IRepository<TrataHabilitadaVialidad> _trataHabilitadaVialidadRepository;
     private readonly IRepository<EstadoExpedienteGdeba> _estadoExpedienteGdebaRepository;
@@ -57,6 +59,7 @@ public sealed class ExpedienteService : IExpedienteService
                               IAuditoriaService auditoriaService, ICurrentApplicationAccessor currentApplicationAccessor,
                               IIncorporacionExpedientesPorTrataService incorporacionExpedientesPorTrataService,
                               ICatalogoReparticionesGdebaService catalogoReparticionesGdeba,
+                              IDetectorCoincidenciasAlertaDocumental detectorCoincidenciasAlertaDocumental,
                               ITrackableRepository<Expediente> expedienteRepository,
                               IRepository<TrataHabilitadaVialidad> trataHabilitadaVialidadRepository,
                               IRepository<EstadoExpedienteGdeba> estadoExpedienteGdebaRepository,
@@ -67,6 +70,7 @@ public sealed class ExpedienteService : IExpedienteService
     {
         _expedienteCacheReadStore = expedienteCacheReadStore;
         _catalogoReparticionesGdeba = catalogoReparticionesGdeba;
+        _detectorCoincidenciasAlertaDocumental = detectorCoincidenciasAlertaDocumental;
         _gdebaExpedienteGateway = gdebaExpedienteGateway;
         _gdebaExecutionContext = gdebaExecutionContext;
         _sensorConexion = sensorConexion;
@@ -417,6 +421,11 @@ public sealed class ExpedienteService : IExpedienteService
         if (expediente is not null && expedienteModificado)
         {
             this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+
+            // Alertas documentales DESPUES de ApplyChanges del expediente (ver PrepararConsolidacionDetalleEnCacheAsync): el historial es quien
+            // trae la fecha de creacion y el generador de los vinculos, asi que aca es donde normalmente nacen las coincidencias. Si el primer
+            // contacto con el expediente llega por historial, la trata todavia puede no estar; en worker y pantalla el detalle corre antes.
+            await _detectorCoincidenciasAlertaDocumental.RegistrarCoincidenciasAsync(expediente, resolvedAt, cancellationToken);
         }
 
         await this.RegistrarAuditoriaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, fuente, exitoso, ExpedienteService.CrearMensajeResultado(fuente, exitoso), resolvedAt, cancellationToken);
@@ -567,6 +576,12 @@ public sealed class ExpedienteService : IExpedienteService
             adjuntos: ExpedienteService.HayAgregados(expediente.ArchivosAdjuntos));
 
         this.RegistrarCambiosExpediente(expediente, expedienteEsNuevo);
+
+        // Las alertas documentales van DESPUES de ApplyChanges del expediente: ApplyChanges desacopla y vuelve a acoplar cada nodo del grafo,
+        // y al desacoplar un vinculo EF suelta la coincidencia Added que depende de el (relacion requerida huerfana). La cabecera ya se
+        // consolido, asi que la trata esta disponible. El detalle lista los documentos solo por numero: la fecha de creacion suele llegar
+        // con el historial, y el detector evalua el vinculo recien ahi.
+        await _detectorCoincidenciasAlertaDocumental.RegistrarCoincidenciasAsync(expediente, fechaConsulta, cancellationToken);
 
         return expediente;
     }

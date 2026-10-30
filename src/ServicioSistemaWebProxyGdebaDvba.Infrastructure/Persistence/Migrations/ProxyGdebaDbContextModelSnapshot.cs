@@ -45,6 +45,48 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.ToView(null, (string)null);
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AlertaDocumental", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("FechaCreacion")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Nombre")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("PerfilUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TipoDocumentoCodigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("TrataId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UsuarioGenerador")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PerfilUsuarioId");
+
+                    b.HasIndex("TrataId");
+
+                    b.HasIndex("Activa", "TipoDocumentoCodigo");
+
+                    b.ToTable("Perfil_AlertasDocumentales", (string)null);
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AplicacionConsumidora", b =>
                 {
                     b.Property<Guid>("Id")
@@ -103,6 +145,36 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ArchivosAdjuntosExpediente", (string)null);
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.CoincidenciaAlertaDocumental", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AlertaDocumentalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExpedienteDocumentoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("FechaDeteccion")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("FechaVista")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpedienteDocumentoId");
+
+                    b.HasIndex("AlertaDocumentalId", "ExpedienteDocumentoId")
+                        .IsUnique();
+
+                    b.HasIndex("AlertaDocumentalId", "FechaVista");
+
+                    b.ToTable("Perfil_CoincidenciasAlertaDocumental", (string)null);
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionDescubrimientoEstadoExpediente", b =>
@@ -1765,6 +1837,24 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.ToTable("Worker_SolicitudesEjecucion", (string)null);
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AlertaDocumental", b =>
+                {
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.PerfilUsuario", "PerfilUsuario")
+                        .WithMany("AlertasDocumentales")
+                        .HasForeignKey("PerfilUsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.TrataHabilitadaVialidad", "Trata")
+                        .WithMany()
+                        .HasForeignKey("TrataId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PerfilUsuario");
+
+                    b.Navigation("Trata");
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.ArchivoAdjuntoExpediente", b =>
                 {
                     b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Expediente", "Expediente")
@@ -1774,6 +1864,25 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Expediente");
+                });
+
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.CoincidenciaAlertaDocumental", b =>
+                {
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AlertaDocumental", "AlertaDocumental")
+                        .WithMany("Coincidencias")
+                        .HasForeignKey("AlertaDocumentalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.ExpedienteDocumento", "ExpedienteDocumento")
+                        .WithMany()
+                        .HasForeignKey("ExpedienteDocumentoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AlertaDocumental");
+
+                    b.Navigation("ExpedienteDocumento");
                 });
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.Configuracion.ConfiguracionDescubrimientoEstadoExpediente", b =>
@@ -2056,6 +2165,11 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.Navigation("Expediente");
                 });
 
+            modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AlertaDocumental", b =>
+                {
+                    b.Navigation("Coincidencias");
+                });
+
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.AplicacionConsumidora", b =>
                 {
                     b.Navigation("RegistrosAuditoria");
@@ -2094,6 +2208,8 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ServicioSistemaWebProxyGdebaDvba.Domain.Entities.PerfilUsuario", b =>
                 {
+                    b.Navigation("AlertasDocumentales");
+
                     b.Navigation("Seguimientos");
                 });
 

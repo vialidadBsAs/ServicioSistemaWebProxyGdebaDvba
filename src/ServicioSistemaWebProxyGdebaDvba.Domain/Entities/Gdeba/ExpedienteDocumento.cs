@@ -50,6 +50,11 @@ public sealed class ExpedienteDocumento : DomainEntity
 
     public DateTimeOffset FechaUltimaDeteccion { get; private set; }
 
+    // Transitorio, no persistido: la fecha de vinculacion se conocio en esta deteccion. El detalle de GDEBA lista los documentos solo
+    // por numero; la fecha llega con el historial de pases, una consulta despues. Las alertas documentales necesitan ese momento, porque
+    // recien ahi se puede decidir si el documento es posterior a la alerta.
+    public bool FechaVinculacionRecienConocida { get; private set; }
+
     public void RegistrarDeteccion(
         DateTimeOffset? fechaVinculacion,
         int? ordenRespuesta,
@@ -76,6 +81,7 @@ public sealed class ExpedienteDocumento : DomainEntity
             return;
         }
 
+        FechaVinculacionRecienConocida = FechaVinculacion is null && fechaVinculacionInformada is not null;
         MarcarComoModificada();
         FechaVinculacion = fechaVinculacionInformada;
         OrdenRespuesta = ordenRespuestaInformado;

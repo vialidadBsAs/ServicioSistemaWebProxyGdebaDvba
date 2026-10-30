@@ -12,6 +12,9 @@ public sealed class ExpedienteDocumentoConfiguration : IEntityTypeConfiguration<
 
         builder.HasKey(x => x.Id);
 
+        // Bandera transitoria de la deteccion; no es parte del estado persistido.
+        builder.Ignore(x => x.FechaVinculacionRecienConocida);
+
         builder.Property(x => x.UsuarioAsociacion).HasMaxLength(150);
         builder.Property(x => x.UsuarioGenerador).HasMaxLength(150);
 

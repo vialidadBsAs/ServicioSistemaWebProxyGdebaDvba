@@ -55,6 +55,10 @@ public sealed partial class DocumentoGdeba : DomainEntity
 
     public DateTimeOffset? FechaCreacion { get; private set; }
 
+    // Transitorio, no persistido: la fecha de creacion (firma) se conocio en esta operacion. Las alertas documentales deciden por esta
+    // fecha, y el detalle de GDEBA no la trae: llega con el historial de pases o con el enriquecimiento.
+    public bool FechaCreacionRecienConocida { get; private set; }
+
     public string? ListaFirmantes { get; private set; }
 
     public bool MetadataCompleta { get; private set; }
@@ -125,6 +129,7 @@ public sealed partial class DocumentoGdeba : DomainEntity
         TipoDocumentoNombre = Truncar(Normalizar(tipoDocumentoNombre), 200);
         TipoDocumentoDescripcion = Truncar(Normalizar(tipoDocumentoDescripcion), 500);
         Referencia = Normalizar(referencia);
+        FechaCreacionRecienConocida = FechaCreacionRecienConocida || (FechaCreacion is null && fechaCreacion is not null);
         FechaCreacion = fechaCreacion;
         ListaFirmantes = Normalizar(listaFirmantes);
         UrlArchivo = Normalizar(urlArchivo);
