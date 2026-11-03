@@ -18,6 +18,8 @@ public sealed class AlertaDocumentalConfiguration : IEntityTypeConfiguration<Ale
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(x => x.TipoEspecificoCodigo).HasMaxLength(50);
+
         builder.Property(x => x.UsuarioGenerador).HasMaxLength(150);
 
         builder.HasIndex(x => x.PerfilUsuarioId);

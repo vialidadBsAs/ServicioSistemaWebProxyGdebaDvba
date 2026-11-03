@@ -15,6 +15,7 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
     private readonly ITrackableRepository<PerfilUsuario> _perfilRepository;
     private readonly ITrackableRepository<AlertaDocumental> _alertaRepository;
     private readonly IRepository<CoincidenciaAlertaDocumental> _coincidenciaRepository;
+    private readonly IRepository<ExpedienteDocumento> _expedienteDocumentoRepository;
     private readonly IRepository<DocumentoGdeba> _documentoRepository;
     private readonly IRepository<TipoDocumentoGdeba> _tipoDocumentoRepository;
     private readonly IRepository<TrataHabilitadaVialidad> _trataRepository;
@@ -24,6 +25,7 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         ITrackableRepository<PerfilUsuario> perfilRepository,
         ITrackableRepository<AlertaDocumental> alertaRepository,
         IRepository<CoincidenciaAlertaDocumental> coincidenciaRepository,
+        IRepository<ExpedienteDocumento> expedienteDocumentoRepository,
         IRepository<DocumentoGdeba> documentoRepository,
         IRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
         IRepository<TrataHabilitadaVialidad> trataRepository,
@@ -32,6 +34,7 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         _perfilRepository = perfilRepository;
         _alertaRepository = alertaRepository;
         _coincidenciaRepository = coincidenciaRepository;
+        _expedienteDocumentoRepository = expedienteDocumentoRepository;
         _documentoRepository = documentoRepository;
         _tipoDocumentoRepository = tipoDocumentoRepository;
         _trataRepository = trataRepository;
@@ -58,10 +61,11 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
             .Select(grupo => new { AlertaId = grupo.Key, Cantidad = grupo.Count() })
             .ToDictionaryAsync(x => x.AlertaId, x => x.Cantidad, cancellationToken);
         IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(alertasUsuario.Select(x => x.TipoDocumentoCodigo), cancellationToken);
+        IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(alertasUsuario.Select(x => x.TipoEspecificoCodigo), cancellationToken);
 
         return alertasUsuario
             .OrderBy(x => x.FechaCreacion)
-            .Select(x => AlertaDocumentalService.MapearAlerta(x, nombresTipos, pendientesPorAlerta.GetValueOrDefault(x.Id)))
+            .Select(x => AlertaDocumentalService.MapearAlerta(x, nombresTipos, nombresEspecificos, pendientesPorAlerta.GetValueOrDefault(x.Id)))
             .ToArray();
     }
 
@@ -70,7 +74,8 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         ArgumentNullException.ThrowIfNull(request);
         TrataHabilitadaVialidad? trata = await this.ValidarTrataAsync(request.TrataId, cancellationToken);
         PerfilUsuario perfil = await this.CargarOCrearPerfilConAlertasAsync(usuarioInstitucional, cancellationToken);
-        AlertaDocumental alerta = perfil.CrearAlertaDocumental(request.TipoDocumentoCodigo, trata?.Id, request.UsuarioGenerador, request.Nombre, DateTimeOffset.Now);
+        AlertaDocumental alerta = perfil.CrearAlertaDocumental(
+            request.TipoDocumentoCodigo, request.TipoEspecificoCodigo, trata?.Id, request.UsuarioGenerador, request.Nombre, DateTimeOffset.Now);
         if (!request.Activa)
         {
             alerta.CambiarActiva(false);
@@ -86,7 +91,8 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         TrataHabilitadaVialidad? trata = await this.ValidarTrataAsync(request.TrataId, cancellationToken);
         PerfilUsuario perfil = await this.CargarPerfilConAlertasAsync(usuarioInstitucional, cancellationToken)
             ?? throw new KeyNotFoundException("No existe la alerta que se intenta modificar.");
-        AlertaDocumental alerta = perfil.ActualizarAlertaDocumental(alertaId, request.TipoDocumentoCodigo, trata?.Id, request.UsuarioGenerador, request.Nombre, request.Activa)
+        AlertaDocumental alerta = perfil.ActualizarAlertaDocumental(
+            alertaId, request.TipoDocumentoCodigo, request.TipoEspecificoCodigo, trata?.Id, request.UsuarioGenerador, request.Nombre, request.Activa)
             ?? throw new KeyNotFoundException("No existe la alerta que se intenta modificar.");
 
         await this.ConfirmarPerfilAsync(perfil, cancellationToken);
@@ -166,20 +172,65 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         }
     }
 
+    public async Task<bool> MarcarVistaAsync(string usuarioInstitucional, Guid coincidenciaId, CancellationToken cancellationToken)
+    {
+        string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        AlertaDocumental? alerta = (await _alertaRepository.Query()
+            .Include(nameof(AlertaDocumental.Coincidencias))
+            .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario && x.Coincidencias.Any(c => c.Id == coincidenciaId))
+            .SelectAsync(cancellationToken))
+            .FirstOrDefault();
+        if (alerta is null || alerta.MarcarCoincidenciaVista(coincidenciaId, DateTimeOffset.Now) is null)
+        {
+            return false;
+        }
+
+        _alertaRepository.Update(alerta);
+        _alertaRepository.ApplyChanges(alerta);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<IReadOnlyCollection<TipoDocumentoAlertaDto>> ListarTiposDocumentoAsync(CancellationToken cancellationToken)
     {
-        var tiposObservados = await _documentoRepository.Queryable()
-            .GroupBy(x => x.ActuacionTipoCodigo)
-            .Select(grupo => new { Codigo = grupo.Key, Cantidad = grupo.Count() })
+        // Lo observado en los documentos conocidos, por acronimo y tipo especifico. El detalle del expediente deja como tipo el mismo
+        // acronimo del numero (ACTA); el historial lo reemplaza por el especifico (ACMED). Un documento cuyo tipo sigue siendo el acronimo
+        // suma a la sigla entera pero no define un tipo especifico.
+        var observados = await _documentoRepository.Queryable()
+            .Where(x => x.ActuacionTipoCodigo != "")
+            .GroupBy(x => new { x.ActuacionTipoCodigo, x.TipoDocumentoCodigo })
+            .Select(grupo => new { Acronimo = grupo.Key.ActuacionTipoCodigo, Especifico = grupo.Key.TipoDocumentoCodigo, Cantidad = grupo.Count() })
             .ToListAsync(cancellationToken);
-        IReadOnlyDictionary<string, string> nombres = await this.CargarNombresTiposAsync(tiposObservados.Select(x => x.Codigo), cancellationToken);
+        List<(string Acronimo, string? Especifico, int Cantidad)> normalizados = observados
+            .Select(x =>
+            {
+                string acronimo = x.Acronimo.Trim().ToUpperInvariant();
+                string? especifico = string.IsNullOrWhiteSpace(x.Especifico) ? null : x.Especifico.Trim().ToUpperInvariant();
+                return (acronimo, especifico == acronimo ? null : especifico, x.Cantidad);
+            })
+            .ToList();
 
-        return tiposObservados
-            .Where(x => !string.IsNullOrWhiteSpace(x.Codigo))
-            .Select(x => new TipoDocumentoAlertaDto(x.Codigo.ToUpperInvariant(), nombres.GetValueOrDefault(x.Codigo), x.Cantidad))
-            .OrderByDescending(x => x.CantidadDocumentos)
-            .ThenBy(x => x.Codigo)
-            .ToArray();
+        IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(normalizados.Select(x => x.Acronimo), cancellationToken);
+        IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(normalizados.Select(x => x.Especifico), cancellationToken);
+
+        List<TipoDocumentoAlertaDto> opciones = new();
+        IOrderedEnumerable<IGrouping<string, (string Acronimo, string? Especifico, int Cantidad)>> porAcronimo = normalizados
+            .GroupBy(x => x.Acronimo)
+            .OrderByDescending(grupo => grupo.Sum(x => x.Cantidad))
+            .ThenBy(grupo => grupo.Key);
+        foreach (IGrouping<string, (string Acronimo, string? Especifico, int Cantidad)> grupo in porAcronimo)
+        {
+            opciones.Add(new TipoDocumentoAlertaDto(grupo.Key, null, nombresTipos.GetValueOrDefault(grupo.Key), grupo.Sum(x => x.Cantidad)));
+            opciones.AddRange(grupo
+                .Where(x => x.Especifico is not null)
+                .GroupBy(x => x.Especifico!)
+                .Select(especifico => new TipoDocumentoAlertaDto(
+                    grupo.Key, especifico.Key, nombresEspecificos.GetValueOrDefault(especifico.Key), especifico.Sum(x => x.Cantidad)))
+                .OrderByDescending(x => x.CantidadDocumentos)
+                .ThenBy(x => x.CodigoEspecifico));
+        }
+
+        return opciones;
     }
 
     private IQuery<CoincidenciaAlertaDocumental> ConsultarCoincidenciasConDatos()
@@ -199,23 +250,53 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
 
         IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(
             coincidencias.Select(x => x.ExpedienteDocumento.Documento.ActuacionTipoCodigo), cancellationToken);
-        return coincidencias.Select(x => AlertaDocumentalService.MapearCoincidencia(x, nombresTipos)).ToArray();
+        // Nombres de los tipos especificos: los del criterio de cada alerta y los de los documentos coincidentes.
+        IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(
+            coincidencias.Select(x => x.AlertaDocumental.TipoEspecificoCodigo).Concat(coincidencias.Select(x => x.ExpedienteDocumento.Documento.TipoDocumentoCodigo)),
+            cancellationToken);
+
+        // La coincidencia es una por documento. El expediente principal que se muestra es el de origen: el de la vinculacion mas antigua
+        // entre los que el proxy conoce (un documento se vincula primero donde se produce y despues a los demas). El vinculo donde se
+        // detecto la coincidencia solo define su identidad; si el proxy conoce despues el expediente de origen, pasa a ser el principal solo.
+        Guid[] documentoIds = coincidencias.Select(x => x.ExpedienteDocumento.DocumentoId).Distinct().ToArray();
+        IEnumerable<ExpedienteDocumento> vinculosDelDocumento = await _expedienteDocumentoRepository.Query()
+            .Include($"{nameof(ExpedienteDocumento.Expediente)}.{nameof(Expediente.Trata)}")
+            .Where(x => documentoIds.Contains(x.DocumentoId))
+            .SelectAsync(cancellationToken);
+        ILookup<Guid, ExpedienteDocumento> vinculosPorDocumento = vinculosDelDocumento.ToLookup(x => x.DocumentoId);
+
+        return coincidencias.Select(x => AlertaDocumentalService.MapearCoincidencia(x, nombresTipos, nombresEspecificos, vinculosPorDocumento)).ToArray();
     }
 
-    private static CoincidenciaAlertaDocumentalDto MapearCoincidencia(CoincidenciaAlertaDocumental coincidencia, IReadOnlyDictionary<string, string> nombresTipos)
+    private static CoincidenciaAlertaDocumentalDto MapearCoincidencia(
+        CoincidenciaAlertaDocumental coincidencia, IReadOnlyDictionary<string, string> nombresTipos, IReadOnlyDictionary<string, string> nombresEspecificos,
+        ILookup<Guid, ExpedienteDocumento> vinculosPorDocumento)
     {
-        ExpedienteDocumento vinculo = coincidencia.ExpedienteDocumento;
-        DocumentoGdeba documento = vinculo.Documento;
+        ExpedienteDocumento vinculoDetectado = coincidencia.ExpedienteDocumento;
+        DocumentoGdeba documento = vinculoDetectado.Documento;
+        ExpedienteDocumento[] vinculos = vinculosPorDocumento[documento.Id]
+            .OrderBy(x => x.FechaVinculacion ?? DateTimeOffset.MaxValue)
+            .ThenBy(x => x.Id == vinculoDetectado.Id ? 0 : 1)
+            .ToArray();
+        ExpedienteDocumento vinculo = vinculos.Length > 0 ? vinculos[0] : vinculoDetectado;
         Expediente expediente = vinculo.Expediente;
+        ExpedienteVinculadoDto[] otrosExpedientes = vinculos
+            .Where(x => x.ExpedienteId != expediente.Id)
+            .Select(x => new ExpedienteVinculadoDto(x.ExpedienteId, x.Expediente.GdebaNumeroCompleto))
+            .ToArray();
+        // El nombre del documento es el de su tipo especifico cuando el catalogo lo conoce; si no, el nombre unico del acronimo.
+        string? nombreTipoDocumento = AlertaDocumentalService.BuscarNombre(nombresEspecificos, documento.TipoDocumentoCodigo)
+            ?? nombresTipos.GetValueOrDefault(documento.ActuacionTipoCodigo);
+        AlertaDocumental alerta = coincidencia.AlertaDocumental;
         return new CoincidenciaAlertaDocumentalDto(
             coincidencia.Id,
             coincidencia.AlertaDocumentalId,
-            AlertaDocumentalService.DescribirAlerta(coincidencia.AlertaDocumental, expediente.Trata?.CodigoTrata),
+            AlertaDocumentalService.DescribirAlerta(alerta, AlertaDocumentalService.BuscarNombre(nombresEspecificos, alerta.TipoEspecificoCodigo), expediente.Trata?.CodigoTrata),
             documento.Id,
             documento.NumeroActuacionCompleto,
             documento.PuedeVerDocumento,
             documento.ActuacionTipoCodigo,
-            nombresTipos.GetValueOrDefault(documento.ActuacionTipoCodigo),
+            nombreTipoDocumento,
             documento.Referencia,
             documento.FechaCreacion ?? vinculo.FechaVinculacion,
             vinculo.UsuarioGenerador,
@@ -225,25 +306,32 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
             expediente.Trata?.DescripcionTrata,
             expediente.Motivo ?? expediente.DescripcionAdicional,
             coincidencia.FechaDeteccion,
-            coincidencia.EstaPendiente);
+            coincidencia.EstaPendiente,
+            otrosExpedientes);
     }
 
     private async Task<AlertaDocumentalDto> MapearAlertaAsync(AlertaDocumental alerta, TrataHabilitadaVialidad? trata, CancellationToken cancellationToken)
     {
         IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(new[] { alerta.TipoDocumentoCodigo }, cancellationToken);
+        IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(new[] { alerta.TipoEspecificoCodigo }, cancellationToken);
         int pendientes = await _coincidenciaRepository.Query().Where(x => x.AlertaDocumentalId == alerta.Id && x.FechaVista == null).CountAsync(cancellationToken);
-        return AlertaDocumentalService.MapearAlerta(alerta, nombresTipos, pendientes, trata);
+        return AlertaDocumentalService.MapearAlerta(alerta, nombresTipos, nombresEspecificos, pendientes, trata);
     }
 
-    private static AlertaDocumentalDto MapearAlerta(AlertaDocumental alerta, IReadOnlyDictionary<string, string> nombresTipos, int pendientes, TrataHabilitadaVialidad? trata = null)
+    private static AlertaDocumentalDto MapearAlerta(
+        AlertaDocumental alerta, IReadOnlyDictionary<string, string> nombresTipos, IReadOnlyDictionary<string, string> nombresEspecificos,
+        int pendientes, TrataHabilitadaVialidad? trata = null)
     {
         TrataHabilitadaVialidad? trataAlerta = trata ?? alerta.Trata;
+        string? nombreEspecifico = AlertaDocumentalService.BuscarNombre(nombresEspecificos, alerta.TipoEspecificoCodigo);
         return new AlertaDocumentalDto(
             alerta.Id,
             alerta.Nombre,
-            AlertaDocumentalService.DescribirAlerta(alerta, trataAlerta?.CodigoTrata),
+            AlertaDocumentalService.DescribirAlerta(alerta, nombreEspecifico, trataAlerta?.CodigoTrata),
             alerta.TipoDocumentoCodigo,
             nombresTipos.GetValueOrDefault(alerta.TipoDocumentoCodigo),
+            alerta.TipoEspecificoCodigo,
+            nombreEspecifico,
             alerta.TrataId,
             trataAlerta?.CodigoTrata,
             trataAlerta?.DescripcionTrata,
@@ -253,15 +341,19 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
             pendientes);
     }
 
-    // Descripcion legible: el nombre que puso el usuario o, si no, los criterios ("RESOL · trata ABC · generador PEREZ").
-    private static string DescribirAlerta(AlertaDocumental alerta, string? codigoTrata)
+    // Descripcion legible: el nombre que puso el usuario o, si no, los criterios ("RS · trata ABC · generador PEREZ"; con tipo especifico,
+    // su nombre de catalogo: "Acta de Medicion · trata ABC", o "ACTA CVTDO" cuando el catalogo no lo nombra).
+    private static string DescribirAlerta(AlertaDocumental alerta, string? nombreTipoEspecifico, string? codigoTrata)
     {
         if (alerta.Nombre is not null)
         {
             return alerta.Nombre;
         }
 
-        List<string> partes = new() { alerta.TipoDocumentoCodigo };
+        string tipo = alerta.TipoEspecificoCodigo is null
+            ? alerta.TipoDocumentoCodigo
+            : nombreTipoEspecifico ?? $"{alerta.TipoDocumentoCodigo} {alerta.TipoEspecificoCodigo}";
+        List<string> partes = new() { tipo };
         if (alerta.TrataId is not null)
         {
             partes.Add($"trata {codigoTrata ?? "?"}");
@@ -275,7 +367,14 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         return string.Join(" · ", partes);
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> CargarNombresTiposAsync(IEnumerable<string?> codigos, CancellationToken cancellationToken)
+    private static string? BuscarNombre(IReadOnlyDictionary<string, string> nombres, string? codigo)
+    {
+        return codigo is null ? null : nombres.GetValueOrDefault(codigo);
+    }
+
+    // Nombre del catalogo de cada tipo especifico (ACMED: "Acta de Medicion"), por su codigo, que es unico. El catalogo esta incompleto:
+    // solo tiene los tipos que el enriquecimiento documental cargo, asi que un codigo observado puede no tener nombre.
+    private async Task<IReadOnlyDictionary<string, string>> CargarNombresEspecificosAsync(IEnumerable<string?> codigos, CancellationToken cancellationToken)
     {
         string[] codigosDistintos = codigos
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -289,27 +388,72 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         }
 
         List<TipoDocumentoGdeba> tipos = await _tipoDocumentoRepository.Queryable()
-            .Where(x => codigosDistintos.Contains(x.Codigo) || (x.CodigoTipoDocumentoGdeba != null && codigosDistintos.Contains(x.CodigoTipoDocumentoGdeba)))
+            .Where(x => codigosDistintos.Contains(x.Codigo))
             .ToListAsync(cancellationToken);
-
-        // Varios tipos del catalogo comparten acronimo (PV es providencia, notificacion, certificado de obra...). Manda el tipo cuyo
-        // codigo de catalogo es el acronimo mismo; si no existe, el nombre se usa solo cuando el acronimo tiene un unico tipo.
-        foreach (TipoDocumentoGdeba tipo in tipos.Where(x => codigosDistintos.Contains(x.Codigo, StringComparer.OrdinalIgnoreCase)))
+        foreach (TipoDocumentoGdeba tipo in tipos)
         {
-            nombres.TryAdd(tipo.Codigo, tipo.Nombre);
-        }
-
-        foreach (IGrouping<string, TipoDocumentoGdeba> grupo in tipos
-            .Where(x => x.CodigoTipoDocumentoGdeba is not null)
-            .GroupBy(x => x.CodigoTipoDocumentoGdeba!, StringComparer.OrdinalIgnoreCase))
-        {
-            if (!nombres.ContainsKey(grupo.Key) && grupo.Count() == 1)
+            string nombre = tipo.Nombre.Trim();
+            if (nombre.Length > 0)
             {
-                nombres[grupo.Key] = grupo.Single().Nombre;
+                nombres[tipo.Codigo.Trim()] = nombre;
             }
         }
 
         return nombres;
+    }
+
+    // Nombre unico de cada acronimo: solo cuando el catalogo le da un unico nombre distinto (varias filas con el mismo nombre cuentan como uno).
+    private async Task<IReadOnlyDictionary<string, string>> CargarNombresTiposAsync(IEnumerable<string?> codigos, CancellationToken cancellationToken)
+    {
+        IReadOnlyDictionary<string, string[]> nombresPorAcronimo = await this.CargarNombresPorAcronimoAsync(codigos, cancellationToken);
+        Dictionary<string, string> nombres = new(StringComparer.OrdinalIgnoreCase);
+        foreach ((string acronimo, string[] nombresDelAcronimo) in nombresPorAcronimo)
+        {
+            if (nombresDelAcronimo.Length == 1)
+            {
+                nombres[acronimo] = nombresDelAcronimo[0];
+            }
+        }
+
+        return nombres;
+    }
+
+    // Todos los nombres distintos que el catalogo da a cada acronimo. El acronimo del numero de actuacion (RS, ACTA, PV...) puede ser el
+    // codigo del catalogo o su "codigo tipo documento GDEBA", y varias filas pueden compartirlo (ACTA: acta de apertura, de medicion,
+    // dictamen...; RS: varias filas "Resolucion"). Las alertas trabajan por acronimo; el nombre es orientacion y texto de busqueda.
+    private async Task<IReadOnlyDictionary<string, string[]>> CargarNombresPorAcronimoAsync(IEnumerable<string?> codigos, CancellationToken cancellationToken)
+    {
+        string[] codigosDistintos = codigos
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Dictionary<string, string[]> nombresPorAcronimo = new(StringComparer.OrdinalIgnoreCase);
+        if (codigosDistintos.Length == 0)
+        {
+            return nombresPorAcronimo;
+        }
+
+        List<TipoDocumentoGdeba> tipos = await _tipoDocumentoRepository.Queryable()
+            .Where(x => codigosDistintos.Contains(x.Codigo) || (x.CodigoTipoDocumentoGdeba != null && codigosDistintos.Contains(x.CodigoTipoDocumentoGdeba)))
+            .ToListAsync(cancellationToken);
+        foreach (string acronimo in codigosDistintos)
+        {
+            string[] nombres = tipos
+                .Where(x => string.Equals(x.Codigo, acronimo, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(x.CodigoTipoDocumentoGdeba, acronimo, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.Nombre.Trim())
+                .Where(x => x.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (nombres.Length > 0)
+            {
+                nombresPorAcronimo[acronimo] = nombres;
+            }
+        }
+
+        return nombresPorAcronimo;
     }
 
     private async Task<TrataHabilitadaVialidad?> ValidarTrataAsync(Guid? trataId, CancellationToken cancellationToken)

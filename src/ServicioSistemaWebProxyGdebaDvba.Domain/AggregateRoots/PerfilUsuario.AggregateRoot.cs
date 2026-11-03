@@ -39,19 +39,21 @@ public sealed partial class PerfilUsuario
     }
 
     // Las alertas documentales son del perfil: el alta, la edicion y la baja pasan por aca. Sus coincidencias las administra la propia alerta.
-    public AlertaDocumental CrearAlertaDocumental(string tipoDocumentoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre, DateTimeOffset fecha)
+    public AlertaDocumental CrearAlertaDocumental(
+        string tipoDocumentoCodigo, string? tipoEspecificoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre, DateTimeOffset fecha)
     {
-        AlertaDocumental alerta = new(Id, tipoDocumentoCodigo, trataId, usuarioGenerador, nombre, fecha) { TrackingState = TrackableEntities.Common.Core.TrackingState.Added };
+        AlertaDocumental alerta = new(Id, tipoDocumentoCodigo, tipoEspecificoCodigo, trataId, usuarioGenerador, nombre, fecha) { TrackingState = TrackableEntities.Common.Core.TrackingState.Added };
         _alertasDocumentales.Add(alerta);
         return alerta;
     }
 
-    public AlertaDocumental? ActualizarAlertaDocumental(Guid alertaId, string tipoDocumentoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre, bool activa)
+    public AlertaDocumental? ActualizarAlertaDocumental(
+        Guid alertaId, string tipoDocumentoCodigo, string? tipoEspecificoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre, bool activa)
     {
         AlertaDocumental? alerta = _alertasDocumentales.FirstOrDefault(x => x.Id == alertaId);
         if (alerta is null) return null;
 
-        alerta.ActualizarCriterios(tipoDocumentoCodigo, trataId, usuarioGenerador, nombre);
+        alerta.ActualizarCriterios(tipoDocumentoCodigo, tipoEspecificoCodigo, trataId, usuarioGenerador, nombre);
         alerta.CambiarActiva(activa);
         return alerta;
     }

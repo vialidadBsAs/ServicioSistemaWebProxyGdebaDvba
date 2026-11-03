@@ -8,11 +8,12 @@ public sealed partial class AlertaDocumental
 {
     public const int CantidadMaximaCoincidenciasVistas = 10;
 
-    public void ActualizarCriterios(string tipoDocumentoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre)
+    public void ActualizarCriterios(string tipoDocumentoCodigo, string? tipoEspecificoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre)
     {
         TipoDocumentoCodigo = string.IsNullOrWhiteSpace(tipoDocumentoCodigo)
             ? throw new ArgumentException("El tipo documental es requerido.", nameof(tipoDocumentoCodigo))
             : tipoDocumentoCodigo.Trim().ToUpperInvariant();
+        TipoEspecificoCodigo = Normalizar(tipoEspecificoCodigo)?.ToUpperInvariant();
         TrataId = trataId == Guid.Empty ? null : trataId;
         UsuarioGenerador = Normalizar(usuarioGenerador);
         Nombre = Normalizar(nombre);
@@ -33,7 +34,7 @@ public sealed partial class AlertaDocumental
     // Decide si un documento recien detectado es una coincidencia. La fecha que manda es la de creacion del documento en GDEBA (la firma):
     // una resolucion vieja que alguien vincula hoy no es una resolucion nueva. Sin fecha de creacion no se puede decidir y no se alerta.
     // El corte es el dia de creacion de la alerta completo: quien la define a la tarde tambien quiere la resolucion firmada esa manana.
-    public bool Coincide(string tipoDocumentoCodigo, Guid? trataIdExpediente, string? usuarioGenerador, DateTimeOffset? fechaDocumento)
+    public bool Coincide(string tipoDocumentoCodigo, string? tipoEspecificoCodigo, Guid? trataIdExpediente, string? usuarioGenerador, DateTimeOffset? fechaDocumento)
     {
         DateTimeOffset inicioDelDiaDeCreacion = new(FechaCreacion.Date, FechaCreacion.Offset);
         if (!Activa || fechaDocumento is null || fechaDocumento < inicioDelDiaDeCreacion)
@@ -42,6 +43,12 @@ public sealed partial class AlertaDocumental
         }
 
         if (!string.Equals(TipoDocumentoCodigo, tipoDocumentoCodigo?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Con tipo especifico, el documento tiene que traerlo igual. Sin tipo especifico, alcanza con el acronimo.
+        if (TipoEspecificoCodigo is not null && !string.Equals(TipoEspecificoCodigo, tipoEspecificoCodigo?.Trim(), StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
@@ -77,6 +84,24 @@ public sealed partial class AlertaDocumental
             coincidencia.MarcarVista(fecha);
         }
 
+        return this.PodarVistas();
+    }
+
+    // Marca vista una sola coincidencia (la que la persona abrio) y poda; las demas pendientes siguen pendientes.
+    public IReadOnlyCollection<CoincidenciaAlertaDocumental>? MarcarCoincidenciaVista(Guid coincidenciaId, DateTimeOffset fecha)
+    {
+        CoincidenciaAlertaDocumental? coincidencia = _coincidencias.FirstOrDefault(x => x.Id == coincidenciaId);
+        if (coincidencia is null)
+        {
+            return null;
+        }
+
+        coincidencia.MarcarVista(fecha);
+        return this.PodarVistas();
+    }
+
+    private IReadOnlyCollection<CoincidenciaAlertaDocumental> PodarVistas()
+    {
         CoincidenciaAlertaDocumental[] excedentes = _coincidencias
             .Where(x => !x.EstaPendiente)
             .OrderByDescending(x => x.FechaDeteccion)

@@ -13,14 +13,15 @@ public sealed partial class AlertaDocumental : DomainEntity
     {
     }
 
-    public AlertaDocumental(Guid perfilUsuarioId, string tipoDocumentoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre, DateTimeOffset fechaCreacion)
+    public AlertaDocumental(
+        Guid perfilUsuarioId, string tipoDocumentoCodigo, string? tipoEspecificoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre, DateTimeOffset fechaCreacion)
     {
         PerfilUsuarioId = perfilUsuarioId == Guid.Empty
             ? throw new ArgumentException("El perfil es requerido.", nameof(perfilUsuarioId))
             : perfilUsuarioId;
         FechaCreacion = fechaCreacion;
         Activa = true;
-        this.ActualizarCriterios(tipoDocumentoCodigo, trataId, usuarioGenerador, nombre);
+        this.ActualizarCriterios(tipoDocumentoCodigo, tipoEspecificoCodigo, trataId, usuarioGenerador, nombre);
     }
 
     public Guid PerfilUsuarioId { get; private set; }
@@ -30,8 +31,12 @@ public sealed partial class AlertaDocumental : DomainEntity
     // Nombre libre que el usuario le da a la alerta; si no lo carga, la pantalla la describe por sus criterios.
     public string? Nombre { get; private set; }
 
-    // Acronimo GDEBA del tipo documental (RESOL, DI, IF...), tal como figura en el numero de actuacion. Es el unico criterio obligatorio.
+    // Acronimo GDEBA del tipo documental (RS, ACTA, IF...), tal como figura en el numero de actuacion. Es el unico criterio obligatorio.
     public string TipoDocumentoCodigo { get; private set; } = string.Empty;
+
+    // Tipo especifico del catalogo (ACMED acta de medicion, DICTA dictamen, RESO resolucion...), opcional. Un acronimo agrupa varios tipos
+    // distintos; el historial de pases informa el tipo especifico de cada documento, asi que se puede alertar por uno solo de ellos.
+    public string? TipoEspecificoCodigo { get; private set; }
 
     public Guid? TrataId { get; private set; }
 

@@ -110,7 +110,19 @@ public sealed class AlertasDocumentalesController : ControllerBase
         return Ok(await _alertaService.ConsultarPendientesAsync(usuario, desde, cancellationToken));
     }
 
-    // Pasar por la pantalla de alertas marca vistas todas las pendientes y conserva las ultimas vistas por alerta.
+    // Abrir una coincidencia (expediente o PDF) la marca vista; las demas pendientes siguen pendientes.
+    [HttpPost("vistas/{coincidenciaId:guid}")]
+    public async Task<IActionResult> MarcarVista(Guid coincidenciaId, CancellationToken cancellationToken)
+    {
+        if (this.UsuarioActual is not string usuario)
+        {
+            return Unauthorized();
+        }
+
+        return await _alertaService.MarcarVistaAsync(usuario, coincidenciaId, cancellationToken) ? NoContent() : NotFound();
+    }
+
+    // "Marcar todas como vistas": marca las pendientes y conserva las ultimas vistas por alerta.
     [HttpPost("vistas")]
     public async Task<IActionResult> MarcarVistas(CancellationToken cancellationToken)
     {

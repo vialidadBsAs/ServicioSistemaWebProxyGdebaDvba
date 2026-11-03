@@ -18,5 +18,7 @@ public interface IAlertaDocumentalService
 
     Task MarcarVistasAsync(string usuarioInstitucional, CancellationToken cancellationToken);
 
+    Task<bool> MarcarVistaAsync(string usuarioInstitucional, Guid coincidenciaId, CancellationToken cancellationToken);
+
     Task<IReadOnlyCollection<TipoDocumentoAlertaDto>> ListarTiposDocumentoAsync(CancellationToken cancellationToken);
 }

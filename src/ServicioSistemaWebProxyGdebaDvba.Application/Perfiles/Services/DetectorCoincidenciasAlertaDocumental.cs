@@ -69,15 +69,16 @@ public sealed class DetectorCoincidenciasAlertaDocumental : IDetectorCoincidenci
             return;
         }
 
-        // Un vinculo puede volver a evaluarse (p. ej. coincidio por la fecha de creacion del documento y luego recibio fecha de vinculacion);
-        // las coincidencias ya registradas no se repiten.
+        // La coincidencia es por documento, no por vinculo: una resolucion vinculada a tres expedientes es una sola alerta, la del
+        // expediente donde se detecto primero (la pantalla muestra los otros expedientes donde esta vinculada). Ademas un vinculo puede
+        // volver a evaluarse (coincidio por la fecha de creacion y luego recibio fecha de vinculacion); lo ya registrado no se repite.
         Guid[] alertaIds = alertas.Select(x => x.Id).ToArray();
-        Guid[] vinculoIds = candidatos.Select(x => x.Id).ToArray();
-        HashSet<(Guid AlertaId, Guid VinculoId)> existentes = (await _coincidenciaRepository.Queryable()
-            .Where(x => alertaIds.Contains(x.AlertaDocumentalId) && vinculoIds.Contains(x.ExpedienteDocumentoId))
-            .Select(x => new { x.AlertaDocumentalId, x.ExpedienteDocumentoId })
+        Guid[] documentoIds = candidatos.Select(x => x.DocumentoId).Distinct().ToArray();
+        HashSet<(Guid AlertaId, Guid DocumentoId)> existentes = (await _coincidenciaRepository.Queryable()
+            .Where(x => alertaIds.Contains(x.AlertaDocumentalId) && documentoIds.Contains(x.ExpedienteDocumento.DocumentoId))
+            .Select(x => new { x.AlertaDocumentalId, x.ExpedienteDocumento.DocumentoId })
             .ToListAsync(cancellationToken))
-            .Select(x => (x.AlertaDocumentalId, x.ExpedienteDocumentoId))
+            .Select(x => (x.AlertaDocumentalId, x.DocumentoId))
             .ToHashSet();
 
         int registradas = 0;
@@ -85,12 +86,14 @@ public sealed class DetectorCoincidenciasAlertaDocumental : IDetectorCoincidenci
         {
             foreach (ExpedienteDocumento vinculo in candidatos)
             {
-                if (existentes.Contains((alerta.Id, vinculo.Id)))
+                if (existentes.Contains((alerta.Id, vinculo.DocumentoId)))
                 {
                     continue;
                 }
 
-                bool coincide = alerta.Coincide(vinculo.Documento.ActuacionTipoCodigo, expediente.TrataId, vinculo.UsuarioGenerador, vinculo.Documento.FechaCreacion);
+                // El tipo especifico (ACMED, DICTA...) lo trae el historial junto con la fecha de creacion; el detalle solo conoce el acronimo.
+                bool coincide = alerta.Coincide(
+                    vinculo.Documento.ActuacionTipoCodigo, vinculo.Documento.TipoDocumentoCodigo, expediente.TrataId, vinculo.UsuarioGenerador, vinculo.Documento.FechaCreacion);
                 _logger.LogDebug(
                     "Alertas documentales: alerta {Alerta} ({Tipo}) vs {Documento} (creado {FechaCreacion:yyyy-MM-dd HH:mm}, generador {Generador}, trata {Trata}): {Resultado}.",
                     alerta.Id, alerta.TipoDocumentoCodigo, vinculo.Documento.NumeroActuacionCompleto, vinculo.Documento.FechaCreacion, vinculo.UsuarioGenerador,
@@ -107,6 +110,7 @@ public sealed class DetectorCoincidenciasAlertaDocumental : IDetectorCoincidenci
                 // la coincidencia Added que depende de el.
                 CoincidenciaAlertaDocumental coincidencia = alerta.RegistrarCoincidencia(vinculo.Id, fechaDeteccion);
                 _coincidenciaRepository.Insert(coincidencia);
+                existentes.Add((alerta.Id, vinculo.DocumentoId));
                 registradas++;
             }
         }
