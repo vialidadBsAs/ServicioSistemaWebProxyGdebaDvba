@@ -12,6 +12,9 @@ public sealed class DocumentoGdebaConfiguration : IEntityTypeConfiguration<Docum
 
         builder.HasKey(x => x.Id);
 
+        // Bandera transitoria de la deteccion; no es parte del estado persistido.
+        builder.Ignore(x => x.FechaCreacionRecienConocida);
+
         builder.Property(x => x.NumeroActuacionCompleto)
             .HasMaxLength(100)
             .IsRequired();

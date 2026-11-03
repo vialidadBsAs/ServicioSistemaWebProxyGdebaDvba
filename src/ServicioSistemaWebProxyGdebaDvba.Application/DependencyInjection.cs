@@ -55,6 +55,8 @@ public static class DependencyInjection
         services.AddScoped<IResumenActividadWorkerReadStore, ResumenActividadWorkerReadStore>();
         services.AddScoped<IAuditoriaService, PersistedAuditoriaService>();
         services.AddScoped<IPerfilUsuarioService, PerfilUsuarioService>();
+        services.AddScoped<IAlertaDocumentalService, AlertaDocumentalService>();
+        services.AddScoped<IDetectorCoincidenciasAlertaDocumental, DetectorCoincidenciasAlertaDocumental>();
         return services;
     }
 
@@ -83,6 +85,8 @@ public static class DependencyInjection
         services.AddScoped<IPanelEjecucionesWorkerReadStore, PanelEjecucionesWorkerReadStore>();
         services.AddScoped<IResumenActividadWorkerReadStore, ResumenActividadWorkerReadStore>();
         services.AddScoped<IPerfilUsuarioService, PerfilUsuarioService>();
+        services.AddScoped<IAlertaDocumentalService, AlertaDocumentalService>();
+        services.AddScoped<IDetectorCoincidenciasAlertaDocumental, DetectorCoincidenciasAlertaDocumental>();
 
         var auditoriaMode = configuration[$"{AuditoriaOptions.SectionName}:Mode"] ?? AuditoriaModes.Persisted;
 

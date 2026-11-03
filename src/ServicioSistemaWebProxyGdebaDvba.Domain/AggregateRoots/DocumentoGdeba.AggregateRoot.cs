@@ -6,8 +6,13 @@ public sealed partial class DocumentoGdeba : IAggregateRoot
 {
     public void RegistrarMetadataParcial(string? tipoDocumentoCodigo, string? referencia, DateTimeOffset? fechaCreacion)
     {
+        // El detalle del expediente solo conoce el acronimo del numero (ACTA); el historial trae el tipo especifico (ACMED). Un acronimo
+        // nunca pisa un tipo especifico ya conocido: las alertas por tipo especifico dependen de conservarlo.
+        string? tipoInformado = string.IsNullOrWhiteSpace(tipoDocumentoCodigo) ? null : tipoDocumentoCodigo.Trim();
+        bool esSoloAcronimo = tipoInformado is not null && string.Equals(tipoInformado, ActuacionTipoCodigo, StringComparison.OrdinalIgnoreCase);
+        string? tipoAConservar = esSoloAcronimo && TipoDocumentoCodigo is not null ? TipoDocumentoCodigo : tipoInformado ?? TipoDocumentoCodigo;
         this.ActualizarMetadata(
-            NumeroEspecialCompleto, tipoDocumentoCodigo ?? TipoDocumentoCodigo,
+            NumeroEspecialCompleto, tipoAConservar,
             tipoDocumentoNombre: null, tipoDocumentoDescripcion: null,
             referencia ?? Referencia, fechaCreacion ?? FechaCreacion,
             ListaFirmantes, UrlArchivo, PuedeVerDocumento,

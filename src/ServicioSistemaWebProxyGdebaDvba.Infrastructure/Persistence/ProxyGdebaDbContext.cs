@@ -72,6 +72,10 @@ public sealed class ProxyGdebaDbContext : DbContext
 
     public DbSet<SeguimientoExpediente> SeguimientosExpediente => Set<SeguimientoExpediente>();
 
+    public DbSet<AlertaDocumental> AlertasDocumentales => Set<AlertaDocumental>();
+
+    public DbSet<CoincidenciaAlertaDocumental> CoincidenciasAlertaDocumental => Set<CoincidenciaAlertaDocumental>();
+
     public DbSet<RegistroAuditoria> RegistrosAuditoria => Set<RegistroAuditoria>();
 
     public DbSet<TipoDocumentoGdeba> TiposDocumento => Set<TipoDocumentoGdeba>();

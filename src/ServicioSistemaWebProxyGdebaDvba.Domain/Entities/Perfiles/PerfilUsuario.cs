@@ -5,6 +5,7 @@ namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 public sealed partial class PerfilUsuario : DomainEntity
 {
     private readonly List<SeguimientoExpediente> _seguimientos = new();
+    private readonly List<AlertaDocumental> _alertasDocumentales = new();
 
     private PerfilUsuario()
     {
@@ -22,6 +23,8 @@ public sealed partial class PerfilUsuario : DomainEntity
     public string? UsuarioGdeba { get; private set; }
 
     public IReadOnlyCollection<SeguimientoExpediente> Seguimientos => _seguimientos;
+
+    public IReadOnlyCollection<AlertaDocumental> AlertasDocumentales => _alertasDocumentales;
 
     private static string NormalizarRequerido(string value, string paramName)
     {
