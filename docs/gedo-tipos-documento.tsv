@@ -1,0 +1,1705 @@
+Familia	Acronimo	Nombre	Descripcion	Caracteristicas
+APólizá	AUTVI	Autorización de Viáticos	Autorización de Viáticos	Template
+APólizá	AVIFC	Autorización de Viáticos	Autorización de Viáticos	Template, Firma Conjunta
+APólizá	DECJD	Declaración Jurada de Domicilio	Declaración Jurada de Domicilio	Importado
+APólizá	DOLEG	Documentación Legal	Documentación Legal	Importado
+APólizá	FIRUI	Formulario Inscripcion Reg. Unico de Infractores	Formulario Inscripcion Reg.Unico de Infractores	Template, Notificable
+APólizá	PTEGP	Plan de Trabajo Expertos en Gestión Pública	Plan de Trabajo elaborado por los Expertos en Gestión Pública para Asistencias Técnicas	Importado, Firma Conjunta
+APólizá	SOLIC	Solicitud	Solicitud	Importado
+Acta	A1CDA	Acta N°1 del Consejo de Administración Certificada	Acta N°1 del Consejo de Administración	Importado
+Acta	AADRS	Acta de Asamblea, Directorio o Reunión de Socios	Acta de Asamblea, Directorio o Reunión de Socios de Firma Externa	Importado, Firma Externa
+Acta	AAECO	Acta de Aprobación de Estados Contables	Acta de Aprobación de Estados Contables	Importado
+Acta	AAINO	Acta de Inicio de Obra	Acta de Inicio de Obra	Importado
+Acta	ACACL	Acta Aclaratoria	Acta Aclaratoria	Importado
+Acta	ACACU	Acta Acuerdo	Acta Acuerdo	Importado
+Acta	ACADM	Acta del Consejo de Administración	Acta del Consejo de Administración.	Libre, Token, Firma Conjunta
+Acta	ACAFC	Acta de Apertura de Firma Conjunta	Acta de Apertura de Firma Conjunta	Importado, Firma Conjunta
+Acta	ACAPE	Acta de Apertura	Acta de Apertura	Importado
+Acta	ACCDA	Acta del Consejo de Administración	Acta del Consejo de Administración	Importado
+Acta	ACCP	Acta de constitución de proyecto	Acta que da constancia de la constitución de un proyecto específico.	Importado, Firma Conjunta
+Acta	ACDIP	Acta de Consejo Directivo IPAP	Acto decisorio emanado del Consejo Directivo del I.P.A.P. respecto de las acciones que instrumente el Instituto, requiriendo la firma conjunta de sus tres integrantes	Libre, Especial, Token, Firma Conjunta
+Acta	ACDIR	Acta de Directorio	Acta de Directorio	Importado, Firma Conjunta
+Acta	ACDIV	Acta de Divorcio	Acta de Divorcio de REDIP.	Importado
+Acta	ACDPO	Acta de Posesión	Acta de Posesión	Importado
+Acta	ACDSP	Acta Dictamen - SPB	Acta Dictamen - Servicio Penitenciario Bonaerense	Importado
+Acta	ACFCI	Acta	Acta	Importado, Firma Conjunta
+Acta	ACFEX	Acta con Firma Externa	Documento que certifica lo acontecido, tratado o acordado, respecto de un hecho. Con Firma Externa	Importado, Firma Externa
+Acta	ACFO	Acta Apertura Firma Ológrafa	Documento que certifica la apertura de ofertas para licitación.	Importado
+Acta	ACIFE	Acta de Inspección con Firma Externa	Acta de Inspección con Firma Externa	Importado, Firma Externa
+Acta	ACINI	Acta de Inicio	Acta de Inicio	Importado
+Acta	ACINS	Acta de Inspección	Acta de Inspección	Importado
+Acta	ACMAT	Acta de Matrimonio	Acta Registro Matrimonio	Importado, Token
+Acta	ACMED	Acta de Medición	Acta de Medición	Importado
+Acta	ACMFC	Acta de Medición Firma Conjunta	Acta de Medición Firma Conjunta	Importado, Firma Conjunta
+Acta	ACNEG	Acta de Negociación	Acta de Negociación	Importado
+Acta	ACNPO	Acta de acuerdo de neutralización de plazo de obra	Acta de acuerdo de neutralización de plazo de obra	Importado
+Acta	ACPFC	Acta de Preadjudicación	Acta de Preadjudicación de firma conjunta	Importado, Firma Conjunta
+Acta	ACPFE	Acta de Preadjudicación con Firma Externa	Acta de Preadjudicación con Firma Externa	Importado, Firma Externa
+Acta	ACPRE	Acta de Redeterminación de Precios	Acta de Redeterminación de Precios	Importado, Firma Conjunta
+Acta	ACRAS	Acreditación de Autoridades Societarias	Acreditación de Autoridades Societarias	Importado
+Acta	ACRDC	Acta de recepción definitiva - Firma conjunta	Acta de recepción definitiva, documento importado de firma conjunta.	Importado, Firma Conjunta
+Acta	ACREC	Acta de Recepción	Formulario que respalda la recepción del patrimonio dado de alta	Importado
+Acta	ACRED	Acta de Recepción Definitiva	Acta de Recepción Definitiva	Libre
+Acta	ACREP	Acta de Replanteo	Acta de Replanteo	Importado
+Acta	ACRFC	Acta de Recepción Firma Conjunta	Acta de Recepción Firma Conjunta	Importado, Firma Conjunta
+Acta	ACRFI	Acta de Recuento Físico	Acta de Recuento Físico	Importado
+Acta	ACRO	Acta de reinicio de obra	Acta de reinicio de obra	Importado
+Acta	ACRPP	Acta de recepción provisoria parcial	Acta de recepción provisoria parcial, documento de firma conjunta	Importado, Firma Conjunta
+Acta	ACRPT	Acta de recepción provisoria total	Acta de recepción provisoria total	Importado, Firma Conjunta
+Acta	ACTA	Acta	Documento que certifica lo acontecido, tratado o acordado, respecto de un hecho que requiere una sola firma.	Libre, Notificable
+Acta	ACTAO	Acta de Apertura de Ofertas	Acta de Apertura de Ofertas.	Template
+Acta	ACTAP	Acta de Preadjudicacion	Acta de Preadjudicacion	Importado
+Acta	ACTCN	Acta Constitutiva	Acta Constitutiva	Importado
+Acta	ACTDI	Acta Disolución Unión Civil ó Unión Convivencial	Acta de Disolución de Unión Civil ó Unión Convivencial	Importado
+Acta	ACTEN	Acta de Entrega	Acta de Entrega	Importado
+Acta	ACTEX	Acta de Examen	Acta de Examen	Importado
+Acta	ACTFC	Acta firma conjunta	Documento que certifica lo acontecido, tratado o acordado respecto de un hecho, que requiere dos o más firmas.	Libre, Firma Conjunta
+Acta	ACTIM	Acta	Acta	Importado
+Acta	ACTJQ	Acta Justificación de Quórum	Acta de Justificación de Quórum	Libre
+Acta	ACTLI	Acta Libros Digitales	Copia de Acta (Libros digitales) - Permite embeber documentos	Libre, Notificable
+Acta	ACTMU	Acta Municipal	Acta Municipal	Importado
+Acta	ACTRE	Acta REPROCI	Acta REPROCI	Libre
+Acta	ACTRF	Acta de Recuento Físico	Acta de Recuento Físico	Libre
+Acta	ACTRP	Acta de Recepción Provisoria	Acta de Recepción Provisoria	Importado
+Acta	ACTUC	Acta de Unión Convivencial	Acta de Unión Convivencial de REDIP.	Importado, Token
+Acta	ACTVE	Actas de Verificación	Documento Actas de Verificación.	Importado
+Acta	ACTVI	Acta de Toma de Vista	Documento mediante el cual se acredita el acceso de una persona física o jurídica, su letrado o apoderado, a un expediente del cual es parte interesada.	Importado
+Acta	ADCSO	Acta de Determinación de Cuota Societaria	Acta de Determinación de Cuota Societaria	Importado
+Acta	ADFAF	Acta de Directorio Fondo de Ayuda Financiera	Acta de Directorio Fondo de Ayuda Financiera	Importado, Token, Firma Conjunta
+Acta	ADICP	Acta de Directorio Caja de Policía	Acta de Directorio Caja de Policía	Importado, Token, Firma Conjunta
+Acta	ADLDR	Acta de Demarcación de Linea de Ribera	Acta de Demarcación de Linea de Ribera	Importado
+Acta	ADMFP	Acta de Medición Final Parcial	Acta de Medición Final Parcial	Libre
+Acta	ADMFT	Acta de Medición Final Total	Acta de Medición Final Total	Libre
+Acta	AFDEF	Afectación definitiva	Afectación definitiva	Importado
+Acta	AFPRE	Afectación Preventiva	Afectación Preventiva	Importado
+Acta	AIOMA	Acta IOMA	Acta IOMA	Importado - Template, Firma Conjunta
+Acta	AMFPC	Acta de medición final parcial - Firma conjunta	Acta de Medición Final Parcial, documento importado de firma conjunta	Importado, Firma Conjunta
+Acta	AMFTC	Acta de Medición Final Total - Firma conjunta	Acta de Medición Final Total, documento importado de firma conjunta.	Importado, Firma Conjunta
+Acta	ARCAD	Acta Reunión del Comité de Administración	Acta Reunión del Comité de Administración	Libre, Especial, Token, Firma Conjunta
+Acta	AREFC	Acta de Replanteo Firma Conjunta	Acta de Replanteo Firma Conjunta	Importado, Firma Conjunta
+Acta	AREPC	Acta REPROCI - Firma Conjunta	Acta REPROCI - Firma Conjunta	Libre, Firma Conjunta
+Acta	ARFFC	Acta de Recuento Físico	Acta de Recuento Físico	Libre, Token, Firma Conjunta
+Acta	ARPFC	Acta de Recepción Provisoria Firma Conjunta	Acta de Recepción Provisoria Firma Conjunta	Importado, Firma Conjunta
+Acta	ATVFE	Acta de Toma de Vista con Firma Externa	Documento mediante el cual se acredita el acceso de una persona física o jurídica, su letrado o apoderado, a un expediente del cual es parte interesada	Importado, Firma Externa
+Acta	CADEN	Carta de Denuncia	Carta de Denuncia	Importado
+Acta	CDP	Constancia de Parte	Constancia de Parte	Importado
+Acta	CEMCF	Certificado Médico de fetos destinados a cremación	Certificado Médico de fetos destinados a cremación	Importado
+Acta	CERAP	Certificado de antecedentes penales	Certificado de antecedentes penales	Importado
+Acta	CIRCA	Circular aclaratoria	Circular aclaratoria	Importado
+Acta	CMCON	Acta comprobantes mensuales de conservación	Acta comprobantes mensuales de conservación	Importado, Firma Conjunta
+Acta	COMCD	Comprobante de Contabilización Definitivo	Comprobante de Contabilización Definitivo	Importado
+Acta	COMP	Comprobante de Pago	Comprobante de Pago	Importado
+Acta	COMPR	Comprobante	Comprobante	Importado
+Acta	CONAD	Contrato administrativo	Documento que contiene la declaración bilateral o de voluntad común; productora de efectos jurídicos entre dos personas; de las cuales una está en ejercicio de la función administrativa	Importado
+Acta	CONAS	Convocatoria de Asamblea	Convocatoria de Asamblea	Importado
+Acta	CONEX	Constancia con Firma Externa	Constancia con Firma Externa	Importado, Firma Externa
+Acta	CONFE	Constancia con Firma Externa	Constancia con Firma Externa	Importado, Firma Externa
+Acta	CONIT	Constancia de Inicio de Trámite	Constancia de Inicio de Trámite	Importado
+Acta	CONST	Constancia	Constancia	Importado
+Acta	COPRE	Cotización/Presupuesto	Documento mediante el cual se estima o cotiza el precio o el costo de un bien o servicio requerido por la administración	Importado
+Acta	CORPP	Constancia de Retiro de Pago de Pliego	Constancia de Retiro de Pago de Pliego	Importado
+Acta	CP	Carta Poder	Carta Poder	Importado
+Acta	CSIAP	Carátula SIAPE	Carátula SIAPE	Importado
+Acta	CUIT	Constancia CUIT	Constancia CUIT	Importado - Template
+Acta	CV	Curriculum Vitae	Curriculum Vitae	Importado
+Acta	DECLA	Declaración	Declaración	Libre
+Acta	DECLI	Declaración	Declaración	Importado
+Acta	DEJUR	Declaración jurada	Declaración jurada	Importado
+Acta	DESCA	Descargo	Descargo	Importado
+Acta	DESFE	Descargo con Firma Externa	Descargo con Firma Externa	Importado, Firma Externa
+Acta	DHSWS	Documento de habilitación de servicios web	Documento de habilitación de servicios WS integración	Importado, Firma Conjunta
+Acta	DICJI	Dictamen Junta Médica	Dictamen de Junta Médica Importado	Importado
+Acta	DJCIU	Declaración Jurada Ciudadano	Declaración Jurada Ciudadano.	Importado
+Acta	DJFDT	DDJJ Fuera de término	DDJJ Fuera de término	Importado
+Acta	DJIG	Declaración Jurada Impuesto a las Ganancias	Declaración Jurada Impuesto a las Ganancias	Importado
+Acta	DJMFC	Dictamen Junta Médica	Dictamen Junta Médica importado de Firma Conjunta	Importado, Firma Conjunta
+Acta	DOC27	DOC2772022	DOC2772022	Libre
+Acta	DREDI	Acta de Defunción	Acta de Defunción	Importado
+Acta	ESTAT	Estatuto	Reglamento, ordenanza o conjunto de normas legales por las que se regula el funcionamiento de una corporación o asociación	Importado
+Acta	F106	Formulario 106	Formulario que respalda la rendición de pago	Importado, Firma Conjunta
+Acta	FACFC	Factura Firma Conjunta	Factura Firma Conjunta	Importado - Template, Token, Firma Conjunta
+Acta	FACTU	Factura	Factura	Importado
+Acta	FBD	Formulario 3 - Formulario Base de Defunción	Formulario 3 - Formulario Base de Defunción	Importado
+Acta	FBM	Formulario 2 - Formulario base matrimonio	Formulario 2 - Formulario base matrimonio	Importado
+Acta	FBN	Formulario 1 - Formulario Base de Nacimiento	Formulario 1 - Formulario Base de Nacimiento	Importado
+Acta	FCIR	Formulario Circular 1751/2	Formulario Circular 1751/2	Importado
+Acta	FRAE	Formulario 21 - Rectificación Administrativa	Formulario 21 - Rectificación Administrativa	Importado
+Acta	FRAI	Formulario 17 - Rectificación Administrativa	Formulario 17 - Rectificación Administrativa	Importado
+Acta	FUDEN	Fundamentación del Encuadre (Contratación)	Fundamentacion del Encuadre - Solicitud de Contratacion de Bienes y/o Servicios	Libre
+Acta	ICOMU	Inscripción Convenio Multilateral	Constancia de Inscripción al Convenio Multilateral	Importado
+Acta	IFGFC	Informe gráfico firma conjunta	Documento que comprende datos que exceden el formato de "solo texto", y que requiere para su validez dos o más firmas	Importado, Firma Conjunta
+Acta	IFREN	Informe RENAPER	Informe RENAPER	Importado
+Acta	IMAD	Imagen Acta Delegación	Imagen Acta Delegación	Importado
+Acta	IMEX	Documento importado con firma externa	Documento importado con firma externa	Importado, Firma Externa
+Acta	LDARB	Libre deuda ARBA	Constancia de libre deuda ARBA	Importado
+Acta	MEDFE	Memoria Descriptiva con Firma Externa	Memoria Descriptiva con Firma Externa	Importado, Firma Externa
+Acta	MEMD	Memoria Descriptiva	Memoria Descriptiva	Importado
+Acta	MREDI	Acta de Matrimonio	Acta de Matrimonio	Importado
+Acta	NEGBU	Negativa de Búsqueda	Negativa de Búsqueda	Libre, Notificable
+Acta	NOTIF	Notificación fehaciente	Notificación fehaciente	Importado
+Acta	NREDI	Certificado de Supervivencia	Certificado de Supervivencia	Importado
+Acta	NV	NUEVODOCUMENTO$!	Documento de prueba carece de motivacion administrativa	Libre
+Acta	PAGAR	Pagaré	Pagaré	Importado
+Acta	PARUR	Parte Urgente	Parte Urgente	Importado
+Acta	PCTAD	Presentación Ciudadana	Presentación Ciudadana	Libre
+Acta	PEBO	Publicación de Edicto en el Boletín Oficial	Publicación de Edicto en el Boletín Oficial	Importado
+Acta	PIMMO	Planilla Informativa de Multa por Mora	Planilla Informativa de Multa por Mora para uso del Ministerio de Salud	Template
+Acta	PINF	Pedido de informe	Pedido de informe	Template, Notificable
+Acta	PLANT	Plan de Trabajo	Plan de Trabajo	Importado
+Acta	PNACI	Partida de Nacimiento	Partida de Nacimiento	Importado
+Acta	PUBL	Publicación	Publicación	Importado
+Acta	REIMP	Recurso de Impugnación	Recurso de Impugnación	Importado
+Acta	RESC	Reconocimiento de Servicios Certificados	Reconocimiento de servicios certificados	Importado
+Acta	SENDI	Sentencia de Divorcio	Sentencia de Divorcio	Importado
+Acta	SIAPE	Documento SIAPE	Documento SIAPE	Importado
+Acta	SJORD	Solicitud Jubilatoria Ordinaria	Solicitud Jubilatoria Ordinaria	Importado
+Acta	TDR30	TDR3010	Documento de prueba carece de motivación administrativa - Documento de prueba para el TDR 30/10/2024 Version v2	Libre
+Acta	TDRBI	TDR1711	Carece de valor admINISTRATIVO	Libre
+Acta	TESIT	Documento Test Importado + Template	Documento Test Importado + Template	Importado - Template
+Acta	TEST	Documento de Test	Documento de Test	Libre, Especial
+Acta	TEYCO	Terminos y Condiciones	Terminos y Condiciones	Libre
+Acta	TIMTR	Timbrado del Trámite	Timbrado del Trámite	Importado
+Acta	TPROF	Título Profesional	Título Profesional	Importado
+Acto Administrativo	CDOC	Carta Documento	Carta Documento	Importado
+Acto Administrativo	DCPRE	Dictamen de comisión de Preadjudicación	Dictamen de comisión de Preadjudicación	Libre, Firma Conjunta
+Acto Administrativo	DECRB	Decreto	Decreto	Libre, Especial, Reservado, Token, Firma Conjunta
+Acto Administrativo	DECRE	Decreto	Decreto	Libre, Especial, Reservado, Token, Firma Conjunta
+Acto Administrativo	DECRI	Decreto	Decreto	Importado, Especial, Token, Firma Conjunta
+Acto Administrativo	DECTO	Decreto	Decreto	Libre, Especial, Token, Firma Conjunta
+Acto Administrativo	DI	Disposición	Disposición	Libre, Especial, Notificable, Token
+Acto Administrativo	DIFST	Dispoción Firma Sin Token (Prueba)	Dispoción Firma Sin Token (Prueba)	Libre, Especial
+Acto Administrativo	DISAD	Disposiciones Administrativas	Disposiciones Administrativas	Libre, Especial, Token
+Acto Administrativo	DISFC	Disposición firma conjunta	Disposición firma conjunta	Libre, Especial, Notificable, Token, Firma Conjunta
+Acto Administrativo	DISPC	Disposición firma conjunta	Disposición firma conjunta	Libre, Especial, Notificable, Token, Firma Conjunta
+Acto Administrativo	DISPO	Disposición	Disposición	Libre, Especial, Notificable, Token
+Acto Administrativo	DISTR	Disposiciones Técnico Registrales	Disposiciones Técnico Registrales	Libre, Especial, Token
+Acto Administrativo	RESCO	Resoluciones Contenciosas	Resoluciones Contenciosas	Libre, Especial, Token
+Acto Administrativo	RESFC	Resolución firma conjunta	Resolución firma conjunta	Libre, Especial, Notificable, Token, Firma Conjunta
+Acto Administrativo	RESFO	Resolución firma ológrafa	Resolución con firma ológrafa a importar.	Importado
+Acto Administrativo	RESO	Resolución	Resolución	Libre, Especial, Notificable, Token
+Acto Administrativo	RESOB	Resolución	Resolución	Libre, Especial, Notificable, Token
+Acto Administrativo	RESOC	Resolución firma conjunta	Resolución firma conjunta	Libre, Especial, Notificable, Token, Firma Conjunta
+Acto Administrativo	RESOL	Resolución	Resolución	Libre, Especial, Notificable, Token
+Acto Administrativo	RFCB	Resolución firma conjunta	Resolución firma conjunta	Libre, Especial, Notificable, Token, Firma Conjunta
+Anexo	A10DJ	Anexo X: DJ de Comunicación Escrita	Anexo X: DJ de Comunicación Escrita	Importado
+Anexo	A11PR	Anexo XI: Pla. de Resp. Civil/Denuncia Siniestro	Anexo XI: Planilla de Resp. Civil/Denuncia Siniestro	Importado
+Anexo	A1CON	Anexo 1 - Contratos	Documento Anexo 1 – Contratos para la Dirección General de Cultura y Educación.	Libre
+Anexo	A3CAC	Anexo III: Carátula de la Actividad	Anexo III: Carátula de la Actividad	Importado
+Anexo	A4PAA	Anexo IV: Planilla de Alumnos y Acompañantes	Anexo IV: Planilla de Alumnos y Acompañantes	Importado
+Anexo	A5AUT	Anexo V: Autorización	Anexo V: Autorización	Importado
+Anexo	A6069	Anexo RC 6069	Anexo RC 6069	Importado
+Anexo	A6PLS	Anexo VI: Planilla de Salud	Anexo VI: Planilla de Salud	Importado
+Anexo	A7PLA	Anexo VII: Plan de Actividades	Anexo VII: Plan de Actividades	Importado
+Anexo	A8PTC	Anexo VIII: Planilla de Transporte a Contratar	Anexo VIII: Planilla de Transporte a Contratar	Importado
+Anexo	A9PIN	Anexo IX: Planilla Informativa	Anexo IX: Planilla informativa para padre/madre/responsable/representante legal	Importado
+Anexo	AASAC	Anexo A: Solicitud de Apertura de Caja Chica	Documento Anexo A: Solicitud de Apertura de Caja Chica.	Importado
+Anexo	ANAIV	Anexo A - Instituto de la Vivienda	Anexo A - Instituto de la Vivienda	Importado, Firma Conjunta
+Anexo	ANDRS	Anexo documentación trámite REPROCI	Anexo documentación trámite REPROCI	Importado
+Anexo	ANDTR	Anexo documentación trámite REPROCI - FC	Anexo documentación trámite REPROCI - Firma conjunta	Importado, Firma Conjunta
+Anexo	ANEFC	Anexo de Firma Conjunta	Anexo de Firma Conjunta	Libre, Firma Conjunta
+Anexo	ANEX	Anexo	Anexo con documentación importada	Importado
+Anexo	ANEX1	Anexo I - Planilla de Convocatoria	Anexo I - Planilla de Convocatoria	Template
+Anexo	ANEX2	Anexo II - Condiciones Generales	Anexo II - Condiciones Generales	Importado
+Anexo	ANEX3	Anexo III - Condiciones Particulares	Anexo III - Condiciones Particulares	Libre
+Anexo	ANEX4	Anexo IV - Especificaciones Técnicas	Anexo IV - Especificaciones Técnicas	Libre
+Anexo	ANEX5	Anexo V - Planilla de Cotización	Anexo V - Planilla de Cotización	Template
+Anexo	ANEXB	Anexo B	Anexo B	Importado
+Anexo	ANEXI	Anexo i	Anexo i (estado de ingreso y egreso)	Importado, Firma Externa
+Anexo	ANEXO	Anexo	Anexo	Libre
+Anexo	ANFC	Anexo de Firma Conjunta	Anexo de Firma Conjunta	Importado, Token, Firma Conjunta
+Anexo	ANX39	Anexo Único de la Disposición N°39	Formulario para autorización de conducción de vehículos oficiales	Template, Firma Conjunta
+Anexo	ANXBL	Anexo B	Anexo B	Libre
+Anexo	ANXLT	Anexo	Anexo	Importado, Token
+Anexo	AUD39	Anexo Único de la Disposición N°39	Anexo Único de la Disposición N°39	Importado
+Anexo	AXOFC	Anexo de Firma Conjunta	Anexo de Firma Conjunta sin Token	Importado, Firma Conjunta
+Anexo	DEDEC	Documento Electrónico con Contenido (DEC)	Documento Electrónico con Contenido (DEC)	Importado
+Anexo	DEDER	Documento Electrónico con Referencias (DER)	Documento Electrónico con Referencias (DER)	Importado
+Anexo	ESPTC	Especificaciones Técnicas	Especificaciones Técnicas	Libre
+Anexo	ESPTI	Especificaciones Técnicas	Especificaciones Técnicas	Importado
+Anexo	IFLEG	Informe Legal	Informe Legal	Importado
+Anexo	INSCR	Inscripción	Inscripción	Importado
+Anexo	LIEMP	Resolución 96/13 - ANEXO IV	Resolución 96/13 - ANEXO IV - Licencia de empresas perforadoras	Template
+Anexo	MAPFC	Minuta de Autorización de Pago Firma Conjunta	Minuta de autorización de pago de firma conjunta	Importado, Firma Conjunta
+Anexo	MAPFE	Minuta de Autorización de Pago con Firma Externa	Minuta de Autorización de Pago con Firma Externa	Importado, Firma Externa
+Anexo	MATEP	Resolución 96/13 - ANEXO V	Resolución 96/13 - ANEXO V - Matrícula equipo perforante	Template
+Anexo	MIAPC	Minuta de Apropiación Contable	Minuta de Apropiacion Contable	Importado
+Anexo	MINAP	Minuta de Autorización de Pago	Minuta de autorización de pago	Importado
+Anexo	REMGD	Remito para Giro Documental	Remito para Giro Documental. Registro Único de conservación y archivo de los documentos en formato papel, digitalizados e incorporados a GDEBA.	Template
+Anexo	REPRP	Resolución 96/13 - ANEXO VII	Resolución 96/13 - ANEXO VII - Registro de Profesionales responsables de las perforaciones.	Template
+Anexo	TESTR	Documento test	Documento test	Libre, Reservado
+Antecedente Legal	CONTL	Contrato	Contrato	Libre, Firma Conjunta
+Caratula Variable	CDPPJ	Caratula DPPJ TRAMIX	Caratula de DPPJ emitida desde el sistema TRAMIX	Importado
+Caratula Variable	CODEL	CV_DDJJ Constitución Domicilio Electrónico	CV_DDJJ Constitución Domicilio Electrónico	Template
+Caratula Variable	CVALP	CV - Alcance de Pago	CV - Alcance de Pago	Template
+Caratula Variable	CVCCH	CV_Caja Chica	CV_Caja Chica	Template
+Caratula Variable	CVDDC	FFCC_CV_Documentación de la Carrera	FFCC_CV_Documentación de la Carrera	Template
+Caratula Variable	CVDNU	CV_Denuncia	Carátula variable del trámite Denuncia	Template
+Caratula Variable	CVESM	CV_Escrituración Ley 10.830 Municipio	CV_Escrituración Ley 10.830 Municipio	Template
+Caratula Variable	CVESP	CV_Escrituración Ley 10.830 Particulares	CV_Escrituración Ley 10.830 Particulares	Template
+Caratula Variable	CVFIT	CV_Fondo de Innovación Tecnológica de Buenos Aires	Caratula Variable para Fondo de Innovación Tecnológica de Buenos Aires - Rendición de Proyectos	Template
+Caratula Variable	CVIAV	CV_Inscr, modif, renovación y baja Animales Vivos	Carátula variable para Inscripción, modificación, renovación y baja Animales Vivos	Template
+Caratula Variable	CVICC	CV_CV_Inscr, modif, renovación y baja Coto de Caza	Carátula variable para Inscripción, modificación, renovación y baja Coto de Caza.	Template
+Caratula Variable	CVIPC	CV_Inscripción Provincial de Cooperativa	Carátula variable para trámite de Inscripción Provincial de Cooperativa	Template
+Caratula Variable	CVLTE	CV - Líneas Telefónicas	CV - Líneas Telefónicas	Template
+Caratula Variable	CVOJU	CV - Oficios Judiciales	CV - Oficios Judiciales	Template
+Caratula Variable	CVPAI	CV - Pago de Intereses	Caratula variable - Pago de Intereses	Template
+Caratula Variable	CVPDR	CV_Presentación de Descargos y Recursos	Caratula variable para Presentación de Descargos y Recursos	Template
+Caratula Variable	CVPER	Carátula Variable - Personal	Carátula Variable - Formulario que contiene datos del agente	Template
+Caratula Variable	CVPJB	CV_ Pagos de Jus y Bonos	Carátula variable del trámite Pagos de Jus y Bonos	Template
+Caratula Variable	CVPOA	CV_Contratación Publicidad Oficial	Contratación art. 18 inc k) Ley 13.981 – Publicidad Oficial - ARBA	Template
+Caratula Variable	CVPOC	CV_PRESENTACION OCEBA	Caratula Variable para PRESENTACION OCEBA	Template
+Caratula Variable	CVPPR	CV - Pago a Proveedores	Carátula Variable para los trámites de pago a proveedores	Template
+Caratula Variable	CVPS	CV_Pago Servicio	Caratula Variable Pago Servicio	Template
+Caratula Variable	CVPTT	CV_Patrimonio_Transferencia	Patrimonio_Transferencia	Template
+Caratula Variable	CVRBA	CV_ Inscripción-reinscripción RECBA	Carátula variable del trámite Inscripción-reinscripción al registro de Chacinados, Salazones y Grasas de la Provincia de Buenos Aires. (ReCBA)	Template
+Caratula Variable	CVREP	CV_Reasignación de Expediente Papel	Carátula variable del trámite Reasignación de Expediente Papel	Template
+Caratula Variable	CVRRV	CV - Re-inscripción Reg. Prov. Méd. Veterinarios	Caratula variable para Re-inscripción en el Registro Provincial de Médicos Veterinarios Bonaerenses	Template
+Caratula Variable	CVSIV	CV_Solicitud de información pública Vialidad	Carátula Variable para Solicitud de información pública Vialidad	Template
+Caratula Variable	CVSRR	CV_Solicitud de Renovación de Reconocimientos	Carátula variable para Solicitud de Renovación de Reconocimientos de Comisiones de Lucha contra las plagas de la Agricultura	Template
+Caratula Variable	CVTRX	CV_DPPJ para Tramix	Caratula Variable de DPPJ para TRAMIX	Template
+Caratula Variable	CVZOO	CV_Inscripción, Modificación y Baja de Zoológicos	Inscripción, Modificación y Baja de Zoológicos	Template
+Certif.,Const, Compr.	ACCLC	Acta de cierre de libros contables	Acta de cierre de libros contables	Libre
+Certif.,Const, Compr.	ACUNO	Acuse de Notificación	Acuse de recibo de notificación	Importado
+Certif.,Const, Compr.	ART18	Artículo 18	Artículo 18	Importado
+Certif.,Const, Compr.	ASEEN	A Solo Efecto Extranjero - Nacional	Documento A Solo Efecto Extranjero - Nacional.	Importado
+Certif.,Const, Compr.	ASENA	A Solo Efecto Nacional	Documento A Solo Efecto Nacional.	Libre
+Certif.,Const, Compr.	ASREG	Asiento Registral	Asiento Registral	Importado
+Certif.,Const, Compr.	AUICD	Autorización Inicio cambio de Domicilio	Autorización de inicio de cambio de Domicilio de agencia	Importado
+Certif.,Const, Compr.	AUMOS	Autorización de Marca o Señal	Autorización de Marca o Señal	Importado
+Certif.,Const, Compr.	AUTFC	Autorización	Autorización, documento importado de firma conjunta	Importado, Firma Conjunta
+Certif.,Const, Compr.	AUTIT	Autorización Inicio de Transferencia	Autorización Inicio de Transferencia	Importado
+Certif.,Const, Compr.	AUTOR	Autorización	Autorización	Importado
+Certif.,Const, Compr.	AUTPI	Autorización de Prestación	Autorización de Prestación	Importado
+Certif.,Const, Compr.	AUTPR	Autorización de Prestación	Autorización de Prestación	Libre
+Certif.,Const, Compr.	BALGE	Balance general	Balance general	Importado
+Certif.,Const, Compr.	BDDES	Boleta de deposito/Doc. Escribano/DDJJ	Boleta de deposito/Doc. Escribano/DDJJ	Libre
+Certif.,Const, Compr.	BOLCO	Boleto de compraventa	Boleto de compraventa	Importado
+Certif.,Const, Compr.	BOLMS	Boleto de Marca/Señal	Boleto de Marca/Señal	Importado
+Certif.,Const, Compr.	CACES	Comprobante de Acto Adm. de Cese	Comprobante de Acto Administrativo de Cese del agente.	Importado
+Certif.,Const, Compr.	CACIU	Carta de Ciudadanía	Carta de Ciudadanía	Importado
+Certif.,Const, Compr.	CACOM	Carta de Compromiso	Carta de Compromiso	Importado
+Certif.,Const, Compr.	CADES	Comprobante de Acto Adm. de Designación	Comprobante de Acto Administrativo de Designación del agente.	Importado
+Certif.,Const, Compr.	CAINT	Carta de Intención	Carta de Intención	Importado
+Certif.,Const, Compr.	CAMEA	Carpeta Médica Autorizada	Carpeta Médica Autorizada	Importado
+Certif.,Const, Compr.	CARCA	Constancia de inscripción ARCA	Constancia de inscripción ARCA (importado)	Importado
+Certif.,Const, Compr.	CAREA	Constancia Aceptación Reg. Esp. Aduanero	Constancia de Aceptación al Registro Especial Aduanero, documento de firma externa.	Importado, Firma Externa
+Certif.,Const, Compr.	CEAGG	Certificado - Asesoría General de Gobierno	Certificado - Asesoría General de Gobierno	Importado, Firma Conjunta
+Certif.,Const, Compr.	CEAHI	Certificado de Aptitud Hidráulica	Certificado de aptitud hidráulica otorgado por la Autoridad del Agua	Importado
+Certif.,Const, Compr.	CECRF	Certificado de Crédito Fiscal bajo la Ley 10.448	Entrega de los certificados de crédito fiscal, a los que hace referencia la ley 10.448.	Template, Especial, Firma Conjunta
+Certif.,Const, Compr.	CEDOC	Certificación de Documentos	Certificación de Documentos	Importado
+Certif.,Const, Compr.	CEEAL	Certificado Establecimiento Alimenticios	Certificado Establecimiento Alimenticios	Importado
+Certif.,Const, Compr.	CEFDI	Certificado	Certificado con firma conjunta y firma digital	Importado, Token, Firma Conjunta
+Certif.,Const, Compr.	CEHAI	Certificado de Habilitación	Certificado de Habilitación	Importado
+Certif.,Const, Compr.	CEHAV	Certificado de Habilitación Avícola	Certificado de Habilitación Avícola	Template
+Certif.,Const, Compr.	CEHCU	Certificado de Habilitación Cunícola	Certificado de Habilitación Cunícola	Template
+Certif.,Const, Compr.	CEHPO	Certificado de Habilitación de Establ Porcinos	Certificado de Habilitación de Establecimientos Porcinos	Template
+Certif.,Const, Compr.	CELAS	Certificado de Láser	Certificado de Láser	Importado
+Certif.,Const, Compr.	CEPFC	Certificado de pago - Firma conjunta	Certificado de pago - Firma conjunta	Importado, Firma Conjunta
+Certif.,Const, Compr.	CEPME	Certificado de Inscripción PyMEs	Certificado de Inscripción PyMEs	Template, Token
+Certif.,Const, Compr.	CEPRA	Certificado Producto Alimenticio	Certificado Producto Alimenticio	Importado
+Certif.,Const, Compr.	CERAI	Certificado radiación Agrupamiento Indus.	Certificado de radiación en el Agrupamiento Industrial, documento de firma externa.	Importado, Firma Externa
+Certif.,Const, Compr.	CERAN	Certificado Analítico	Certificado Analítico	Importado
+Certif.,Const, Compr.	CERAR	Certificado de alumno regular	Certificado de alumno regular	Importado
+Certif.,Const, Compr.	CERDE	Certificado Deportivo	Certificado Deportivo	Importado
+Certif.,Const, Compr.	CERFE	Certificado con Firma Externa	Certificado con Firma Externa	Importado, Firma Externa
+Certif.,Const, Compr.	CERFI	Certificación de Firmas	Certificación de Firmas	Importado
+Certif.,Const, Compr.	CERIT	Certificado	Certificado Importado de Firma con Token	Importado, Token
+Certif.,Const, Compr.	CERLC	Certificación	Certificación de firma conjunta	Libre, Firma Conjunta
+Certif.,Const, Compr.	CERLI	Certificado Libre	Certificado de redacción libre	Libre
+Certif.,Const, Compr.	CERMN	Certificado de resonador magnético nuclear	Certificado de resonador magnético nuclear	Importado
+Certif.,Const, Compr.	CERNA	Certificado Notarial de las actas	Certificado Notarial de las actas	Importado
+Certif.,Const, Compr.	CERPM	Certificado de Insc. Reg. Prov. de Microempresas	Certificado de Inscripción en el Registro Provincial de Microempresas	Template, Token
+Certif.,Const, Compr.	CERSI	Certificado de Siniestro	Certificado de Siniestro	Importado
+Certif.,Const, Compr.	CERST	Certificación de Servicios	Certificación de servicios del Ministerio de Desarrollo Social	Template, Firma Conjunta
+Certif.,Const, Compr.	CERTA	Certificado de Análisis	Certificado de Análisis con los resultados de controles de productos biológicos.	Template
+Certif.,Const, Compr.	CERTH	Certificado de Habilitación	Certificado de Habilitación	Libre
+Certif.,Const, Compr.	CERTI	Certificado	Certificado	Importado
+Certif.,Const, Compr.	CHAPC	Certif. de Haberes y Aportes Previsionales - FC	Certificación de Haberes y Aportes Previsionales de Firma Conjunta	Importado, Firma Conjunta
+Certif.,Const, Compr.	CHYAP	Certificación de Haberes y Aportes Previsionales	Certificación de Haberes y Aportes Previsionales	Importado
+Certif.,Const, Compr.	CIAFP	Constancia de inscripción en AFIP	Constancia de inscripción en AFIP, documento de firma externa	Importado, Firma Externa
+Certif.,Const, Compr.	CIEDP	Constancia de Inscripción de la Entidad en la DPPJ	Constancia de Inscripción de la Entidad en la DPPJ	Importado
+Certif.,Const, Compr.	CIMEX	Constancia Importador o Exportador	Constancia Importador o Exportador	Importado
+Certif.,Const, Compr.	CIMPM	Certificado de Inscripción MiPyMEs	Certificado de Inscripción MiPyMEs	Template
+Certif.,Const, Compr.	CINRT	Certificado de inscripción en REPROCI - En trámite	Certificado de inscripción en REPROCI - En trámite	Libre
+Certif.,Const, Compr.	CIPS	Comprobante IPS	Comprobante IPS	Importado
+Certif.,Const, Compr.	CIRA	Credencial de Inscripción RAPPSED	Credencial de inscripción al Registro Abierto y Permanente de Proveedores de Servicios de Enlace de Datos	Template
+Certif.,Const, Compr.	CLU	Certificado de legítimo usuario	Certificado de legítimo usuario, del arma con que se va a cazar.	Importado
+Certif.,Const, Compr.	CNPG	Constancia de Pago	Constancia de Pago	Importado
+Certif.,Const, Compr.	COCFC	Compr. Contabilización Definitivo Firma Conjunta	Comprobante de Contabilización Definitivo con firma conjunta	Importado, Firma Conjunta
+Certif.,Const, Compr.	CODCA	Comprobante de Caja	Comprobante de Caja	Importado
+Certif.,Const, Compr.	COMDE	Comprobante de Contabilización Devengado	Comprobante de Contabilización Devengado	Importado
+Certif.,Const, Compr.	COMPP	Comprobantes de Pago de la Tasa Preferencial	Comprobantes de pago de la tasa preferencial	Importado
+Certif.,Const, Compr.	COMTE	Comprobante por Trámites Especiales	Comprobante por trámites especiales	Importado
+Certif.,Const, Compr.	COMTR	Comprobante de Transferencia	Comprobante de Transferencia	Importado
+Certif.,Const, Compr.	CONMA	Convenio Marco	Documento para importar un convenio marco. A su vez habrá que completar el Numero de Convenio y el Numero de proceso de compra.	Importado - Template
+Certif.,Const, Compr.	CONOT	Constancia Notificacion Electrónica	Constancia Notificacion Electrónica	Libre
+Certif.,Const, Compr.	CONPA	Conformidad Prórroga / Ampliación	Conformidad Prórroga / Ampliación	Template
+Certif.,Const, Compr.	COPAS	Comparendo de Pase	Comparendo de Pase	Importado
+Certif.,Const, Compr.	COPDS	Categorización OPDS	Categorización OPDS	Importado
+Certif.,Const, Compr.	COVTX	Comprobantes de ventas al exterior	Comprobantes de ventas al exterior, documento de firma externa.	Importado, Firma Externa
+Certif.,Const, Compr.	CPARN	Comprobación A.R.N.	Comprobación A.R.N.	Importado
+Certif.,Const, Compr.	CPCBU	Comprobante de CBU emitido por la entidad bancaria	Comprobante de CBU emitido por la entidad bancaria,	Importado, Firma Externa
+Certif.,Const, Compr.	CPPRL	Copia del Poder que acredite representación legal	Copia del Poder que acredite representación legal	Importado, Firma Externa
+Certif.,Const, Compr.	CPTBO	Comprobante de pago de tasas - Boletín Oficial	Comprobante de pago de tasas por publicación en el Boletín Oficial	Template
+Certif.,Const, Compr.	CRECE	Constancia de Recepción	Constancia de Recepción	Libre
+Certif.,Const, Compr.	CREIT	Constancia de Recepción	Constancia de Recepción	Importado - Template
+Certif.,Const, Compr.	CRETA	Certificado de registro de tambo	Certificado de registro de tambo	Libre
+Certif.,Const, Compr.	CSIGF	Comprobante SIGAF	Comprobante SIGAF	Importado
+Certif.,Const, Compr.	CUMOC	Cumplimiento de Orden de Compra	Cumplimiento de Orden de Compra	Importado
+Certif.,Const, Compr.	CUMPA	Cumplimiento de Pago	Cumplimiento de Pago	Importado
+Certif.,Const, Compr.	DENUN	Denuncia	Denuncia	Importado
+Certif.,Const, Compr.	DMHFE	Derecho Minero Habilitante con Firma Externa	Documentos de respaldo del derecho que habilita a las actividades mineras	Importado, Firma Externa
+Certif.,Const, Compr.	DMIHA	Derecho Minero Habilitante	Documentos de respaldo del derecho que habilita a las actividades mineras	Importado
+Certif.,Const, Compr.	DOADE	Documentación adicional embebido SAS	Documentación adicional embebido SAS	Libre
+Certif.,Const, Compr.	ECFEX	Estado Contable	Estado Contable de Firma Externa	Importado, Firma Externa
+Certif.,Const, Compr.	ECOMP	Escritura de la Compraventa	Escritura de la Compraventa	Importado
+Certif.,Const, Compr.	EIAFE	Estudio de Impacto Ambiental Firma Externa	Estudio de Impacto Ambiental Firma Externa	Importado, Firma Externa
+Certif.,Const, Compr.	ESCPU	Escritura pública	Escritura pública	Importado
+Certif.,Const, Compr.	ESPRO	Escritura de Propiedad	Escritura de Propiedad	Importado
+Certif.,Const, Compr.	ESTIA	Estudio de Impacto Ambiental	Estudio de Impacto Ambiental	Importado
+Certif.,Const, Compr.	EXTRA	Extracto	Extracto	Importado
+Certif.,Const, Compr.	FACPE	Facturas proforma	Facturas proforma, documento de firma externa	Importado, Firma Externa
+Certif.,Const, Compr.	FONAU	Formulario de Nomina de Autoridades	Formulario de Nomina de Autoridades	Importado
+Certif.,Const, Compr.	FORFE	Formulario de Inscripción con Firma Externa	Documento Formulario de Inscripción con Firma Externa	Importado, Firma Externa
+Certif.,Const, Compr.	FORIN	Formulario de Inscripción	Documento Formulario de Inscripción.	Importado
+Certif.,Const, Compr.	FRENU	Formulario de Renuncia	Formulario de Renuncia	Importado
+Certif.,Const, Compr.	HADAI	Hab. y Au. para el Desarrollo de Act. Industriales	Habilitaciones y autorizaciones para el desarrollo de actividades industriales.	Importado, Firma Externa
+Certif.,Const, Compr.	HCLIN	Historia Clínica	Resumen de historia clínica original con sello de Institución Médica.	Importado
+Certif.,Const, Compr.	IDFIS	Identificación Fiscal	Identificación Fiscal	Importado
+Certif.,Const, Compr.	IFBRE	Información de baja de reserva	Información de baja de reserva	Libre
+Certif.,Const, Compr.	IFRDN	Informe Reserva de Nombre	Informe de reserva de nombre de una sociedad.	Libre
+Certif.,Const, Compr.	INMER	Ingreso de Mercadería	Documento Ingreso de Mercadería.	Importado
+Certif.,Const, Compr.	IOMRE	IOMA Reintegro	IOMA Reintegro	Importado
+Certif.,Const, Compr.	ITRVA	Ingreso de Transporte Vacío	Documento Ingreso de Transporte Vacío.	Importado
+Certif.,Const, Compr.	LICAZ	Licencia de Caza	Licencia de Caza	Template
+Certif.,Const, Compr.	LICSF	Licencia de software	Licencia de software	Libre, Token, Firma Conjunta
+Certif.,Const, Compr.	LPAGO	Libramiento de Pago	Libramiento de Pago	Importado
+Certif.,Const, Compr.	LPGFC	Libramiento de Pago de Firma Conjunta	Libramiento de Pago de Firma Conjunta	Importado, Firma Conjunta
+Certif.,Const, Compr.	MODIM	Modelo de Impresión	Modelo de Impresión	Importado
+Certif.,Const, Compr.	NCRED	Nota de Crédito	Nota de Crédito	Importado - Template, Token
+Certif.,Const, Compr.	NOIDC	Nómina de los Integrantes de la Comunidad	Nómina de los Integrantes de la Comunidad	Importado
+Certif.,Const, Compr.	NOMAU	Nomina de Autoridades	Nomina de Autoridades	Importado
+Certif.,Const, Compr.	NOPRE	Notificación de Preadjudicación	Notificación de la Pre adjudicación	Importado
+Certif.,Const, Compr.	OBOMS	Oblea del Boleto Marca/Señal	Oblea del Boleto Marca/Señal	Importado
+Certif.,Const, Compr.	OBPRV	Observaciones del Proveedor	Observaciones del Proveedor	Importado
+Certif.,Const, Compr.	ODCT	Orden de Crédito	Orden de Crédito	Importado
+Certif.,Const, Compr.	ORDEB	Orden de Débito	Documento Orden de Débito.	Importado
+Certif.,Const, Compr.	PALIC	Parte de licencia	Parte de licencia	Importado
+Certif.,Const, Compr.	PCOM	Pase en Comision	Pase en Comision	Importado
+Certif.,Const, Compr.	PDOC	Planta Docente	Planta Docente	Template, Firma Conjunta
+Certif.,Const, Compr.	PEGOJ	Permisos para gestión de Oficios Judiciales	Permisos para gestión de Oficios Judiciales	Template
+Certif.,Const, Compr.	PENFE	Parte de enfermo	Parte de enfermo	Importado
+Certif.,Const, Compr.	PERCI	Permiso de Circulación	Permiso de Circulación	Importado
+Certif.,Const, Compr.	PLAVM	Planilla de Viáticos y Movilidad	Planilla de Viáticos y Movilidad	Importado
+Certif.,Const, Compr.	PLCMN	Planilla de comunicación	Planilla de comunicación	Template
+Certif.,Const, Compr.	PLIMN	Planilla de imputación	Planilla de imputación	Importado
+Certif.,Const, Compr.	PLRE	Planilla de referencia	Constancia de número de referencia para relacionarla con la orden de pago emitida por el sistema financiero.	Importado
+Certif.,Const, Compr.	PMARN	Permiso A.R.N.	Permiso A.R.N.	Importado
+Certif.,Const, Compr.	PORDC	Pautas de Organización de la Comunidad	Pautas de Organización de la Comunidad	Importado
+Certif.,Const, Compr.	PRDFC	PRD Firma Conjunta	Parte de Recepción Definitiva con firma conjunta	Importado, Token, Firma Conjunta
+Certif.,Const, Compr.	PRECA	Precaria	Precaria	Importado
+Certif.,Const, Compr.	PSCES	Planilla Solicitud de Creación de Establecimiento	Planilla Solicitud de Creación de Establecimiento	Importado, Firma Conjunta
+Certif.,Const, Compr.	PVMFC	Planilla de Viáticos y Movilidad	Planilla de Viáticos y Movilidad	Importado, Firma Conjunta
+Certif.,Const, Compr.	REEME	Reexpedición de Mercadería	Documento Reexpedición de Mercadería.	Importado
+Certif.,Const, Compr.	RELLU	Registro de Lluvias	Registro de Lluvias	Importado
+Certif.,Const, Compr.	SEGTE	Segundo Testimonio	Segundo Testimonio	Importado
+Certif.,Const, Compr.	SOLAO	Solicitud de Aptitud Operativa	Documento Solicitud de Aptitud Operativa.	Importado
+Certif.,Const, Compr.	SOLCO	Solicitud de Compra	Solicitud de Compra	Importado
+Certif.,Const, Compr.	SRENO	Solicitud de Reserva Nombre	Solicitud de reserva de nombre para una sociedad, funciona como comprobante de que el nombre ya fue reservado	Importado
+Certif.,Const, Compr.	TICKE	Ticket	Ticket	Importado
+Certificados	APRHC	Aprobación de Horas Cátedra	Documento Aprobación de Horas Cátedra.	Importado
+Certificados	ATOMU	Acta de Toma de Muestra	Acta de Toma de Muestra	Importado
+Certificados	BALCE	Balance certificado	Balance certificado	Importado
+Certificados	CACME	Certificado de Acta de Medición	Certificado de Acta de Medición.	Importado, Token
+Certificados	CANS	Certificado de Nación - ANSES	Certificado de Nación - ANSES	Importado
+Certificados	CAPFI	Certificado aptitud psicofísica	Certificado aptitud psicofísica	Importado
+Certificados	CARCH	Certificado Archivo de Documentos (Formato Papel)	Certificado de Archivo de Documentos en Formato Papel	Template
+Certificados	CDISC	Certificado de Discapacidad	Certificado de Discapacidad	Importado
+Certificados	CDRDP	Certificado de Recepción Definitiva - Publicidad	Certificado de Recepción Definitiva - Publicidad	Template
+Certificados	CDSHA	Certificación de Servicios y Haberes	Certificación de Servicios y Haberes	Importado, Firma Conjunta
+Certificados	CEARB	Certificado para ARBA	Documento Certificado para ARBA.	Template
+Certificados	CEATS	Certificado Antisiniestral	Verificación de las medidas antisinestrales/mantenimiento de las existentes. Dirección de Bomberos.	Template, Especial
+Certificados	CEDAP	Certificación de Aportes	Certificación de aportes	Importado
+Certificados	CEDEM	Certificado de empleo	Certificado de empleo	Importado
+Certificados	CEDFC	Cédula	Cédula de Firma Conjunta	Importado, Firma Conjunta
+Certificados	CEDSE	Certificación de Servicio	Certificación de Servicio Genérica	Template
+Certificados	CEEPR	Certificado ético profesional	Certificado ético profesional	Importado
+Certificados	CEESP	Certificado de especialista	Certificado de especialista	Importado
+Certificados	CEFIR	Certificado notarial de Firma	Certificado notarial de Firma	Importado
+Certificados	CEHEL	Certificado Habilitación de Establecimiento Lácteo	Documento Certificado de Habilitación de Establecimiento Lácteo.	Template
+Certificados	CEINF	Certificado de Infraestructura	Certificado de Infraestructura	Libre
+Certificados	CEIRC	Certificado de RECBA	Certificado de Inscripción al Registro de Chacinados, salazones y Grasas de la Provincia de Buenos Aires	Template, Token
+Certificados	CEIRE	Certificado de inscripción en REPROCI	Certificado de inscripción en REPROCI	Libre
+Certificados	CELDI	Certificación de Servicio - CLS(Ley 14.815 Art.22)	Certificación de Servicio - CLS (Ley 14.815 Art.22)	Libre, Token
+Certificados	CELED	Certificado Ley 10.490 - Decreto 9.820/87	Certificado Ley 10.490 - Decreto 9.820/87	Libre, Especial
+Certificados	CELFC	Certificación de Servicio - CLS(Ley 14.815 Art.22)	Certificación de Servicio - CLS(Ley 14.815 Art.22)	Libre, Token, Firma Conjunta
+Certificados	CELR	Certificado de Libros Rubricados	Certificado de los libros rubricados	Importado
+Certificados	CENBA	Comodato entrega de Notebooks y Accesorios	Comodato para la entrega de Notebooks y Accesorios	Template, Firma Conjunta
+Certificados	CENFO	Certificado Negociable con Firma Ológrafa	Certificado Negociable con Firma Ológrafa	Importado
+Certificados	CENYA	Comodato entrega de Notebooks y Accesorios	Comodato para la entrega de Notebooks y Accesorios.	Template, Firma Conjunta
+Certificados	CERAC	Certificado de Acreditación	Certificado de Acreditación	Importado
+Certificados	CERAT	Certificado de Aptitud Técnica	Certificado de Aptitud Técnica	Importado
+Certificados	CERCC	Certificado de Cuenta Corriente	Certificado de cuenta corriente	Importado
+Certificados	CERCF	Certificado de Cumplimiento Fiscal	Certificado de Cumplimiento Fiscal	Importado
+Certificados	CERCI	Certificado de Circulación	Certificado de Circulación	Importado
+Certificados	CERDI	Certificación de servicios	Certificación de servicios con firma digital	Importado, Token
+Certificados	CERED	Certificado de redeterminaciones	Certificado de redeterminaciones - Firma conjunta	Importado, Firma Conjunta
+Certificados	CERFC	Certificacion de servicios	Certificación de servicios de firma conjunta	Importado, Token, Firma Conjunta
+Certificados	CERFO	Certificado de Pago con Firma Ológrafa	Certificado de Pago con Firma Ológrafa	Importado
+Certificados	CERFP	Certificado de Firmas de las Pólizas	Certificado de Firmas de las Pólizas	Importado
+Certificados	CERHM	Certificado de Habilitación Municipal	Certificado de Habilitación Municipal	Importado
+Certificados	CERLZ	Cert. de Radicación, Localización y/o Zonificación	Certificado de radicación, localización y/o zonificación	Importado
+Certificados	CERM	Certificado Médico	Certificado Médico	Importado
+Certificados	CERMA	Certificado de Matrícula	Certificado de Matrícula	Importado
+Certificados	CERN	Certificado de Reincidencia Nacional	Certificado de Reincidencia Nacional (Importado)	Importado
+Certificados	CERNO	Certificación Notarial	Certificación Notarial	Importado
+Certificados	CERO	Certificación de obra	Certificación de obra	Importado
+Certificados	CERPA	Certificado de Pago	Certificado de Pago	Importado
+Certificados	CERPL	Certificado de Pago	Certificado de Pago	Libre
+Certificados	CERRS	Certificado de residencia	Certificado de residencia	Importado
+Certificados	CERRX	Certificado de habilitación de Rayos X	Certificado de habilitación de Rayos X	Importado
+Certificados	CERSE	Certificación de Servicios	Certificación de Servicios	Importado
+Certificados	CERSV	Certificación de servicios	Certificación de servicios de la Subsecretaría para la Modernización del Estado	Importado
+Certificados	CERTC	Certificado de firma conjunta	Certificado de firma conjunta	Importado, Firma Conjunta
+Certificados	CERTF	Certificación de Firma	GEDO utilizado para poder certificar firma de un documento.	Importado, Firma Conjunta
+Certificados	CERTL	Certificado de Legalización	Certificado de Legalización	Importado
+Certificados	CERTP	Certificado del Proveedor	Certificado del Proveedor	Importado
+Certificados	CERTS	Certificación de Servicios	Certificación de Servicios	Libre, Firma Conjunta
+Certificados	CERTV	Certificado Validado	Certificado Validado con Firma Ológrafa y Digital	Importado
+Certificados	CERUV	Certificado U.V	Certificado U.V	Importado
+Certificados	CERVA	Certificado de Vacunación	Certificado de Vacunación	Importado
+Certificados	CESCO	Certificación de servicios codificado	Certificación de servicios codificado	Importado, Firma Conjunta
+Certificados	CESDI	Certificación de Servicios	Certificación de Servicios	Libre, Token
+Certificados	CESER	Certificación de servicios	Certificación de servicios	Libre
+Certificados	CESFC	Certificación de Servicios	Certificación de Servicios de Firma Conjunta	Libre, Token, Firma Conjunta
+Certificados	CESTR	Certificado de Solicitud en Trámite	Certificado de Solicitud en Trámite	Libre
+Certificados	CEVAA	Cert. de Vigencia de la Autoridad de Aplicación	Certificado de Vigencia de la Autoridad de Aplicación	Importado
+Certificados	CEVDG	Certificado de Veterano de Guerra	Certificado de Veterano de Guerra	Importado
+Certificados	CGRPA	Certificado de Generadores de Residuos Patogénicos	Certificado de Generadores de Residuos Patogénicos	Importado
+Certificados	CHABE	Certificación de Haberes	Certificación de Haberes	Importado, Firma Conjunta
+Certificados	CHEAP	Certificado Habilitación Est. Apícolas	Certificado de Habilitación de Establecimientos Apícolas	Template
+Certificados	CHLDV	Cert. de Hab. de Lab. de Diagnóstico Veterinario	Certificado de Habilitación de Laboratorio de Diagnostico Veterinario	Template
+Certificados	CHMFE	Certificado Habilitación Municipal con Firma Ext	Certificado de Habilitación Municipal con Firma Externa	Importado, Firma Externa
+Certificados	CINRC	Certificado de inscripción en REPROCI - FC	Certificado de inscripción en REPROCI de firma conjunta	Libre, Firma Conjunta
+Certificados	CIRPI	Certificado de inscripción	Certificado de inscripción RAPPSI	Importado, Notificable
+Certificados	CIRTA	Certificado de Inscripción del Registro de Tambo	Certificado de Inscripción del Registro Obligatorio de Tambo	Template
+Certificados	CLAB	Constancia Laboral	Constancia Laboral	Libre
+Certificados	CLCF	Certificado de Legitimidad de Copia Fiel	Certificado de legitimidad de copia fiel	Importado
+Certificados	CLP	Certificado de Liquidación Provisoria	Certificado de Liquidación Provisoria	Importado, Token
+Certificados	CLPI	Certificado de Liquidación Provisoria	Certificado de liquidación provisoria importado de firma conjunta, con token	Importado, Token, Firma Conjunta
+Certificados	CNRTC	Certificado de inscripción en REPROCI - En trámite	Certificado de inscripción en REPROCI - En trámite	Libre, Firma Conjunta
+Certificados	CPCFC	Certificado Previo con Firma Conjunta	Certificado Previo con Firma Conjunta	Importado, Firma Conjunta
+Certificados	CPFOC	Certificado de pago firma ológrafa Firma conjunta	Certificado de pago firma ológrafa, importado de firma conjunta.	Importado, Firma Conjunta
+Certificados	CRECI	Certificación de Recibos	Certificación de Recibos	Libre
+Certificados	CRNES	Certificado RNE	Certificado de Inscripción/Re-Inscripción al Registro Nacional de Establecimientos.	Template, Token
+Certificados	CRNPA	Certificado RNPA	Certificado de Registro Nacional de Productos Alimenticios - Válido por cinco Años	Template, Token
+Certificados	CRPMN	Certificado PyME Nacional	Certificado PyME Nacional, documento de firma externa.	Importado, Firma Externa
+Certificados	CVAFI	Certificado de Valuación Fiscal Inmobiliaria	Certificado de Valuación Fiscal Inmobiliaria	Importado
+Certificados	CVALH	Certificado Valor Hora	Certificado Valor Hora	Importado, Firma Conjunta
+Certificados	DENYA	Devolución de Notebooks y Accesorios	Devolución de Notebooks y Accesorios.	Template, Firma Conjunta
+Certificados	DNBYA	Devolución de Notebooks y Accesorios	Devolución de Notebooks y Accesorios	Template, Firma Conjunta
+Certificados	DOCDP	Documentación del Proveedor	Documentación del Proveedor	Importado
+Certificados	FORJE	Formulario Cert. Serv. Jubilación Ejecutiva	Formulario con los datos personales del agente, cargo con el que se jubila, duración de servicios, aportes realizados e historial de cargos.	Importado
+Certificados	IOMAR	IOMA Reintegro	IOMA Reintegro	Libre
+Certificados	MIGOS	MIGO-SAP	MIGO (Certificación de Avance de Obra) de SAP.	Importado
+Certificados	PCICU	Planilla CICUAL	Planilla CICUAL	Importado
+Certificados	PDCAT	Programa de Cátedra	Programa de Cátedra	Importado
+Certificados	PDEST	Plan de Estudios	Plan de Estudios	Importado
+Certificados	PLASA	Planilla de Solicitud de Análisis	Planilla de solicitud de análisis	Importado
+Certificados	PLDID	Placa de Identificación	Documento Placa de Identificación	Importado
+Certificados	REANA	Resultado de Análisis	Resultado de Análisis	Importado
+Certificados	RPSOF	Rendiciones Pasajes Oficiales	Rendiciones Pasajes Oficiales	Importado
+Certificados	RUAME	Ruamel	Registro único de antecedentes médicos laborales	Importado
+Certificados	SOLDA	Solicitud de Licencia por descanso anual	Solicitud de Licencia por descanso anual del personal del Servicio Penitenciario Bonaerense y Ministerio de Justicia	Template, Firma Conjunta
+Certificados	TNNFO	Triplicado no Negociable con Firma Ológrafa	Triplicado no Negociable con Firma Ológrafa	Importado
+Certificados	VTV	Verificación Técnica Vehicular	Certificado de la Verificación Técnica Vehicular	Importado
+Compras y Contrataciones	CCFAC	Cuadro Comparativo Factura Conformada	Cuadro Comparativo Factura Conformada.	Template
+Compras y Contrataciones	CCFC	Cuadro Comparativo	Cuadro Comparativo de Firma Conjunta	Importado, Firma Conjunta
+Compras y Contrataciones	CEDCI	Cédula Circular	Cédula Circular	Importado
+Compras y Contrataciones	CIRCU	Circular	Circular Modificatoria, Aclaratoria del Pliego	Importado
+Compras y Contrataciones	CREPR	Credencial de Proveedor	Credencial de un proveedor	Importado
+Compras y Contrataciones	CUCMO	Cuadro Comparativo de Ofertas	Cuadro Comparativo de Ofertas	Importado
+Compras y Contrataciones	CUCOM	Cuadro Comparativo	Cuadro Comparativo	Importado
+Compras y Contrataciones	CUCOP	Cuadro Comparativo de Precios	Cuadro Comparativo de Precios.	Template
+Compras y Contrataciones	DATIN	Datos de Inmueble	Formulario con los datos de contacto de un inmueble	Template
+Compras y Contrataciones	GARAN	Garantía	Garantía	Importado
+Compras y Contrataciones	JUPRE	Justiprecio	Documento con un presupuesto tentativo de una compra	Importado
+Compras y Contrataciones	LEMP	Listado de Empresas	Documento con un listado de empresas en condiciones de participar de una Compulsa de Precios	Importado
+Compras y Contrataciones	LPREF	Listado de Precios Referenciales	Listado de Precios Referenciales	Importado
+Compras y Contrataciones	OCFE	Orden de Compra con Firma Externa	Orden de Compra con Firma Externa	Importado, Firma Externa
+Compras y Contrataciones	OFRTA	Oferta	Oferta	Importado
+Compras y Contrataciones	OPFE	Orden de Publicidad con Firma Externa	Orden de Publicidad con Firma Externa	Importado, Firma Externa
+Compras y Contrataciones	OPUFC	Orden de Publicidad	Documento Orden de Publicidad	Importado, Firma Conjunta
+Compras y Contrataciones	ORCFC	Orden de Compra con Firma Conjunta	Orden de Compra con Firma Conjunta	Importado, Firma Conjunta
+Compras y Contrataciones	ORCOA	Orden de Compra Abierta	Orden de Compra Abierta	Importado
+Compras y Contrataciones	ORCOM	Orden de compra	Orden de compra	Importado
+Compras y Contrataciones	ORDEC	Orden de Compra Cerrada	Orden de Compra Cerrada	Importado
+Compras y Contrataciones	ORPUB	Orden de Publicidad	Documento Orden de Publicidad	Importado
+Compras y Contrataciones	PAPRE	Partida Presupuestaria	Partida Presupuestaria	Importado
+Comunicaciones	ABMUA	ABM Usuario de aplicación	Documento para solicitar alta, baja o modificación de usuarios de aplicación.	Template
+Comunicaciones	ALS	Configuración de Administrador Local	Formulario para el Alta / Baja / Modificación de un administrador local	Importado - Template
+Comunicaciones	ALSEC	Alta de Sector	Documento para solicitar el alta de un Sector	Template
+Comunicaciones	BUSER	Baja de Usuario	Formulario para solicitar la baja de un usuario en GDEBA	Template
+Comunicaciones	CAREP	Cambio de Repartición	Documento para el cambio de repartición de un usuario	Template
+Comunicaciones	CENFC	Cédula de Notificación Firma Conjunta	Cédula de Notificación Firma Conjunta	Libre, Firma Conjunta
+Comunicaciones	CENOL	Cédula de Notificación	Cédula de Notificación	Libre
+Comunicaciones	CENOT	Cédula de Notificación	Cédula de Notificación	Importado
+Comunicaciones	CETFA	Cedula TFA	Cédula de notificación de las actuaciones del Tribunal Fiscal de Apelación.	Libre, Firma Conjunta
+Comunicaciones	CIIFC	Circular Importada de Firma Conjunta	Circular Importada de Firma Conjunta	Importado, Firma Conjunta
+Comunicaciones	CIR	Circular	Circular de produccion libre y firma simple	Libre, Especial
+Comunicaciones	CIRCT	Circular Firma Conjunta	Circular firma conjunta con Token	Libre, Especial, Token, Firma Conjunta
+Comunicaciones	CIRFC	Circular	Circular de producción libre y firma conjunta	Libre, Especial, Firma Conjunta
+Comunicaciones	CIRFU	Circular	Circular firma única con Token	Libre, Especial, Token
+Comunicaciones	FOSE	Foja de Servicios	Foja de Servicios	Importado
+Comunicaciones	INLIP	Invitación a Licitación Privada	Invitacion para los proveedores que se encuentren en el Registro de Proveedores y Licitadores	Libre
+Comunicaciones	MEMFC	Memo de Firma Conjunta	Memo de Firma Conjunta	Libre, Firma Conjunta
+Comunicaciones	MEMO	MEMO	MEMO	Libre
+Comunicaciones	NESUB	Informe de negatividad de subsidios	Informe de negatividad de subsidios	Importado
+Comunicaciones	NOCCP	Nota de Cierre de Caratulación en Papel	Nota que se realiza para dar cierre a la caratulación en papel	Template
+Comunicaciones	NOFT	NOTA (Firma con token)	NOTA (Firma con token)	Libre, Token
+Comunicaciones	NOPED	Nota de Pedido	Nota de Pedido	Importado
+Comunicaciones	NOPFH	Nota Pedido de Fondos Haberes	Nota Pedido de Fondos Haberes	Libre, Firma Conjunta
+Comunicaciones	NOPRA	Nota Proforma artículo 4°	Nota Proforma artículo 4°	Importado
+Comunicaciones	NOSOL	Nota de Solicitud	Documento Nota de Solicitud.	Libre
+Comunicaciones	NOTA	NOTA	NOTA	Libre, Transferible
+Comunicaciones	NOTFC	Nota de Firma Conjunta	Nota de Firma Conjunta	Libre, Firma Conjunta
+Comunicaciones	NOTI	Notificación	Notificación	Importado
+Comunicaciones	NOTIE	Notificación con Firma Externa	Notificación con Firma Externa	Importado, Firma Externa
+Comunicaciones	PRLM	Permisos RLM	Solicitud de permisos RLM	Template
+Comunicaciones	SIEVO	Solicitud sin efecto baja voluntaria	Solicitud sin efecto baja voluntaria	Importado
+Comunicaciones	SOINI	Solicitud inicial	Solicitud del Ministerio de Justicia y el Servicio Penitenciario Bonaerense	Libre
+Comunicaciones	SOLGR	Solicitud de habilitación de GEDO reservado	Documento destinado a añadir nuevas reparticiones para iniciar y/o firmar documentos reservados solo si el organismo requirente ya ha cumplido el procedimiento legal de solicitud con anterioridad.	Template
+Comunicaciones	SOLMI	Solicitud de Migracion de Sector	Documento para solicitar la migración de sectores en GDEBA	Template
+Comunicaciones	SOLMR	Solicitud de Multirepartición	Documento para gestionar la solicitud de multirepartición para un usuario de GDEBA	Template
+Comunicaciones	SOLMS	Solicitud de Multisector	Documento para gestionar la solicitud de multisector para un usuario de GDEBA	Template
+Comunicaciones	SOLNU	Solicitud de Licencia anual no usufructuada	Solicitud de Licencia anual no usufructuada	Importado
+Comunicaciones	SOLPV	Solicitud de Permiso de Vista	Documento para solicitar permiso de vista en expedientes o documentos con reserva.	Template
+Comunicaciones	SOLRE	Solicitud de recuperación de expediente	Documento destinado a solicitar la recuperación de expedientes enviados erróneamente.	Template
+Comunicaciones	SOLRT	Solicitud de Reserva en Tramitación	Documento para solicitar los permisos del usuario para reserva de EE en tramitación.	Template
+Comunicaciones	SOLRU	Solicitud de Reactivación de Usuario	Documento para solicitar la reactivación de un usuario GDEBA.	Template
+Comunicaciones	SOLTR	Solicitud de habilitación de trámite reservado	Documento destinado a añadir nuevas reparticiones para caratular expedientes reservados solo si el organismo requirente ya ha cumplido el procedimiento legal de solicitud con anterioridad.	Template
+Comunicaciones	SOPAR	Solicitud Pago de Retribución por Cese	Solicitud Pago de Retribución por Cese	Importado
+Comunicaciones	TLGMA	Telegrama	Telegrama	Importado
+Contrato	ADEFC	Adenda Firma Conjunta	Adenda Firma Conjunta	Importado, Firma Conjunta
+Contrato	ADEND	Adenda	Adenda	Importado
+Contrato	CADFO	Contrato Administrativo con Firma Ológrafa	Contrato Administrativo con Firma Ológrafa	Importado
+Contrato	CCUT	Contrato Constitutivo UT	Contrato constitutivo de la UT	Importado
+Contrato	CLOFC	Contrato de locación de obra - Firma conjunta	Contrato de locación de obra - Firma conjunta	Importado, Firma Conjunta
+Contrato	CLSFC	Contrato de locación de servicios - Firma conjunta	Contrato de locación de servicios de firma conjunta	Importado, Firma Conjunta
+Contrato	CLSFO	Contrato Locación de Servicios con Firma Ológrafa	Contrato Locación de Servicios con Firma Ológrafa	Importado
+Contrato	COADJ	Contrato de Adjudicación	Contrato de adjudicación	Importado
+Contrato	COAFO	Contrato de Adjudicación con Firma Ológrafa	Contrato de Adjudicación con Firma Ológrafa	Importado
+Contrato	COLIN	Contrato de Locación de Inmueble	Contrato de Locación de Inmueble	Importado
+Contrato	COLSE	Contrato de Locacion de Servicios	Contrato de Locacion de Servicios	Importado - Template
+Contrato	COMOD	Comodato	Comodato	Libre
+Contrato	CONCI	Contrato de Consultoría Individual	Contrato de Consultoría Individual	Importado
+Contrato	CONEO	Contrato de Ejecución de Obra	Contrato de Ejecución de Obra	Importado
+Contrato	CONNE	Contrato Negociado	Contrato Negociado	Importado
+Contrato	CONPR	Contrato de Préstamo	Contrato de Préstamo	Importado
+Contrato	CONSU	Contrato de Subsanación	Contrato de Subsanación	Importado
+Contrato	CONTR	Contrato	Contrato Soporte Papel Impotado	Importado
+Contrato	CSRFC	Contrato de Servicios	Contrato de Servicios, documento importado de firma conjunta.	Importado, Firma Conjunta
+Contrato	CTLO	Contrato Locación de Obra	Contrato Locación de Obra	Libre
+Contrato	CTLOI	Contrato de locación de obra	Contrato de locación de obra, documento importado	Importado
+Contrato	OCOFC	Orden de Contrato Firma Conjunta	Orden de Contrato Firma Conjunta	Importado, Firma Conjunta
+Contrato	ORCON	Orden de Contrato	Orden de Contrato	Importado
+Contrato	PRCNT	Proyecto de Contrato	Proyecto de Contrato	Libre
+Contribuyente	BAPOR	Boleta de Aportes	Boleta de Aportes	Importado
+Contribuyente	BODEP	Boleta de Depósito	Boleta de Depósito	Importado
+Contribuyente	BODFE	Boleta de Depósito con Firma Externa	Boleta de Depósito con Firma Externa	Importado, Firma Externa
+Convenios y Contratos	ACAFO	Acta de Acuerdo con Firma Ológrafa	Acta de Acuerdo con Firma Ológrafa	Importado
+Convenios y Contratos	ACTAC	Acta de Acuerdo	Acta de Acuerdo	Libre
+Convenios y Contratos	CERNE	Certificación Negativa ANSES	Certificación Negativa entregada por ANSES	Importado
+Convenios y Contratos	COFEX	Convenio de Firma Externa	Documento para importar un convenio firmado por un sistema distinto a GDEBA. No se volverá a firmar el documento sino que sólo se le otorgará un número GEDO.	Importado, Firma Externa
+Convenios y Contratos	COLFC	Convenio de Firma Conjunta	Documento para generar un convenio de redacción libre, el cual será firmado por dos o más usuarios.	Libre, Firma Conjunta
+Convenios y Contratos	CONCS	Convenio de cesión de software	Convenio de cesión de software	Libre, Token, Firma Conjunta
+Convenios y Contratos	CONES	Convenio de entrega de software	Convenio de entrega de software	Libre, Token, Firma Conjunta
+Convenios y Contratos	CONFC	Convenio con Firma Conjunta	Documento para importar un convenio, el cual será firmado por dos o más usuarios.	Importado, Firma Conjunta
+Convenios y Contratos	CONVE	Convenio	Documento de firma simple para importar un convenio.	Importado
+Convenios y Contratos	CONVL	Convenio	Documento de firma simple para generar un convenio de redacción libre.	Libre
+Convenios y Contratos	INCOM	Inscripción Convenio Marco	Inscripción Convenio Marco	Importado
+Declaracion Jurada	DA1C9	Declaración Jurada Anexo 1 Circular 9	Declaración Jurada Anexo 1 Circular 9	Importado
+Declaracion Jurada	DEJCA	Declaración Jurada de Cargos	Declaración Jurada de Cargos	Importado
+Declaracion Jurada	DEJSL	DDJJ de salud laboral	DDJJ de salud laboral	Importado
+Declaracion Jurada	DIPAR	DDJJ de IPAR	DDJJ de IPAR	Importado
+Declaracion Jurada	DJANT	Declaracion Jurada de Antecedentes (ANEXO XII)	Declaración Jurada de antecedentes para asociaciones civiles	Importado
+Declaracion Jurada	DJBF	Declaración Jurada de Beneficiario Final SAS	Declaración Jurada de Beneficiario Final de Sociedades por Acciones Simplificadas	Libre
+Declaracion Jurada	DJDP	Declaracion Jurada de Datos Personales	Declaracion Jurada de Datos Personales	Importado
+Declaracion Jurada	DJINB	DDJJ de Ingresos Brutos	DDJJ de Ingresos Brutos, documento de firma externa.	Importado, Firma Externa
+Declaracion Jurada	DJINC	DJ de Inhabilidades e Incompatibilidades	Declaración Jurada de Inhabilidades e Incompatibilidades	Importado
+Declaracion Jurada	DJLEY	Declaración Jurada por Decreto - Ley	Declaración Jurada por Decreto - Ley	Importado
+Declaracion Jurada	DJMAN	Declaración Jurada de Mantenimiento de Oferta	Declaración Jurada de Mantenimiento de Oferta	Importado
+Declaracion Jurada	DJPEF	Declaración Jurada para el Personal Femenino	Declaración Jurada para el Personal Femenino	Template, Firma Conjunta
+Declaracion Jurada	DJPEP	DJ de Personas Expuestas Politicamente	Declaración Jurada de Personas Expuestas Politicamente	Importado, Firma Externa
+Declaracion Jurada	DJREP	Declaración Jurada de Representantes Legales	Declaración Jurada de Representantes Legales	Importado
+Declaracion Jurada	DJSAJ	Declaración Jurada Solicitud Anticipo Jubilatorio	Declaración Jurada Solicitud Anticipo Jubilatorio	Importado
+Declaracion Jurada	DJSFC	Declaración Jurada de Servicios de Firma Conjunta	Declaración Jurada de Servicios de firma conjunta	Importado, Firma Conjunta
+Declaracion Jurada	DJTES	Declaración Jurada Testimonial	Declaración Jurada Testimonial	Importado
+Declaracion Jurada	DJUAF	Declaración Jurada para Asignaciones Familiares	Declaración Jurada para Asignaciones Familiares	Template, Firma Conjunta
+Declaracion Jurada	DSERV	Declaración Jurada de Servicios	Declaración Jurada de Servicios	Importado
+Declaracion Jurada	F6052	Formulario RC 6052	Formulario RC 6052	Importado
+Declaracion Jurada	FCM05	Formulario CM05	Formulario CM05	Importado
+Declaracion Jurada	FR999	Formulario R - 999	Documento con la Declaración Jurada de solicitud / afectación	Importado
+Declaracion Jurada	GDJUR	Guardería - Declaración Jurada	Guardería - Declaración Jurada	Template, Firma Conjunta
+Doc. Persona Juridica	ACECA	Aceptación del Cargo	Aceptación del Cargo	Importado
+Doc. Persona Juridica	CVSAS	Certificado de vigencia (SAS)	Certificado de vigencia para Sociedades por Acciones Simplificadas (SAS)	Template, Notificable
+Doc. Persona Juridica	ELSFT	Formulario Estatuto S.A.S Firma con Token	Formulario de Constitución Estatuto de Sociedades por Acciones Simplificadas	Importado, Notificable, Token
+Doc. Persona Juridica	ESCRA	Escritura de la Asociación	Escritura de la Asociación	Importado
+Doc. Persona Juridica	FIDC	Formulario inscripción de digesto criptográfico	Formulario utilizado para registrar la presentación de digestos criptográficos (hash).	Template
+Doc. Persona Juridica	FOARA	DDJJ Administrador de relaciones de la SAS en AFIP	Formulario necesario para ser administrador de relaciones de la SAS en AFIP	Template, Notificable
+Doc. Persona Juridica	FODAB	Datos adicionales SAS - Boletín Oficial	Formulario SAS de petición de datos adicionales - Boletín Oficial	Template, Notificable
+Doc. Persona Juridica	FODCE	Documento de certificación (Plancheta)	Formulario de plancheta de certificación SAS con documentos importados	Importado - Template, Especial, Notificable
+Doc. Persona Juridica	FODFE	Declaración Jurada de documentación fehaciente	Formulario necesario para presentar DDJJ acerca del Instrumento Constitutivo (SAS)	Template, Notificable
+Doc. Persona Juridica	FOELF	Formulario Estatuto S.A.S. Firma Conjunta	Formulario de Estatuto de Constitución de Sociedades por Acciones Simplificadas	Template, Notificable, Firma Conjunta
+Doc. Persona Juridica	FOELS	Formulario Estatuto S.A.S.	Formulario Estatuto Sociedades por Acciones Simplificadas - SAS	Template, Notificable
+Doc. Persona Juridica	FOERT	Formulario de certificación (Plancheta)	Formulario de plancheta de certificación SAS (con documentos adjuntos)	Template, Especial, Notificable
+Doc. Persona Juridica	FOIRD	Formulario inscripción al Registro Libro Digitales	Formulario inscripción al Registro Libro Digitales	Template
+Doc. Persona Juridica	FOLID	Formulario Constitución Registro Libros Digitales	Formulario necesario para constituir el registro de libros digitales.	Template
+Doc. Persona Juridica	FOONS	Formulario de Constitución de Registro SAS	Formulario necesario para la constitución de un registro para Sociedades por Acciones Simplificadas	Template, Notificable
+Doc. Persona Juridica	INSAP	Instrumento de Aprobación	Instrumento de Aprobación	Importado
+Doc. Persona Juridica	INSAT	Instrumento de Acuerdo de Transformación	Instrumento de Acuerdo de Transformación	Importado
+Doc. Persona Juridica	ITCFD	Instrumento Constitutivo (Firma Digital)	Documento de Instrumento Constitutivo con firma digital	Importado, Firma Externa
+Doc. Persona Juridica	LDREC	Formulario Detalle Constitución Libros Digitales	Formulario Detalle Constitución Libros Digitales	Template
+Doc. Persona Juridica	MINRO	Minuta Rogatoria	Minuta Rogatoria	Importado
+Doc. Persona Juridica	NSAS	Nota de solicitud (SAS)	Documento de carácter importado que permite adicional una solicitud originada por el emprendedor de una S.A.S.	Importado
+Doc. Persona Juridica	RECMU	Reconocimiento Municipal	Reconocimiento Municipal	Importado
+Docum. Financiera	A1EMF	Anexo I - Estado de Movimientos de Fondos	Anexo I - Estado de Movimientos de Fondos	Importado
+Docum. Financiera	ACARQ	Acta de Arqueo	Acta de Arqueo	Libre, Firma Conjunta
+Docum. Financiera	ADPRE	Adecuación Presupuestaria	Adecuación Presupuestaria	Importado
+Docum. Financiera	ALMDP	Anulación De Minuta de Mandado a Pagar	Anulación De Minuta de Mandado a Pagar	Importado
+Docum. Financiera	ANEXJ	Anexo J - Detalle de movimientos	Generado en el sistema de contabilidad.	Importado
+Docum. Financiera	ANEXP	Anexo P	Anexo P	Importado
+Docum. Financiera	ANORP	Anulación de Orden de Pago	Anulación de Orden de Pago	Importado
+Docum. Financiera	AOPEP	Anulación de Orden de Pago Extra Presupuestaria	Anulación de Orden de Pago Extra Presupuestaria	Importado
+Docum. Financiera	ARCAJ	Arqueo de Caja	Documento que contiene las transacciones de la caja realizadas.	Importado
+Docum. Financiera	ARNCL	Arancel	Arancel	Importado
+Docum. Financiera	ASICO	Asiento Contable	Asiento Contable	Importado
+Docum. Financiera	ATPAG	Autorizado a Pagar	Autorizado a Pagar	Importado
+Docum. Financiera	AUFAC	Autorización de Factura	Autorización de Factura	Importado
+Docum. Financiera	AUIMP	Auto de Imputación	Auto de Imputación	Libre
+Docum. Financiera	AULVI	Autorización de Liquidación de Viáticos	Autorización de Liquidación de Viáticos	Template
+Docum. Financiera	CACHI	Rendición de Caja Chica	Rendición de Caja Chica	Importado
+Docum. Financiera	CADDE	Cancelación de Débito	Cancelación de Débito	Importado
+Docum. Financiera	CAEST	Cálculo Estructural	Cálculo Estructural	Importado
+Docum. Financiera	CAIF	Cuenta Ahorro Inversión Financiera	Cuenta de ahorro de inversión financiera	Importado
+Docum. Financiera	CARBA	Cartilla Bancaria	Cartilla Bancaria	Importado
+Docum. Financiera	CARTN	Cálculo de Redeterminación	Cálculo de Redeterminación	Importado
+Docum. Financiera	CBU	Clave Bancaria Uniforme	Documento para Importar Constancia de CBU	Importado - Template
+Docum. Financiera	CBUI	Clave Bancaria Uniforme	Clave Bancaria Uniforme (Importado)	Importado
+Docum. Financiera	CCDEX	Comprobante de Cont Definitivo Extrapresupuestario	Comprobante de contabilización definitivo extrapresupuestario	Importado
+Docum. Financiera	CCDFC	Comprobante Contable Devengado Firma Conjunta	Comprobante Contable Devengado Firma Conjunta	Importado, Firma Conjunta
+Docum. Financiera	CCDPR	Comprobante de Cont. Definitivo Presupuestario	Comprobante de contabilización definitivo presupuestario	Importado
+Docum. Financiera	CCPEX	Comprobante de Cont Preventivo Extrapresupuestario	Comprobante de contabilización preventivo extrapresupuestario	Importado
+Docum. Financiera	CCPFC	Comprobante cont. Preventivo Firma Conjunta	Comprobante contable Preventivo Firma Conjunta	Importado, Firma Conjunta
+Docum. Financiera	CCPPR	Comprobante de Cont. Preventivo Presupuestario	Comprobante de contabilización preventivo presupuestario	Importado
+Docum. Financiera	CERSA	Certificación de Saldos	Documento Certificación de Saldos.	Importado
+Docum. Financiera	CGSP	Calculo de gasto y presupuesto	Realizado por el departamento contable	Importado
+Docum. Financiera	CHAPR	Certificado de Haberes Previsionales	Certificado de haberes previsionales	Importado
+Docum. Financiera	CMPRE	Comprobante de Retenciones Efectuadas	Comprobante de Retenciones Efectuadas	Importado
+Docum. Financiera	COBAN	Comunicación Bancaria	Comunicación Bancaria	Importado
+Docum. Financiera	COCPA	Comprobante de Contabilización Preventivo - Ajuste	Comprobante de Contabilización Preventivo - Ajuste	Importado
+Docum. Financiera	COMCM	Comprobante de Contabilización Compromiso	Comprobante de Contabilización Compromiso	Importado
+Docum. Financiera	COMCP	Comprobante de Contabilización Preventivo	Comprobante de Contabilización Preventivo	Importado
+Docum. Financiera	CONCB	Conciliación de Cuenta Bancaria	Conciliación de Cuenta Bancaria	Importado
+Docum. Financiera	CONEM	Consulta de embargo	Consulta de embargo	Importado
+Docum. Financiera	CONRD	Constancia de Registración de Débitos	Print sacado de la sección de Registración de Débitos en el Sistema Financiero	Importado
+Docum. Financiera	CONRI	Constancia de Registración de Ingresos	Print sacado de la sección de Registración de Débitos en el Sistema Financiero	Importado
+Docum. Financiera	CONSA	Conciliación de Saldos	Documento Conciliación de Saldos	Importado
+Docum. Financiera	CPYAP	Contribuciones Patronales y Aportes Personales	Documento Contribuciones Patronales y Aportes Personales.	Importado
+Docum. Financiera	CREMO	Credencial Monotributo	Credencial de pago del Monotributo	Importado
+Docum. Financiera	CRIBR	Cálculo de Retenciones de Ingresos Brutos	Cálculo de Retenciones de Ingresos Brutos	Importado
+Docum. Financiera	CUAFA	Cuasifactura	Cuasifactura	Importado
+Docum. Financiera	CUANT	Calculo de cuota de Anticipo Jubilatorio	Formulario para la carga del cálculo de la Cuota de Anticipo Jubilatorio	Template
+Docum. Financiera	CUFIN	Cupo Financiero	Cupo Financiero	Importado
+Docum. Financiera	CURIN	Curva de Inversiones	Curva de Inversiones	Importado
+Docum. Financiera	DAFDI	Devengado de Anticipo Financiero	Devengado de Anticipo Financiero	Importado, Token
+Docum. Financiera	DAFFC	Devengado de Anticipo Financiero	Devengado de Anticipo Financiero	Importado, Token, Firma Conjunta
+Docum. Financiera	DBTO	Débito 401/9	Débito 401/9	Importado
+Docum. Financiera	DEJRE	Detalle de Ejecución de Recursos	Detalle de Ejecución de Recursos	Importado
+Docum. Financiera	DEPRE	Desafección Presupuestaria	Desafección Presupuestaria	Importado
+Docum. Financiera	DETDE	Detalle de deuda	Detalle de deuda	Importado
+Docum. Financiera	DEUAL	Deudores Alimentarios Morosos	Comunica si registra una deuda	Importado
+Docum. Financiera	DPTS	Deuda por tasa de fiscalización	Deuda por tasa de fiscalización	Importado
+Docum. Financiera	DTMDP	Desafectación de Minuta de Mandado a Pagar	Desafectación de Minuta de Mandado a Pagar.	Importado
+Docum. Financiera	EARFC	Expediente de Arqueo Mensual de Firma Conjunta	Expediente de Arqueo Mensual de Firma Conjunta	Importado, Firma Conjunta
+Docum. Financiera	EARME	Expediente de Arqueo Mensual	Expediente de Arqueo Mensual	Importado
+Docum. Financiera	EJECO	Ejercicio Contable	Ejercicio Contable	Importado
+Docum. Financiera	ENTBI	Entrada de bienes	Entrada de bienes	Template, Firma Conjunta
+Docum. Financiera	ERDOS	Estado de resultados de la empresa	Estado de resultados de la empresa, documento de firma externa.	Importado, Firma Externa
+Docum. Financiera	ESEF	Estado de Situación Económica y Financiera	Estado de situación económica y financiera	Importado
+Docum. Financiera	ESEPA	Estado de Evolución del Pasivo Análitico	Estado de Evolución del Pasivo Análitico	Importado
+Docum. Financiera	ESOC	Estatuto Societario	Estatuto Societario	Importado
+Docum. Financiera	ESOFE	Estatuto Societario con Firma Externa	Estatuto Societario con Firma Externa	Importado, Firma Externa
+Docum. Financiera	EXBAN	Extracto bancario	Extracto bancario	Importado
+Docum. Financiera	F155	Formulario 155	Formulario 155	Importado
+Docum. Financiera	F931	Formulario 931	Formulario 931	Importado
+Docum. Financiera	FA4	Formulario A4	Formulario A4	Importado
+Docum. Financiera	FACDI	Factura	Factura	Importado - Template, Token
+Docum. Financiera	FACTE	Factura	Factura (contenido embebido). Permite la incorporación de documentos con firma digital externa.	Libre, Notificable
+Docum. Financiera	FO35	Formulario 35	Documento de contabilidad Formulario 35.	Importado
+Docum. Financiera	FO41	Formulario 41	Formulario 41	Importado
+Docum. Financiera	FO42	Formulario 42	Documento de contabilidad Formulario 42.	Importado
+Docum. Financiera	FR550	Formulario R550	Formulario R550	Importado
+Docum. Financiera	GENDE	Generación de Débitos	Generación de Débitos	Importado
+Docum. Financiera	IAFIP	Inscripción AFIP	Constancia de Inscripción a AFIP	Importado - Template
+Docum. Financiera	IFPRE	Informe de Presupuesto	Informe de Presupuesto	Importado
+Docum. Financiera	IMDEF	Imputacion Definitiva	Imputación Contable Definitiva del gasto	Importado
+Docum. Financiera	IMDLG	Implementación de la Garantía	Implementación de la Garantía	Libre
+Docum. Financiera	IMPRE	Imputación Preventiva	Imputación Preventiva	Importado
+Docum. Financiera	IMPS	Imputación Presupuestaria	Imputación Presupuestaria	Importado
+Docum. Financiera	IMPUG	Impugnación	Impugnación	Importado
+Docum. Financiera	IMPUT	Imputación Contable	Imputación Contable	Importado
+Docum. Financiera	INBFE	Ingresos Brutos con Firma Externa	Inscripción a Ingresos Brutos con Firma Externa.	Importado, Firma Externa
+Docum. Financiera	INBRU	Ingresos Brutos	Inscripción a Ingresos Brutos	Importado
+Docum. Financiera	INCPA	Inclusión al Pago	Inclusión al Pago	Importado
+Docum. Financiera	INFUS	Informe de Últimos Sueldos	Documento con la Información de los últimos sueldos	Importado
+Docum. Financiera	INPRE	Intervención de Presupuesto	Intervención de Presupuesto.	Importado
+Docum. Financiera	LDAFI	Libre Deuda AFIP	Libre Deuda AFIP	Importado
+Docum. Financiera	LHEFC	Liquidación de Horas Extras	Liquidación de Horas Extras	Importado, Firma Conjunta
+Docum. Financiera	LHEXT	Liquidación de Horas Extras	Liquidación de Horas Extras	Importado
+Docum. Financiera	LIBPA	Libreta de pagos	Libreta de pagos	Importado
+Docum. Financiera	LIDEU	Libre de Deuda	Libre de Deuda	Importado
+Docum. Financiera	LILIQ	Libro de Liquidación	Libro de Liquidación	Importado
+Docum. Financiera	LIOPE	Liquidación de Orden de Pago Extrapresupuestaria	Liquidación de Orden de Pago Extrapresupuestaria	Importado
+Docum. Financiera	LIQAD	Liquidaciones Administrativas	Liquidaciones Administrativas	Importado
+Docum. Financiera	LIQAN	Liquidación de Anticipo	Liquidación de Anticipo	Importado
+Docum. Financiera	LIQDE	Liquidación de deuda	Liquidación de deuda	Importado
+Docum. Financiera	LIQHA	Liquidación de Haberes	Liquidación de Haberes	Importado
+Docum. Financiera	LIQON	Liquidación	Liquidación	Importado
+Docum. Financiera	LIQOP	Liquidación de Orden de Pago	Liquidación de Orden de Pago	Importado
+Docum. Financiera	LIQPA	Liquidacion de Pago	Liquidacion de Pago	Importado
+Docum. Financiera	LIQVM	Liquidación de Viáticos y Movilidad	Liquidación de Viáticos y Movilidad	Importado
+Docum. Financiera	LISRE	Listado Retenido	Listado Retenido	Importado
+Docum. Financiera	LVMFC	Liquidacion de Viáticos y Movilidad Firma Conjunta	Documento de liquidacion de viáticos y movilidad	Importado, Firma Conjunta
+Docum. Financiera	MCFC	Minuta Contable con Firma Conjunta	Minuta Contable con Firma Conjunta	Importado, Firma Conjunta
+Docum. Financiera	MCFE	Minuta Contable con Firma Externa	Minuta Contable con Firma Externa	Importado, Firma Externa
+Docum. Financiera	MICO	Minuta Contable	Minuta Contable	Importado
+Docum. Financiera	MIMPA	Minuta de Mandado a Pagar	Minuta de Mandado a Pagar	Importado
+Docum. Financiera	MINIC	Minuta de imputación Contable	Minuta de imputación Contable	Importado
+Docum. Financiera	MINLI	Minuta de Liquidación	Minuta de Liquidación	Importado
+Docum. Financiera	MINUT	Minuta	Minuta	Importado
+Docum. Financiera	MONOC	Monotributo Cooperativistas	Documento Monotributo Cooperativistas.	Importado
+Docum. Financiera	MTBLO	Minuta en blanco	No surge del sistema financiero,si no de un excel.	Importado
+Docum. Financiera	NCDFC	Nota de crédito de firma conjunta	Nota de crédito de firma conjunta	Importado - Template, Token, Firma Conjunta
+Docum. Financiera	NCVAL	Notificación a la Caja de Valores	Notificación a la Caja de Valores	Libre
+Docum. Financiera	NDBFC	Nota de débito de firma conjunta	Nota de débito de firma conjunta	Importado - Template, Token, Firma Conjunta
+Docum. Financiera	NDEB	Nota de Débito	Nota de Débito	Importado - Template, Token
+Docum. Financiera	NODAC	Nota de Aceptación	Nota de Aceptación	Importado
+Docum. Financiera	NORMA	Normativa	Normativa	Importado
+Docum. Financiera	OPC41	Orden de Pago C41	Orden de Pago C41	Importado
+Docum. Financiera	OPC42	Orden de Pago C42	Orden de Pago C42	Importado
+Docum. Financiera	OPEFC	Orden de Pago Extrapresupuestaria Firma Conjunta	Orden de Pago Extrapresupuestaria Firma Conjunta	Importado, Firma Conjunta
+Docum. Financiera	ORCFO	Orden de Pago con Firma Ológrafa	Orden de pago con firma ológrafa	Importado
+Docum. Financiera	ORCMP	Orden de compra	Orden de compra con firma digital	Importado, Token
+Docum. Financiera	ORCOB	Orden de Cobro	Orden de Cobro	Importado
+Docum. Financiera	ORPAE	Orden de Pago Extrapresupuestaria	Orden de Pago Extrapresupuestaria	Importado
+Docum. Financiera	ORPAG	Orden de pago	Documento mediante el cual la autoridad competente dispone la entrega de fondos.	Importado
+Docum. Financiera	ORPAV	Orden de pago - Viáticos	Orden de pago - Viáticos	Importado
+Docum. Financiera	ORPFC	Orden de pago Firma Conjunta	Documento mediante el cual la autoridad competente dispone la entrega de fondos y debe ser firmado por mas de un usuario.	Importado, Firma Conjunta
+Docum. Financiera	ORPRI	Orden de Provisión	Orden de Provisión	Importado
+Docum. Financiera	ORPRO	Orden de Provisión	Orden de Provisión. Documento importado: Afectación Presupuestaria.	Importado - Template
+Docum. Financiera	PARED	Parte de Recepción Definitivo	Documento Parte de Recepción Definitivo.	Importado
+Docum. Financiera	PAREX	Partida Extrapresupuestaria	Partida Extrapresupuestaria	Importado
+Docum. Financiera	PDDFD	Pedido de Fondo	Pedido de Fondo	Importado
+Docum. Financiera	PDFPR	Pedido de Fondo Provisorio	Pedido de Fondo Provisorio	Importado
+Docum. Financiera	PDIEX	Proyecto de Distribución de Excedentes	Proyecto de Distribución de Excedentes	Importado
+Docum. Financiera	PDRS	Pedido de Retenciones	Pedido de Retenciones	Importado
+Docum. Financiera	PFOFC	Planilla de Pedido de Fondos Definitivo Firma Conj	Planilla de Pedido de Fondos Definitivo Firma Conjunta	Importado, Firma Conjunta
+Docum. Financiera	PFOND	Planilla de Pedido de Fondos Definitivo	Planilla de Pedido de Fondos Definitivo	Importado
+Docum. Financiera	PIDLG	Proyecto de Implementación de la Garantía	Proyecto de implementación de la garantía	Libre
+Docum. Financiera	PLAAI	Planilla A	Planilla A	Importado
+Docum. Financiera	PLADC	Planilla de Adecuación Débito/Crédito	Planilla de Adecuación Débito/Crédito	Importado
+Docum. Financiera	PLAHA	Planilla de Haberes	Planilla de Haberes	Importado
+Docum. Financiera	PLAHR	Planilla de Haberes Retenidos	Planilla de Haberes Retenidos	Importado
+Docum. Financiera	PLAPA	Plan de Pago	Plan de Pago	Importado
+Docum. Financiera	PRDDI	PRD	Parte de Recepción Definitiva	Importado, Token
+Docum. Financiera	PRECO	Planilla Resumen de Contrataciones	Planilla Resumen de Contrataciones	Importado
+Docum. Financiera	PREFE	Presupuesto de Referencia	Presupuesto de Referencia	Importado
+Docum. Financiera	PREIN	Planilla Resumen de Ingresos	Planilla Resumen de Ingresos	Importado
+Docum. Financiera	PREPA	Planilla Resumen de Pagos	Planilla Resumen de Pagos	Importado
+Docum. Financiera	PRERE	Planilla Resumen de Rendición	Planilla Resumen de Rendición	Importado, Firma Conjunta
+Docum. Financiera	PROCA	Proyecto de Orden de Compra Abierta	Proyecto de Orden de Compra Abierta	Importado
+Docum. Financiera	PROCC	Proyecto de Orden de Compra Cerrada	Proyecto de Orden de Compra Cerrada	Importado
+Docum. Financiera	PROCO	Proyecto de Orden de Compra	Proyecto de Orden de Compra.	Importado
+Docum. Financiera	PROFO	Proyección de Fondos	Proyección de Fondos	Importado
+Docum. Financiera	PVMA	Planilla de Viáticos y Movilidad Anticipo	Planilla de Viáticos y Movilidad Anticipo	Importado
+Docum. Financiera	PVMD	Planilla de Viáticos y Movilidad Demostrativa	Planilla de Viáticos y Movilidad Demostrativa	Importado
+Docum. Financiera	PVMR	Planilla de Viáticos y Movilidad Rendición	Planilla de Viáticos y Movilidad Rendición	Importado
+Docum. Financiera	RCCCH	Reporte de composición de caja chica	Reporte de composición de caja chica	Importado
+Docum. Financiera	RCTA	Rendición de Cuentas	Rendición de Cuentas	Importado
+Docum. Financiera	RDCP	Reconocimiento de Deuda y Convenio de Pago	Reconocimiento de Deuda y Convenio de Pago	Importado
+Docum. Financiera	RECFC	Rendición de Combustible	Rendición de Combustible	Importado, Firma Conjunta
+Docum. Financiera	RECIB	Recibo	Recibo	Importado
+Docum. Financiera	RECOD	Registro de compromiso definitivo	Registro de compromiso definitivo	Importado
+Docum. Financiera	REGFC	Reporte de Gestión	Reporte de Gestión, documento de firma conjunta	Importado, Token, Firma Conjunta
+Docum. Financiera	REMDI	Remito	Remito	Importado - Template, Token
+Docum. Financiera	RENCO	Rendición de Combustible	Rendición de Combustible	Importado
+Docum. Financiera	REND	Rendiciones	Comprobantes de gastos, tickets, facturas.	Importado
+Docum. Financiera	REPGE	Reporte de Gestión	Reporte de Gestión	Importado, Token
+Docum. Financiera	RETEN	Retención	Retención	Importado
+Docum. Financiera	REUNI	Reporte Unificado	Reporte Unificado	Importado
+Docum. Financiera	RSUEL	Recibo de Sueldo	Recibo de Sueldo	Importado
+Docum. Financiera	RYMRE	Regularización y Modificaciones de Registro	Documento Regularización y Modificaciones de Registro.	Importado
+Docum. Financiera	SABAN	Sábanas bancarias	Sábanas bancarias	Importado
+Docum. Financiera	SALBI	Salida de bienes	Salida de bienes	Template, Firma Conjunta
+Docum. Financiera	SOLAV	Solicitud Anticipo de Viáticos	Solicitud Anticipo de Viáticos	Template, Firma Conjunta
+Docum. Financiera	VALFC	Validez de comprobante CAE/CAI	Documento que emite AFIP para la constatación de comprobantes emitidos.	Importado
+Docum. Financiera	VERIN	Verificación de incompatibilidades	Verificación de Incompatibilidades	Importado, Notificable
+Docum. Financiera	VLAF	Validación de AFIP	Validación de AFIP	Importado
+Docum. Personal	ANTEI	Antecedentes	Antecedentes	Importado
+Docum. Personal	ANTEL	Antecedentes	Antecedentes	Libre
+Docum. Personal	AULEY	Autorización Ley 25.326	Documento Autorización Ley 25.326.	Importado
+Docum. Personal	CAPBA	Certificado Antecedentes Penales Provincia Bs. As.	Certificado de antecedentes penales de la Provincia Buenos Aires	Importado
+Docum. Personal	CAPFE	Certificado Antecedentes Penales Bs. As -Firma ex.	Certificado Antecedentes Penales Provincia Bs. As. de Firma externa	Importado, Firma Externa
+Docum. Personal	CAPNA	Certificado de Antecedentes Penales de Nación	Certificado de antecedentes penales de Nación	Importado
+Docum. Personal	CEDER	Cesión de Derechos	Cesión de Derechos	Importado
+Docum. Personal	CEDFE	Certificado de Domicilio con Firma Externa	Certificado de Domicilio con Firma Externa	Importado, Firma Externa
+Docum. Personal	CEEST	Certificado de estudios	Certificado de estudios	Importado
+Docum. Personal	CEIDF	Cédula de Identidad - Formulario 104	El formulario 104 corresponde a la información registrada en el archivo histórico de cédulas del Registro Prov. de las Personas, surgida de la identificación personal a través de la cédula de identidad de la Pcia. de Bs. As.	Importado
+Docum. Personal	CERDO	Certificado de Domicilio	Certificado de domicilio	Importado
+Docum. Personal	CERET	Certificado de Estudio en Trámite	Certificado de Estudio en Trámite.	Importado
+Docum. Personal	CODIM	Constitucion de Domicilio	Constitucion de domicilio	Importado
+Docum. Personal	CPRM	Credencial de Abogado	Documento para importar la credencial del abogado.	Importado
+Docum. Personal	CSOC	Carnet de Socio	Carnet de Socio	Importado
+Docum. Personal	CUIL	Constancia CUIL	Constancia CUIL	Importado - Template
+Docum. Personal	DAPER	Datos personales	Formulario que contiene datos del/los agente/s.	Template
+Docum. Personal	DNI	Documento Nacional de Identidad	Documento expedido por el Registro Nacional de las Personas que acredita la identidad de las personas de existencia visible	Importado - Template
+Docum. Personal	DNIFE	Documento Nacional de Identidad Firma Externa	Documento Nacional de Identidad Firma Externa	Importado, Firma Externa
+Docum. Personal	DNII	Documento Nacional de Identidad	Documento Nacional de Identidad (Importado sin template)	Importado
+Docum. Personal	DOCAF	Documentación Afiliatoria	Documentación Afiliatoria	Importado
+Docum. Personal	F136	Formulario 136	Formulario 136	Importado
+Docum. Personal	F6033	Formulario RC 6033	Formulario RC 6033 - ARBA	Importado
+Docum. Personal	F6035	Formulario RC 6035	Formulario RC 6035	Importado
+Docum. Personal	F6036	Formulario RC 6036	Formulario RC 6036 - ARBA	Importado
+Docum. Personal	F6059	Formulario RC6059 - ARBA	Planilla de adhesión al régimen de franquicias y francos compensatorios	Importado
+Docum. Personal	F6132	Formulario RC 6132	Formulario RC 6132	Importado
+Docum. Personal	F6134	Formulario RC6134 - ARBA	Formulario RC6134 - ARBA	Importado
+Docum. Personal	F6135	Formulario RC6135 - ARBA	Formulario RC6135 - ARBA	Importado
+Docum. Personal	F6137	Formulario RC 6137	Formulario RC 6137	Importado
+Docum. Personal	FAJUB	Formulario Anticipo Jubilatorio	Formulario Anticipo Jubilatorio	Importado
+Docum. Personal	FICHI	Ficha de Inicio	Documento Ficha de Inicio.	Importado
+Docum. Personal	FOREQ	Formulario de Requerimiento	Formulario de Requerimiento	Importado
+Docum. Personal	FORTI	Formulario Tipo	Formulario Tipo	Importado
+Docum. Personal	FREME	Formulario de Reconocimientos Médicos	Formulario de Reconocimientos Médicos	Importado
+Docum. Personal	FTFE	Formulario Tipo con Firma Externa	Formulario Tipo con Firma Externa	Importado, Firma Externa
+Docum. Personal	INFAP	Informe de anotaciones personales	Informe de anotaciones personales	Importado
+Docum. Personal	INPAG	Informe de Pago	Informe de Pago	Importado
+Docum. Personal	LEGAG	Legajo de Agente	Legajo de Agente	Importado - Template
+Docum. Personal	LEGAJ	Legajo	Legajo	Importado
+Docum. Personal	LICON	Licencia de Conducir	Licencia de Conducir	Importado
+Docum. Personal	PASAP	Pasaporte	Pasaporte	Importado
+Docum. Personal	PLADP	Planilla de Datos Personales	Planilla de Datos Personales	Importado
+Docum. Personal	PLAEN	Planilla Encuadre Ley 10.592	Planilla Encuadre Ley 10.592	Importado
+Docum. Personal	PLENT	Planilla Encuadre Ley 10.592	Planilla Encuadre Ley 10.592	Template
+Docum. Personal	PLNDP	Planilla de Novedades del Personal	Planilla de Novedades del Personal	Importado, Firma Conjunta
+Docum. Personal	SINCI	Solicitud de Inscripción a Cursos IPAP	Solicitud de Inscripción a Cursos IPAP.	Template, Firma Conjunta
+Docum. Personal	SIREL	Situación de Revista	Situación de revista de redacción libre	Libre
+Docum. Personal	SITRE	Situación de Revista	Planilla de Situación de Revista de Agente de la Administración Pública	Importado
+Docum. Personal	SOLIN	Solicitud de Inscripción	Solicitud de Inscripción.	Template, Firma Conjunta
+Docum. Personal	SREEF	Situación de Revista de Educación - Formulario	Situación de Revista de Educación - Formulario	Template
+Docum. Personal	TIPRI	Título Primario	Título Primario	Importado
+Docum. Personal	TISEC	Título Secundario	Título Secundario	Importado
+Docum. Personal	TITAN	Título antecedentes	Título antecedentes	Importado
+Docum. Personal	TITEC	Título Técnico	Título Técnico	Importado
+Docum. Personal	TITER	Título Terciario	Título Terciario	Importado
+Docum. Personal	TITPS	Título de Posgrado	Título de Posgrado	Importado
+Docum. Personal	TITUG	Titulo de Grado	Titulo de Grado	Importado
+Docum. Personal	TITUN	Título Universitario	Título Universitario	Importado
+Estados Economicos y Financieros	BMMFT	Balance Mensual de Movimiento de Fondos	Balance Mensual de Movimiento de Fondos De la tesoreria general - Administracion central.	Importado, Firma Conjunta
+Fiscalizacion	TAFIC	Tasa Anual de Fiscalizacion de Firma Conjunta	Tasa Anual de Fiscalización de Firma Conjunta	Importado, Firma Conjunta
+Fiscalizacion	TAFIS	Tasa Anual de Fiscalización	Tasa Anual de Fiscalización	Importado
+Fondos	COMMO	Comprobante de Registro de Movimiento de Fondos	Comprobante de Registro de Movimiento de Fondos	Importado
+Fondos	NOTRA	Nota de Transferencia	Nota de transferencia de fondos	Importado
+Fondos	PFDFO	Planilla de Fondos Definitivos con Firma Ológrafa	Planilla de Fondos Definitivos con Firma Ológrafa	Importado
+Fondos	PFODE	Planilla de Fondos Definitivos	Planilla de Fondos Definitivos	Importado, Firma Conjunta
+Formularios	2828I	Formulario 2828 de Firma conjunta	Formulario 2828 de Firma conjunta	Importado, Firma Conjunta
+Formularios	2828L	Formulario 2828 de Firma conjunta	Formulario 2828 de Firma conjunta	Libre, Firma Conjunta
+Formularios	AMBUR	Alta - Baja - Modificación de Usuarios de Red	ALTA - BAJA - MODIFICACION de Usuarios de Red	Template
+Formularios	AMZCR	Aut. de movimientos de zool. y centros de rescate	Permiso de los ingresos y egresos de ejemplares de zoológicos y centros de rescate inscriptos. Ley Provincial de Parques Zoológicos: Ley N° 12.238	Importado, Especial
+Formularios	ANU39	Anexo Único 39	Anexo Único 39 (formulario para autorización de conducción de vehículos oficiales)	Importado - Template, Firma Conjunta
+Formularios	CCSAS	Carga de CUIT SAS	Carga de CUIT SAS	Template
+Formularios	DARAP	Formulario Datos Adicionales - RAPPSI	Formulario Datos Adicionales - RAPPSI	Template
+Formularios	ENCAS	Encuesta Social	Encuesta Social	Importado
+Formularios	F2828	Formulario 2828	Formulario 2828	Importado
+Formularios	F6068	Formulario RC6068	Formulario RC6068	Importado
+Formularios	FA5	Formulario A5	Formulario A5	Importado
+Formularios	FADCB	Formulario Apertura de Cuenta Bancaria	Formulario Apertura de Cuenta Bancaria	Importado
+Formularios	FAOZF	Formulario Solicitud de aptitud operativa ZF	Formulario Solicitud de aptitud operativa Zonas Francas	Template
+Formularios	FAVNO	Formulario aviso de novedades - SCBA	Formulario aviso de novedades - SCBA	Template
+Formularios	FC42R	Formulario C42R	Formulario C42R	Importado
+Formularios	FCAHA	Formulario Casa - Habitación	Formulario Casa - Habitación	Template, Firma Conjunta
+Formularios	FCDCB	Formulario Cierre de Cuenta Bancaria	Formulario Cierre de Cuenta Bancaria	Importado
+Formularios	FESFE	Formulario de Estadísticas Mineras con Firma Ext	Formulario de Estadísticas Mineras con Firma Externa	Importado, Firma Externa
+Formularios	FESMI	Formulario de Estadísticas Mineras	Formulario de estadísticas mineras	Importado
+Formularios	FICT	Formulario de Inscripción de Campamentos Turístico	Formulario de Inscripción de Campamentos Turístico	Template
+Formularios	FIZF	Formulario de inscripción Zonas Francas	Formulario de inscripción tanto de personas físicas como jurídicas de Zonas Francas	Template
+Formularios	FMDCB	Formulario Modificación de Cuenta Bancaria	Formulario Modificación de Cuenta Bancaria	Importado
+Formularios	FOARS	Formulario adicional de RAPPSED (Suspensiones)	Formulario adicional de RAPPSED (Suspensiones)	Template
+Formularios	FOC55	Formulario C 55	Formulario C 55	Importado
+Formularios	FOCAI	Formulario Creación de Agrupamientos Industriales	Formulario de Creación de Agrupamientos Industriales	Template
+Formularios	FOR10	Formulario 10	Formulario 10	Template
+Formularios	FORDI	Formulario Distancia	Formulario Distancia	Template, Firma Conjunta
+Formularios	FOREC	Formulario Requerimiento de Compras	Formulario Requerimiento de Compras	Importado
+Formularios	FORTC	Formulario Tipo de Firma Conjunta	Formulario Tipo de Firma Conjunta	Importado, Firma Conjunta
+Formularios	FPRDU	Formulario de Propuesta de Uso	Formulario de Propuesta de Uso	Importado
+Formularios	FRAPJ	Formulario de Aptitud Jurídica	Formulario de Aptitud Jurídica	Importado
+Formularios	FRAPO	Formulario de Aptitud Operativa	Formulario de Aptitud Operativa	Importado
+Formularios	FRITR	Formulario Indemnización por Traslado	Formulario Indemnización por Traslado	Template, Firma Conjunta
+Formularios	FRNNA	Formulario para Registro de NNoA extraviados	Formulario de inscripción en el Registro de NNoA extraviados	Template, Reservado
+Formularios	FRUA	Formulario registro ABM usuarios de aplicación	Formulario de registro de ABM de usuarios de aplicación.	Template
+Formularios	FRZDS	Formulario Zona Desfavorable	Formulario Zona Desfavorable	Template, Firma Conjunta
+Formularios	FSBEL	Formulario de solicitud de buzón electrónico	Formulario de solicitud de buzón electrónico	Template
+Formularios	FVSOL	Formulario V - Solicitud de Combustible	Formulario V - Solicitud de Combustible	Template, Firma Conjunta
+Formularios	ICPME	Formulario de Inscripción Compra PyME	Formulario de Inscripción Compra PyME	Template
+Formularios	PROGS	Programa de sostenimiento	Programa de sostenimiento	Template
+Formularios	RDCOE	Registro de Camaras y Organizaciones Empresariales	Listado de Chequeo - Registro de Camaras y Organizaciones Empresariales	Template
+Formularios	RDPYL	Registro de Proveedores y Licitadores	Listado de chequeo - Registro de Proveedores y Licitadores	Template
+Formularios	RENCC	Rendición de Cargas de Combustible	Rendición de Cargas de Combustible	Template
+Formularios	SLANU	Solicitud LANU	Solicitud LANU	Template, Firma Conjunta
+Formularios	SOCCS	Solicitud de Compra o Contratación de Servicio	Solicitud de Compra o Contratación de Servicio	Template
+Formularios	SOCER	Solicitud de Certificado de Vigencia SAS	Solicitud de Certificado de Vigencia para Sociedades por Acciones Simplificadas	Template
+Formularios	SOFAP	Solicitud de factibilidad provincial GSC	Documento para solicitar factibilidad provincial de grandes superficies comerciales o cadenas de distribución.	Template
+Formularios	SOLPR	Solicitud de Prácticas	Documento Solicitud de Prácticas del Ministerio de Salud.	Template
+Formularios	SOLSV	Solicitud de Service	Formulario Solicitud de Service	Template
+Formularios	STREN	SOLICITUD TRÁMITE RENAR	PARA SER PRESENTADA EXCLUSIVAMENTE ANTE EL REGISTRO NACIONAL DE ARMAS (RENAR)	Template
+Formularios	TCCOO	Formulario tipo de Cooperativa de Crédito	Formulario para determinar el tipo de Cooperativa que incluye Crédito	Template, Notificable
+Formularios	TGCOO	Tipo de Cooperativa Genérica	Formulario para determinar el tipo de Cooperativa Genérica	Template, Notificable
+Formularios	TTCOO	Formulario Tipo Cooperativa de Trabajo	Formulario para determinar el tipo de Cooperativa de Trabajo	Template, Notificable
+Impuestos	CRET	Cálculo de Retenciones	Cálculo de Retenciones	Importado
+Impuestos	IMPIN	Impuesto Inmobiliario	Impuesto Inmobiliario	Importado
+Impuestos	PLAAE	Planilla de Análisis de Exenciones	Planilla de análisis de exenciones para control interno	Importado
+Impuestos	TACTU	Tasa de Actuación	Tasa de Actuación	Importado
+Impuestos	TASAD	Tasa Administrativa	Tasa Administrativa	Importado
+Impuestos	TGACT	Tasa General de Actuación	Tasa General de Actuación	Importado
+Impuestos	TPR15	Tasa Preferencial (15 Dias)	Tasa Preferencial de 15 dias	Importado
+Impuestos	TPRE1	Tasa Preferencial (1 Día)	Tasa Preferencial de 1 dia	Importado
+Impuestos	TPRE4	Tasa Preferencial (4 Dias)	Tasa Preferencial de 4 dias	Importado
+Inf., Prov., Dictamenes	ACRIN	Acreditación ingresos	Acreditación de ingresos	Importado
+Inf., Prov., Dictamenes	ACTFA	Acuerdo TFABA	Acuerdo TFABA	Libre, Token, Firma Conjunta
+Inf., Prov., Dictamenes	AEPPA	Auditoria Expediente. Paquete parcial de archivos.	Auditoria Expediente. Paquete parcial de archivos.	Libre
+Inf., Prov., Dictamenes	AIERX	Autorización Individual de Uso de Equipos de RX	Autorización Individual de Uso de Equipos de RX	Importado
+Inf., Prov., Dictamenes	ANTCA	Antecedentes Catastrales	Antecedentes Catastrales	Importado
+Inf., Prov., Dictamenes	APDCM	Aprobación del Comité	Aprobación del Comité	Importado
+Inf., Prov., Dictamenes	APDIC	Aprobación de Dictámenes	Aprobación de Dictámenes	Template
+Inf., Prov., Dictamenes	APELA	Apelación	Apelación	Importado
+Inf., Prov., Dictamenes	APROD	Aprobación de Despacho	Aprobación de Despacho	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	ARCHI	Archivo	Archivo	Libre
+Inf., Prov., Dictamenes	ASUFI	ANEXO I - Solicitud de Subsidio y DDJJ -P. Físicas	ANEXO I - SOLICITUD DE SUBSIDIO Y DECLARACIÓN JURADA - (Personas Físicas)	Importado
+Inf., Prov., Dictamenes	ASUJU	ANEXO II - Solicitud de Subsidio - P. Jurídicas	ANEXO II - SOLICITUD DE SUBSIDIO - (Instituciones, Entidades de Bien Público, Entidades Religiosas)	Importado
+Inf., Prov., Dictamenes	ATFAR	Acuerdo TFABA - Reservado	Acuerdo TFABA - Reservado	Libre, Reservado, Token, Firma Conjunta
+Inf., Prov., Dictamenes	AVAL	Aval	Aval	Libre
+Inf., Prov., Dictamenes	AVIMP	AVAL	AVAL	Importado
+Inf., Prov., Dictamenes	BASIS	Baja de sitio seleccionado - RAPPSI	RAPSSI - Baja de selección	Template
+Inf., Prov., Dictamenes	CACUS	Cadena de Custodia	Cadena de Custodia	Importado
+Inf., Prov., Dictamenes	CAERI	Centro de Aislamiento Extrahospitalario Reservado	Centros de Aislamiento Extrahospitalarios - INFORME GRÁFICO RESERVADO	Importado, Reservado
+Inf., Prov., Dictamenes	CAERL	Centro de Aislamiento Extrahospitalario Reservado	Centros de Aislamiento Extrahospitalarios - INFORME RESERVADO	Libre, Reservado
+Inf., Prov., Dictamenes	CALRE	Cálculo de Reajuste	Cálculo de Reajuste	Libre
+Inf., Prov., Dictamenes	CAUAM	Cautelar - Amparo	Cautelar - Amparo	Importado
+Inf., Prov., Dictamenes	CDIDE	Carátula de Identificación del Emprendimiento	Carátula de Identificación del Emprendimiento	Importado
+Inf., Prov., Dictamenes	CENSO	Censo	Censo	Importado
+Inf., Prov., Dictamenes	CNLH	Comunicación de Novedades a Liquidación de Haberes	Comunicación de Novedades a Liquidación de Haberes	Importado
+Inf., Prov., Dictamenes	COART	Contrataciones Artisticas	Contrataciones Artísticas	Template
+Inf., Prov., Dictamenes	CONTA	Contralor Administrativo	Documento Contralor Administrativo para la Dirección General de Cultura y Educación.	Importado
+Inf., Prov., Dictamenes	CONTD	Contralor Docente	Documento Contralor Docente para la Dirección General de Cultura y Educación.	Libre
+Inf., Prov., Dictamenes	COPDI	Copia Digitalizada	Copia Digitalizada	Importado
+Inf., Prov., Dictamenes	CVFAD	Formulario A - DDJJ DIEGEP	Carátula variable Formulario A - DDJJ DIEGEP	Template
+Inf., Prov., Dictamenes	DACOO	Datos adicionales - Cooperativas	Documento que contiene datos adicionales sobre la constitución de cooperativas en el Ministerio de Producción	Template
+Inf., Prov., Dictamenes	DAESA	Datos Adicionales Establecimientos Alimenticios	Datos Adicionales Establecimientos Alimenticios	Importado
+Inf., Prov., Dictamenes	DAIDP	Definición de Área de influencia de proyecto (AIP)	Definición del Área de influencia del proyecto (AIP)	Importado
+Inf., Prov., Dictamenes	DAPRA	Datos Adicionales Productos Alimenticios	Datos Adicionales Productos Alimenticios	Importado
+Inf., Prov., Dictamenes	DC	DOC38	DOC38	Importado
+Inf., Prov., Dictamenes	DCHER	Declaratoria de Herederos	Declaratoria de Herederos	Importado
+Inf., Prov., Dictamenes	DEMAM	Demanda - Amparo	Demanda - Amparo	Importado
+Inf., Prov., Dictamenes	DEMED	Despacho de Medidas	Despacho de Medidas	Libre
+Inf., Prov., Dictamenes	DESPL	Despacho	Despacho	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	DICFC	Dictamen Firma Conjunta	Dictamen Firma Conjunta	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	DICJM	Dictamen de Junta Médica	Dictamen de junta médica	Importado - Template, Firma Conjunta
+Inf., Prov., Dictamenes	DICLT	Dictamen - DPLYTMJGM	Dictamen - DPLYTMJGM	Libre
+Inf., Prov., Dictamenes	DICME	Dictamen Médico	Dictamen Médico	Importado
+Inf., Prov., Dictamenes	DICOL	Dictamen con Firma Ológrafa	Dictamen con firma ológrafa	Importado
+Inf., Prov., Dictamenes	DICTA	Dictamen	Dictamen	Libre
+Inf., Prov., Dictamenes	DOC01	DOC01	DOC01	Importado
+Inf., Prov., Dictamenes	DOC21	DOC21	DOC21	Importado
+Inf., Prov., Dictamenes	DOC24	DOC24	DOC24	Importado
+Inf., Prov., Dictamenes	DOC25	DOC25	DOC25	Importado
+Inf., Prov., Dictamenes	DOC26	DOC26	DOC26	Importado
+Inf., Prov., Dictamenes	DOC29	DOC29	DOC29	Importado
+Inf., Prov., Dictamenes	DOC33	DOC33	DOC33	Libre
+Inf., Prov., Dictamenes	DOC34	DOC34	DOC34	Libre
+Inf., Prov., Dictamenes	DOC35	DOC35	DOC35	Importado
+Inf., Prov., Dictamenes	DOC36	DOC36	DOC36	Libre
+Inf., Prov., Dictamenes	DOC40	DOC40	DOC40	Importado
+Inf., Prov., Dictamenes	DOCRE	Documentación Respaldatoria	Documentación Respaldatoria	Importado
+Inf., Prov., Dictamenes	DRFE	Documentación Respaldatoria con Firma Externa	Documentación Respaldatoria con Firma Externa	Importado, Firma Externa
+Inf., Prov., Dictamenes	EDILI	Edicto Libre	Edicto Libre	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	EDLIB	Edicto Libre	Edicto Libre	Libre
+Inf., Prov., Dictamenes	EISE	Estudio de Impacto Socieconómico	Documento Estudio de Impacto Socieconómico.	Importado
+Inf., Prov., Dictamenes	ESCFC	Estados Contables	Documento Estados Contables.	Importado, Token, Firma Conjunta
+Inf., Prov., Dictamenes	ESCON	Estados Contables	Documento Estados Contables.	Importado, Token
+Inf., Prov., Dictamenes	ESPBA	Encuesta Software Público Buenos Aires	Encuesta Software Público Buenos Aires	Template, Notificable
+Inf., Prov., Dictamenes	ESPTV	Especificaciones Técnicas Básicas	Especificaciones Técnicas Básicas	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	EVTEC	Evaluación Técnica	Evaluación Técnica	Importado
+Inf., Prov., Dictamenes	EVTFC	Evaluación Técnica Firma Conjunta	Evaluación Técnica Firma Conjunta	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	EXCIL	Exposición Civil	Exposición Civil	Importado
+Inf., Prov., Dictamenes	FACTI	Factibilidades	Factibilidades	Importado
+Inf., Prov., Dictamenes	FBE01	Formulario buzones electrónicos GDEBA - SCBA	Formulario de registro de buzones electrónicos de GDEBA y SCBA	Template
+Inf., Prov., Dictamenes	FICHE	Ficha Electoral	Ficha Electoral	Importado
+Inf., Prov., Dictamenes	FIRPM	Formulario de Inscripción al Reg. de Prod. Mineros	Formulario de Inscripción al Registro de Productores Mineros	Template
+Inf., Prov., Dictamenes	FMPME	Formulario de inscripción MiPyME	Formulario de inscripción Microempresas, Pequeña y Mediana Empresa	Template
+Inf., Prov., Dictamenes	FOCAL	FOJA DE CALIFICACION	Documento individual anual para tratar ascensos: datos del agente (jer, nombre, leg, destinos). A) Part de enfermo: fecha, lic, cant de días, diag. B) Lic + 48 hs. C) Tiemp sin serv D) Emb E) Sanc F) Cal G) Juicio sintetico	Template, Firma Conjunta
+Inf., Prov., Dictamenes	FOPCE	Publicación de constitución de empresas SAS	Este documento se utilizará como base para la publicación de la constitución de empresas de Sociedades por Acciones Simplificadas en el Boletín Oficial	Template, Notificable
+Inf., Prov., Dictamenes	FRMSO	Formulario de Solicitud	Formulario de Solicitud	Importado
+Inf., Prov., Dictamenes	FRPHA	Inscripción Registro Pcial de Hotelería y Afines	Formulario de Inscripción al Registro Provincial de Hotelería y Afines	Template
+Inf., Prov., Dictamenes	FSJMI	Formulario único de solicitud de Junta Médica	Formulario único de solicitud de Junta Médica	Importado
+Inf., Prov., Dictamenes	FTYHS	Ficha Técnica y Hojas de Seguridad	Ficha Técnica y Hojas de Seguridad	Importado
+Inf., Prov., Dictamenes	FUSJM	Formulario único de solicitud de Junta Médica	Formulario único de solicitud de Junta Médica	Template
+Inf., Prov., Dictamenes	GTRAN	Guía de tránsito	Documento que avala el tránsito interjurisdiccional de animales vivos, productos y/o subproductos de la fauna silvestre provenientes de la provincia de Buenos Aires	Libre, Especial
+Inf., Prov., Dictamenes	HESAP	Habilitación Establecimientos Apícolas	Documento para habilitación de establecimientos apícolas	Template
+Inf., Prov., Dictamenes	HIDCO	Historia de la Comunidad	Historia de la Comunidad	Importado
+Inf., Prov., Dictamenes	HPIPE	Historia de Pueblo Indígena de Pertenencia	Historia de Pueblo Indígena de Pertenencia	Importado
+Inf., Prov., Dictamenes	IAAPR	Informe Anual de Actividades Provinciales	Informe Anual de Actividades Provinciales	Importado
+Inf., Prov., Dictamenes	ICALP	Informe de Cumplimiento Anual de la Ley de Promoci	Informe de Cumplimiento Anual de la Ley de Promoción Software	Importado
+Inf., Prov., Dictamenes	IDDAO	Informe - Descripción de área operativa	Informe - Descripción de área operativa	Libre
+Inf., Prov., Dictamenes	IF	Informe	Intervención administrativa asentada en un expediente o documento, sobre un asunto determinado para dar a conocer su situación y permitir la formación de decisiones en cuestiones de trámites o peticiones.	Libre, Notificable
+Inf., Prov., Dictamenes	IFAUD	Informe de auditoría	Informe de auditoría	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	IFCFC	Informe de costos	Informe de costos de firma conjunta	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	IFCON	Informe de Firma Conjunta	Informe de Firma Conjunta	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	IFCOS	Informe de Costos	Informe de Costos	Importado
+Inf., Prov., Dictamenes	IFCTR	Informe Firma Conjunta Transferible	Intervención administrativa asentada en un expediente o documento para dar a conocer su situación y permitir la formación de decisiones en cuestiones de trámites o peticiones con atributo Transferible.	Libre, Notificable, Firma Conjunta, Transferible
+Inf., Prov., Dictamenes	IFCVR	IFCOVID-INFORME RESERVADO	IFCOVID-INFORME RESERVADO	Libre, Reservado
+Inf., Prov., Dictamenes	IFDSO	Informe de Denuncia en Sociedades	Informe de una denuncia en una Sociedad	Importado
+Inf., Prov., Dictamenes	IFFC	Informe	Informe Importado de Firma Conjunta	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	IFFCT	Informe de Firma Conjunta con Token	Informe de Firma Conjunta con Token	Libre, Token, Firma Conjunta
+Inf., Prov., Dictamenes	IFFEX	Informe con firma externa	Informe con firma externa	Importado, Firma Externa
+Inf., Prov., Dictamenes	IFFFE	Informe de Factibilidad Municipal con Firma Ext	Informe de la municipalidad otorgando la factibilidad del proyecto de creación, modificación o ampliación de un agrupamiento industrial con Firma Externa	Importado, Firma Externa
+Inf., Prov., Dictamenes	IFFIS	Informe Físico	Informe Físico	Importado
+Inf., Prov., Dictamenes	IFFMU	Informe de Factibilidad Municipal	Informe de la municipalidad otorgando la factibilidad del proyecto de creacion, modificacion o ampliacion de un agrupamiento industrial	Importado
+Inf., Prov., Dictamenes	IFFS	Informe	Informe	Importado
+Inf., Prov., Dictamenes	IFFTO	Informe de Firma con Token	Informe de Firma con Token	Libre, Token
+Inf., Prov., Dictamenes	IFGFE	Informe gráfico con Firma Externa	Informe gráfico para contenidos que exceden el formato de "sólo texto", con Firma Externa.	Importado, Firma Externa
+Inf., Prov., Dictamenes	IFGR	Informe grafico reservado	Informe gráfico reservado	Importado, Reservado
+Inf., Prov., Dictamenes	IFGRA	Informe gráfico	Informe gráfico para contenidos que exceden el formato de "sólo texto".	Importado
+Inf., Prov., Dictamenes	IFINA	Informe INAES	Informe requerido según resolución 2.036/03 art.3	Importado
+Inf., Prov., Dictamenes	IFINS	Informe de Inspección	Informe de Inspección	Libre
+Inf., Prov., Dictamenes	IFISP	Informe Integral - SPB	Informe Integral - Servicio Penitenciario Bonaerense	Importado, Reservado
+Inf., Prov., Dictamenes	IFLEL	Informe Legal	Informe Legal	Libre
+Inf., Prov., Dictamenes	IFLEX	Informe con Firma Externa	Intervención administrativa asentada en un expediente o documento, sobre un asunto determinado para dar a conocer su situación y permitir la formación de decisiones en cuestiones de trámites o peticiones. Con firma externa.	Importado, Firma Externa
+Inf., Prov., Dictamenes	IFMED	Informe Médico	Informe Médico	Importado
+Inf., Prov., Dictamenes	IFPAJ	Informe de Preadjudicación	Informe de Preadjudicación	Importado
+Inf., Prov., Dictamenes	IFPSP	Informe Psicológico - SPB	Informe Psicológico - Servicio Penitenciario Bonaerense	Importado, Reservado
+Inf., Prov., Dictamenes	IFR	Informe reservado	Informe reservado	Libre, Reservado
+Inf., Prov., Dictamenes	IFREP	Informe REPROCI	Informe REPROCI	Libre
+Inf., Prov., Dictamenes	IFRFC	Informe REPROCI - Firma Conjunta	IFRFC - Informe REPROCI - Firma Conjunta	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	IFSOC	Informe Social	Informe Social	Importado
+Inf., Prov., Dictamenes	IFSSP	Informe Social - SPB	Informe Social - Servicio Penitenciario Bonaerense	Importado, Reservado
+Inf., Prov., Dictamenes	IFSUM	Informe de Sumarios	Informe de Sumarios	Importado
+Inf., Prov., Dictamenes	IFTCI	Informe Técnico	Informe Técnico	Importado
+Inf., Prov., Dictamenes	IFTEC	Informe Técnico	Informe Técnico	Libre
+Inf., Prov., Dictamenes	IFTFE	Informe Técnico Firma Externa	Informe Técnico Firma Externa	Importado, Firma Externa
+Inf., Prov., Dictamenes	IFTIC	Informe Técnico Firma Conjunta	Informe Técnico Firma Conjunta	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	IFTLC	Informe Técnico Firma Conjunta	Informe Técnico Firma Conjunta	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	IFTRA	Informe de transferencia	Informe de transferencia	Importado, Especial
+Inf., Prov., Dictamenes	IFVUL	Informe de Vulnerabilidad	Informe de Vulnerabilidad	Importado
+Inf., Prov., Dictamenes	ILIFC	Informe legal de firma conjunta	Informe legal de firma conjunta	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	ILLFC	Informe legal de firma conjunta	Informe legal de firma conjunta	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	IMPFE	Instrucción - Medida Procesal con Firma Externa	Instrucción - Medida Procesal - ARBA	Importado, Firma Externa
+Inf., Prov., Dictamenes	INAFC	Informe de Auditoría Importado	Informe de Auditoría Importado	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	INAUI	Informe de Auditoria importado	Informe de Auditoria, documento importado.	Importado
+Inf., Prov., Dictamenes	INAUL	Informe de Auditoria	Informe de Auditoria	Libre
+Inf., Prov., Dictamenes	INCIE	Índice de Cierre de Ejercicio	Documento Índice de Cierre de Ejercicio.	Importado
+Inf., Prov., Dictamenes	INFDC	Informe de Domicilio/Correo	Informe de Domicilio/Correo	Importado
+Inf., Prov., Dictamenes	INFED	Informe estado edilicio	Informe de Estado Edilicio	Importado
+Inf., Prov., Dictamenes	INFFI	Informe de Financiamiento	Informe de Financiamiento	Importado
+Inf., Prov., Dictamenes	INFIN	Informe Integral	Informe Integral	Importado
+Inf., Prov., Dictamenes	INFPS	Informe Psicológico	Informe Psicológico	Importado
+Inf., Prov., Dictamenes	INFTC	Informe Técnico	Informe Técnico	Importado
+Inf., Prov., Dictamenes	INSFU	Instrumento de Fusión	Instrumento de Fusión	Importado
+Inf., Prov., Dictamenes	INSMP	Instrucción - Medida Procesal	Instrucción - Medida Procesal - ARBA	Libre
+Inf., Prov., Dictamenes	INSPA	Instrucción - Presentaciones del Agente	Instrucción - Presentaciones del Agente - ARBA	Libre
+Inf., Prov., Dictamenes	INSPP	Instrucción Penal Preparatoria	Instrucción Penal Preparatoria	Importado
+Inf., Prov., Dictamenes	INSTR	Instructivo	Instructivo	Libre, Especial, Firma Conjunta
+Inf., Prov., Dictamenes	INSTU	Instructivo	Instructivo	Libre, Especial
+Inf., Prov., Dictamenes	INTON	Intervención	Intervención en Documentos Contables	Libre
+Inf., Prov., Dictamenes	INVIT	Invitaciones	Invitaciones	Libre
+Inf., Prov., Dictamenes	IPAFE	Instrucción - Presentaciones del Agente con Firma	Instrucción - Presentaciones del Agente - ARBA	Importado, Firma Externa
+Inf., Prov., Dictamenes	IRPER	Informe de Registro Permanente	Informe de Registro Permanente	Importado
+Inf., Prov., Dictamenes	ITFS	Informe de Valor de Tasación	Informe que determina el valor de un bien en función de la finalidad de la tasación.	Importado
+Inf., Prov., Dictamenes	IVCLP	Informe de Verificación y Control Ley de Promoción	Informe de Verificación y Control Ley de Promoción de Software	Importado
+Inf., Prov., Dictamenes	IVTFS	Informe de Valor de Tasación	Informe que determina el valor de un bien en función de la finalidad de la tasación.	Libre
+Inf., Prov., Dictamenes	LCOPE	Listado de Consumos del Período	Listado de consumos del período	Importado
+Inf., Prov., Dictamenes	LIBAC	Libro de Actas	Libro de Actas	Importado
+Inf., Prov., Dictamenes	LIBOP	Libreta de Operaciones	Bitácora de Operaciones efectuadas durante el proceso	Importado
+Inf., Prov., Dictamenes	LISPA	Listado de Pacientes PRODYTEC-FBA	Listado de Pacientes PRODYTEC-FBA	Importado - Template
+Inf., Prov., Dictamenes	LISTA	Listado	Listado	Importado
+Inf., Prov., Dictamenes	MAPRO	Manual de Procedimientos	Manual de Procedimientos	Importado
+Inf., Prov., Dictamenes	MINUL	Minuta	Minuta de redacción libre.	Libre
+Inf., Prov., Dictamenes	NEIPR	Noticia de Extravío (instrumento privado)	Noticia de Extravío (instrumento privado) - Registro Provincial de las Personas	Importado
+Inf., Prov., Dictamenes	NEIPU	Noticia de Extravío (instrumento público)	Noticia de Extravío (instrumento público) - Registro Provincial de las Personas	Importado
+Inf., Prov., Dictamenes	NOOBJ	No Objeción	No Objeción	Importado
+Inf., Prov., Dictamenes	NOPOS	No toma de posesión	No toma de posesión	Importado
+Inf., Prov., Dictamenes	NOTEC	No Objeción Técnica	No Objeción Técnica	Libre
+Inf., Prov., Dictamenes	NOTEV	Nota de Elevación	Nota de Elevación	Importado
+Inf., Prov., Dictamenes	NOTIM	No Objeción Técnica	No Objeción Técnica (Importado)	Importado
+Inf., Prov., Dictamenes	NPCOO	Cooperativas - Nota de presentación	Nota de presentación para la inscripción en Cooperativas en el ámbito del Ministerio de Producción	Template, Notificable
+Inf., Prov., Dictamenes	ODPRI	Orden de Prestación	Orden de Prestación	Importado
+Inf., Prov., Dictamenes	OJ08	Comprobante de recepción	Documento electrónico que contiene información sobre la recepción de un oficio judicial del Poder Judicial de la Provincia de Buenos Aire	Libre
+Inf., Prov., Dictamenes	ORDEN	Ordenanza	Ordenanza	Importado
+Inf., Prov., Dictamenes	ORDSE	Orden de Servicio	Orden de Servicio	Importado - Template
+Inf., Prov., Dictamenes	ORPRL	Orden de Prestación	Orden de Prestación	Libre
+Inf., Prov., Dictamenes	ORSER	Orden de Servicio	Orden de Servicio (Libre)	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	P1ANS	Pantalla 1 ANSES - Consulta histórica	Pantalla 1 ANSES - Consulta histórica.	Importado
+Inf., Prov., Dictamenes	P2ANS	Pantalla 2 ANSES - Registro Único de Beneficiario	Pantalla 2 ANSES - Registro Único de Beneficiario (RUB).	Importado
+Inf., Prov., Dictamenes	P3ANS	Pantalla 3 ANSES - Consulta Padrón Autónomo	Pantalla 3 ANSES - Consulta Padrón Autónomo.	Importado
+Inf., Prov., Dictamenes	P4ANS	Sistema Integrado de Jubilaciones y Pensiones	Consulta Sistema Integrado de Jubilaciones y Pensiones.	Importado
+Inf., Prov., Dictamenes	P6048	Planilla toma de posesión RC 6048	Planilla toma de posesión RC 6048 ARBA	Importado
+Inf., Prov., Dictamenes	PACOM	Planilla de Adquisición - Convenio Marco	Planilla de Adquisición - Convenio Marco.	Template
+Inf., Prov., Dictamenes	PAD01	PAD - Delegación PH/PH	PAD - Plataforma Administración Digital - Contrato Delegación Persona Humana / Persona Humana	Importado
+Inf., Prov., Dictamenes	PAD02	PAD - Delegación PJ/PH	PAD - Plataforma Administración Digital - Contrato Delegación Persona Jurídica / Persona Humana	Importado
+Inf., Prov., Dictamenes	PAD03	PAD - Delegación PJ/PJ	PAD - Plataforma Administración Digital - Contrato Delegación Persona Jurídica / Persona Jurídica	Importado
+Inf., Prov., Dictamenes	PAD04	PAD - Delegación PH/PJ	PAD - Plataforma Administración Digital - Contrato Delegación Persona Humana / Persona Jurídica	Importado
+Inf., Prov., Dictamenes	PAD05	PAD - DDJJ Representante delegante de PJ	PAD - Declaración Jurada Representate Delegante de Persona Jurídica	Importado
+Inf., Prov., Dictamenes	PAD06	PAD - DDJJ Representante delegado de PJ	PAD - Declaración Jurada Representate Delegado de Persona Jurídica	Importado
+Inf., Prov., Dictamenes	PAD07	PAD - Formulario de revocación	PAD - Formulario de revocación	Importado
+Inf., Prov., Dictamenes	PAD08	PAD - Formulario de renuncia	PAD - Formulario de renuncia	Importado
+Inf., Prov., Dictamenes	PADAS	Padrón de Asociados	Padrón de Asociados	Importado
+Inf., Prov., Dictamenes	PCOMP	Planilla Cómputos	Planilla Cómputos	Importado
+Inf., Prov., Dictamenes	PCOPE	Planilla de Cont. Preventiva Extrapresupuestaria	Planilla de Contabilidad Preventiva Extrapresupuestaria	Importado
+Inf., Prov., Dictamenes	PCORR	Planilla Correlaciones	Planilla de correlaciones	Importado
+Inf., Prov., Dictamenes	PCRFO	Planilla Comparativa / Reajuste Final de Obra	Planilla Comparativa / Reajuste Final de Obra	Libre
+Inf., Prov., Dictamenes	PEARN	Permiso Individual A.R.N	Permiso Individual A.R.N	Importado
+Inf., Prov., Dictamenes	PEINF	Pedido de Informe	Pedido de Informe	Importado
+Inf., Prov., Dictamenes	PFAMI	Proyecto de Factibilidad Minera	Proyecto de factibilidad técnica minera que incluye proyecto de explotación y de labor minera	Importado
+Inf., Prov., Dictamenes	PFMFE	Proyecto de Factibilidad Minera con Firma Externa	Proyecto de factibilidad técnica minera que incluye proyecto de explotación y de labor minera, con Firma Externa.	Importado, Firma Externa
+Inf., Prov., Dictamenes	PLANA	Planilla A	Planilla A para Pedidos de Fondos - Ministerio de Seguridad.	Template
+Inf., Prov., Dictamenes	PLANC	Planilla C	Planilla C para Pedido de Fondos - Ministerio de Seguridad	Template
+Inf., Prov., Dictamenes	PLDOI	Planta docente	Planta docente	Importado
+Inf., Prov., Dictamenes	PLIET	Pliego Especificaciones Tecnicas	Documento que contiene las especificaciones de materiales, equipos y ejecucion en que se efectua las contrataciones de un proveedor.	Importado
+Inf., Prov., Dictamenes	PLPRI	Planilla de Prioridades	Planilla de Prioridades	Importado
+Inf., Prov., Dictamenes	PPOF	Planilla POF	Planilla POF	Importado
+Inf., Prov., Dictamenes	PPOFI	Planilla POFI	Planilla POFI	Importado
+Inf., Prov., Dictamenes	PPRFL	Permiso Provisorio de Funcionamiento	Permiso Provisorio de Funcionamiento	Libre
+Inf., Prov., Dictamenes	PPROF	Permiso Provisorio de Funcionamiento	Permiso Provisorio de Funcionamiento	Importado
+Inf., Prov., Dictamenes	PR	Planilla de Reubación	Planilla de Reubación	Importado
+Inf., Prov., Dictamenes	PRCFE	Proceso de Coparticipación Federal	Proceso de Coparticipación Federal	Importado
+Inf., Prov., Dictamenes	PRERU	Planilla de Registro de Rúbrica	Documento Planilla de Registro de Rúbrica.	Importado
+Inf., Prov., Dictamenes	PROCP	Propuesta de Comisión de Profesionales	Propuesta de Comisión de Profesionales	Importado
+Inf., Prov., Dictamenes	PROIM	Providencia	Providencia de tipo importado	Importado
+Inf., Prov., Dictamenes	PROJU	Proforma de Solicitud Beneficio Jubilatorio	Proforma de Solicitud Beneficio Jubilatorio	Libre
+Inf., Prov., Dictamenes	PTFAR	Providencia TFABA - Reservada	Providencia TFABA - Reservada	Libre, Reservado, Firma Conjunta
+Inf., Prov., Dictamenes	PUBBO	Publicación en Boletín Oficial	Publicación en Boletín Oficial	Importado
+Inf., Prov., Dictamenes	PV	Providencia	Intervención administrativa de remisión y/o elevación asentada en un expediente o documento	Libre
+Inf., Prov., Dictamenes	PVCEE	Prov. de cambio de estado interno de expediente	Providencia de cambio de estado interno de expediente	Template
+Inf., Prov., Dictamenes	PVE	Providencia con Firma Externa	Intervención administrativa de remisión y/o elevación asentada en un expediente o documento con firma externa	Importado, Firma Externa
+Inf., Prov., Dictamenes	PVFC	Providencia de Firma Conjunta	Providencia de Firma Conjunta	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	PVOGD	Providencia Obligatoriedad Uso GDEBA	Providencia Obligatoriedad Uso GDEBA	Template
+Inf., Prov., Dictamenes	PVSAE	Providencia de salida de expedientes	Providencia de salida de expedientes	Template
+Inf., Prov., Dictamenes	PVSEL	Prov. de salida de expedientes por Liquidación	Providencia de salida de expedientes por Liquidación	Template
+Inf., Prov., Dictamenes	PVTFA	Providencia TFABA	Providencia TFABA	Libre, Firma Conjunta
+Inf., Prov., Dictamenes	RECAN	Reconocimiento de ANSES	Reconocimiento de ANSES	Importado
+Inf., Prov., Dictamenes	REDSI	Resumen de Siniestro	Resumen de Siniestro	Importado
+Inf., Prov., Dictamenes	REGHA	Registro de Habilitación	Registro de Habilitación	Importado
+Inf., Prov., Dictamenes	REMDO	Remisión de Documentación	Remisión de Documentación	Importado
+Inf., Prov., Dictamenes	RENPA	Rendición de Programas Asistenciales	Rendición de Programas Asistenciales	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	REPOR	Reporte	Reporte	Importado
+Inf., Prov., Dictamenes	SAACA	Solic. de Aprob. de Act. Científico Academicas	Solicitud de Aprobación de Actividades Científico – Académicas	Importado
+Inf., Prov., Dictamenes	SAMRE	Sistema Ambiental Regional (SAR)	Sistema Ambiental Regional (SAR)	Importado
+Inf., Prov., Dictamenes	SAURE	Solicitud de Apertura de Unidad de Residencia	Solicitud de Apertura de Unidad de Residencia	Importado
+Inf., Prov., Dictamenes	SOLDR	Solicitud de Reapropiación	Solicitud de Reapropiación	Libre
+Inf., Prov., Dictamenes	SOLPI	Permiso Intervención MED	Permiso Intervención MED	Template
+Inf., Prov., Dictamenes	SOLPO	Solicitud de Pasajes Oficiales	Documento para solicitar pasajes oficiales dentro del organismo	Template, Notificable
+Inf., Prov., Dictamenes	SOLSB	Solicitud de servicios basicos - DGCYE	Solicitud de servicios basicos - DGCYE	Template, Notificable
+Inf., Prov., Dictamenes	SOMAO	Solicitud Mantenimiento de Oferta	Solicitud Mantenimiento de Oferta.	Template
+Inf., Prov., Dictamenes	SOPOC	Solicitud Póliza de Caución	Solicitud Póliza de Caución.	Template
+Inf., Prov., Dictamenes	SOPRI	Solicitud Programa Integrar	Solicitud Programa Integrar	Importado - Template
+Inf., Prov., Dictamenes	SOPRP	Solicitud Programa POSPE	Solicitud Programa POSPE	Importado - Template
+Inf., Prov., Dictamenes	SPREH	Solicitud de Perfil Rehabilitador	Documento para solicitar permiso de rehabilitación de expedientes.	Template
+Inf., Prov., Dictamenes	STFAL	Sentencia TFABA	Sentencia TFABA de redacción libre	Libre, Token, Firma Conjunta
+Inf., Prov., Dictamenes	STFAR	Sentencia TFABA - Reservada	Sentencia TFABA - Reservada	Libre, Reservado, Token, Firma Conjunta
+Inf., Prov., Dictamenes	TDR11	TDR11032024	TDR11032024	Libre, Especial
+Inf., Prov., Dictamenes	TDR13	TDR13	TDR13	Libre, Especial
+Inf., Prov., Dictamenes	TDR20	TDR2008	Tipo de documento creado de prueba para	Libre
+Inf., Prov., Dictamenes	TDTAD	TAD - Trámite deshabilitado	Documento asignado a trámites deshabilitados TAD	Template
+Inf., Prov., Dictamenes	TIPFE	Título de Propiedad con Firma Externa	Título de Propiedad con Firma Externa	Importado, Firma Externa
+Inf., Prov., Dictamenes	TIPRO	Título de Propiedad	Título de Propiedad	Importado
+Inf., Prov., Dictamenes	TTDR	Documento TEST-TDR3724	Documento TEST-TDR3724	Libre
+Inf., Prov., Dictamenes	ULPRA	Último Precio Aprobado	Último Precio Aprobado	Libre
+Inf., Prov., Dictamenes	VDESA	Valoración de los Efectos sobre el Ambiente	Valoración de los Efectos sobre el Ambiente	Importado
+Inf., Prov., Dictamenes	VISDV	Visado DVBA	Visado DVBA	Importado, Firma Conjunta
+Inf., Prov., Dictamenes	VOLAN	Volante	Volante	Libre
+Inst. Prov. Loteria y Casino	AAMAT	Acta Apertura Matutino	Acta Apertura Matutino	Libre, Firma Conjunta
+Inst. Prov. Loteria y Casino	AAMMA	Acta Apertura Montevideo Matutina	Acta Apertura Montevideo Matutina	Libre, Firma Conjunta
+Inst. Prov. Loteria y Casino	AAMNO	Acta Apertura Montevideo Nocturno	Acta Apertura Montevideo Nocturno	Libre, Firma Conjunta
+Inst. Prov. Loteria y Casino	AANOC	Acta Apertura Nocturno	Acta Apertura Nocturno	Libre, Firma Conjunta
+Inst. Prov. Loteria y Casino	AAPRI	Acta Apertura Primero	Acta Apertura Primero	Libre, Firma Conjunta
+Inst. Prov. Loteria y Casino	AAVES	Acta Apertura Vespertino	Acta Apertura Vespertino	Libre, Firma Conjunta
+Inst. Prov. Loteria y Casino	DESPA	Despacho	Despacho	Importado, Firma Conjunta
+Inst. Prov. Loteria y Casino	GPJOJ	Grilla de Prog. de Juegos de otras Jurisdicciones	Grilla de Programación de Juegos de otras Jurisdicciones	Importado
+Ley	LEY	Ley	Ley	Importado
+Ley	LEYL	Ley	Ley	Libre
+Ministerio de Produccion	PLIEM	Plan de Inversión y Explotación Minero	Plan de Inversión y Explotación Minero	Importado
+Multas	AVRAI	Acta de verificación de inspección RAI	Acta de verificación de inspección RAI	Importado
+Multas	CIRAI	Constancia de inspección RAI	Constancia de inspección RAI	Importado
+Multas	FDRUD	Formulario de denuncia RUD	Formulario de denuncia RUD	Importado
+Multas	OIRAI	Orden de inspección RAI	Orden de inspección RAI	Importado
+Notificacion	CEDU	Cédula	Cédula	Importado
+Notificacion	FNOTI	Formulario de Notificación	Formulario de Notificación	Importado
+Notificacion	INDEN	Intimación al Denunciado	Notificacion de la existencia de denuncia e intimación de presentación al denunciado	Importado
+Notificacion	INPED	Intimación Pedido Documentación	Intimación Pedido Documentación.	Template
+Notificacion	LICOP	Opinion de la jefatura correspondiente	Informe perteneciente al formulario-licencia ley 10.430	Template, Firma Conjunta
+Notificacion	LIDCA	Informe del departamento control de asistencia	Informe perteneciente al formulario-licencia ley 10.430	Template
+Notificacion	NACAD	Notificación Acto Administrativo	Notificación Acto Administrativo.	Template
+Notificacion	NACCO	Notificación Acta de Comisión	FFCC_Notificación Acta de Comisión.	Template
+Notificacion	NCONT	Nota de Contabilidad	Nota de Contabilidad	Template
+Notificacion	NOCON	Nota de Contabilidad	Nota de Contabilidad	Importado
+Notificacion	NOFES	Notificación del Fiscal de Estado	Notificación del Fiscal de Estado	Libre, Token
+Notificacion	NOIE	Nota Importada con Firma Externa	Nota Importada con Firma Externa	Importado, Firma Externa
+Notificacion	NOPPA	Notificación Pendiente de Pago de Alojamiento	Documento para notificar el monto a pagar por parte de un alojamiento registrado en el registro de hotelería y afines	Template
+Notificacion	NOREH	Nota de rehabilitación	Nota de rehabilitación de expediente	Template
+Notificacion	NOREP	Notificación de Registro de Protocolo	Notificación de Registro de Protocolo	Libre
+Notificacion	NOTAI	Nota	Nota	Importado
+Notificacion	NOTFE	Notificación del Fiscal de Estado	Notificación del Fiscal de Estado	Importado, Token
+Notificacion	NOTSA	Nota Solicitud de Apoyo	Nota Solicitud de Apoyo	Importado
+Notificacion	NPSDT	Nota Proforma - Solicitud de Trata	Nota solicitud de habilitación de trata para caratular expedientes	Template
+Notificacion	NRPFC	Notificación de Registro de Protocolo - FC	Notificación de Registro de Protocolo de firma conjunta	Libre, Firma Conjunta
+Notificacion	NTDBI	Nota de Traslado Definitivo por Búsqueda Interna	Nota Proforma de Traslado Definitivo de Personal a través del Procedimiento de Búsqueda Interna (BI) y Movilidad.	Template
+Notificacion	P6013	Planilla de Notificación RC6013	Planilla de Notificación RC6013 - ARBA	Importado
+Notificacion	PENDI	Pena disciplinaria	Pena disciplinaria	Importado
+Notificacion	RECON	Recibo de Consulta	Recibo de Consulta	Libre
+Notificacion	SOCCT	Solicitud de creación de código de trámite	Documento habilitado para los organismos para solicitar la creación de códigos de trámites no existentes en la plataforma.	Template
+Notificacion	SOHCT	Solicitud de habilitación de código de trámite	Solicitud para habilitar códigos de trámites existentes en la plataforma.	Template
+Obra Publica	ACFIO	Acta Final de Obra	Acta Final de Obra	Importado
+Obra Publica	CAROB	Cartel de Obra	Cartel de Obra	Importado
+Obra Publica	CERPN	Certificado de Obra Pública Negociable	Certificado de Obra Pública negociable	Importado
+Obra Publica	COMET	Cómputos Métricos	Cómputos Métricos	Importado
+Obra Publica	ESTEC	Especificaciones Técnicas Complementarias	Especificaciones Técnicas Complementarias	Importado
+Obra Publica	INFOB	Informe de Obra	Informe de Obra	Importado
+Obra Publica	OFLIC	Ofertas para Licitaciones	Ofertas para Licitaciones	Importado
+Obra Publica	PLAOB	Planilla de las Obras	Planilla de las Obras	Importado
+Obra y Catastro	CECAT	Cédula Catastral	Cédula Catastral	Importado
+Obra y Catastro	FOE	Formulario OE	Formulario de solicitud de levantamiento de interdicciones	Importado
+Obra y Catastro	FORM	Formulario M	Formulario de solicitud de levantamiento de interdicciones para la Municipalidad	Importado
+Obra y Catastro	NPSLI	Nota Solicitud de Levantamiento de Interdicciones	Nota de presentación para la solicitud de levantamiento de interdicciones	Importado
+Obra y Catastro	PAVO	Planilla de Avance de Obra	Planilla de avance de obra	Importado
+Obra y Catastro	PCMAC	Planilla comparativa modificación articulo 7º - FC	Planilla comparativa modificación articulo 7º	Importado, Firma Conjunta
+Obra y Catastro	PLCMA	Planilla Comparativa Modificación Articulo 7º	Planilla comparativa Modificación Articulo 7º	Importado
+Obra y Catastro	PMAFC	Presupuesto por modificación articulo 9° - FC	Presupuesto por modificación articulo 9°, documento importado de firma conjunta.	Importado, Firma Conjunta
+Obra y Catastro	PRPMA	Presupuesto por Modificación Articulo 9° d	Presupuesto por modificación articulo 9° d	Importado
+Oficio Judicial	MTEJC	Modelo Titulo Ejecutivo	Modelo Titulo Ejecutivo	Libre
+Oficio Judicial	OFICI	Oficio	Oficio	Importado
+Oficio Judicial	OFICL	Oficio	Oficio de redacción libre	Libre
+Oficio Judicial	OJ02	Oficio Judicial - Notificación electrónica	Documento electrónico que contiene una notificación electrónica proveniente de la Suprema Corte de Justicia de la Provincia de Buenos Aires. Permite embeber notificación original en formato XML	Libre
+Oficio Judicial	OJ03	Oficio Judicial - Adjunto de notificación	Documento que contiene adjuntos de una notificación electrónica proveniente del Poder Judicial de la Provincia de Buenos Aires	Libre
+Oficio Judicial	OJ04	Oficio Judicial - Comprobante de envío	Documento electrónico que contiene información sobre el envío/contestación de un oficio judicial del Poder Judicial de la Provincia de Buenos Aires	Libre
+Oficio Judicial	OJ05	Oficio Judicial - Contestación/Presentación	Documento electrónico generado por la Administración Pública de la Provincia en contestación a un oficio judicial	Libre, Token
+Oficio Judicial	OJ06	Oficio Judicial - Contestación firma conjunta	Documento electrónico con firma conjunta generado por la Administración Pública de la Provincia en contestación a un oficio judicial	Libre, Token, Firma Conjunta
+Oficio Judicial	OJ07	Oficio Judicial - Comprobante de envío rechazo	Documento electrónico que contiene información de rechazo sobre el envío/contestación de un oficio judicial del Poder Judicial de la Provincia de Buenos Aires	Libre
+Patrimonio	BIEXI	Bienes Existentes	Listado de Bienes Existentes	Importado
+Patrimonio	F101	Formulario 101	Formulario que respalda el alta de un bien en el patrimonio de la Provincia de Buenos Aires	Importado, Firma Conjunta
+Patrimonio	F102	Formulario 102	Formulario que respalda las bajas en el patrimonio de la Provincia de Buenos Aires	Importado, Firma Conjunta
+Patrimonio	F103	Formulario 103	Formulario que presenta el listado de Patrimonios por Departamento	Importado, Firma Conjunta
+Patrimonio	F104	Formulario 104	Formulario que presenta el listado de Patrimonios por Dirección	Importado, Firma Conjunta
+Patrimonio	F104S	Formulario 104	Formulario que presenta el listado de Patrimonios por Dirección Firma simple	Importado
+Patrimonio	F105	Formulario 105	Formulario que presenta el listado de Patrimonios por Localidad	Importado, Firma Conjunta
+Patrimonio	F800	Formulario 800	Formulario 800	Importado
+Patrimonio	F830	Formulario 830	Formulario 830	Importado
+Patrimonio	FOBMS	Formulario de Bajas de Muebles y Semovientes	Formulario de Bajas de Muebles y Semovientes	Importado
+Patrimonio	FORAB	Formulario de Alta de Bienes	Formulario de Alta de Bienes	Importado
+Patrimonio	FOREF	Formulario de Recuentos Físicos	Formulario de Recuentos Físicos	Importado
+Patrimonio	FORTR	Formulario para Transferencias	Formulario para Transferencias	Importado
+Patrimonio	INFDO	Informe de Dominio	Informe de Dominio	Importado
+Persona Juridica	ACREF	Acta de Reforma	Acta de Reforma de estatuto de sociedades	Importado
+Persona Juridica	ACRPJ	Acreditación de Personería Jurídica	Acreditación de Personería Jurídica	Importado
+Persona Juridica	ACTAS	Acta Asamblearia	Acta Asamblearia	Importado
+Persona Juridica	ACTCO	Acta Complementaria	Acta Complementaria	Template
+Persona Juridica	ACTDA	Acta de Designación de Autoridades	Acta de Designación de Autoridades	Importado
+Persona Juridica	ACTRS	Acta de Reunión de Socios	Acta de Reunión de Socios	Importado
+Persona Juridica	ADAFE	Acta de Designación de Autoridades con Firma Ext	Acta de Designación de Autoridades con Firma Externa	Importado, Firma Externa
+Persona Juridica	CECUS	Cesión de Cuotas Sociales	Cesión de cuotas sociales	Importado
+Persona Juridica	CERSC	Certif. de Vigencia Sociedades Controladas art 299	Certificado de Vigencia Sociedades Controladas art. 299	Importado
+Persona Juridica	CERVF	Certificado de Vigencia Fundaciones	Certificado de Vigencia Fundaciones	Importado
+Persona Juridica	CERVM	Certificado de Vigencia Mutuales	Certificado de Vigencia Mutuales	Importado
+Persona Juridica	CEVAC	Certificado de Vigencia Asociaciones Civiles	Certificado de Vigencia Asociaciones Civiles	Importado
+Persona Juridica	CEVIG	Certificado de Vigencia	Certificado de Vigencia de sociedad comercial no controlada	Importado
+Persona Juridica	CIIGJ	Inscripción en la Inspección General de Justicia	Certificado de inscripción en la Inspección General de Justicia	Importado
+Persona Juridica	CLES	Constancia de Legalidad de Estatuto Societario	Constancia de Legalidad de Estatuto Societario	Importado
+Persona Juridica	CSCNC	Certif. Vigencia Soc. Comerciales no Controladas	Certificado de Vigencia Sociedades Comerciales no Controladas	Importado
+Persona Juridica	FAPCO	Formulario de Aprobación APROCO	Formulario de aprobación Dictamen de conformación de intrumentos comerciales.	Importado
+Persona Juridica	PLACT	Plan de Actividades	Plan de Actividades	Importado
+Persona Juridica	PLTP	Planilla de trámites preferenciales	Planilla de trámites preferenciales	Importado
+Persona Juridica	PSOCI	Planilla de Socios	Planilla de Socios	Importado
+Persona Juridica	REGAS	Registro de Asistencia	Registro de Asistencia	Importado
+Persona Juridica	SOCCO	Sociedades Controladas	Formulario de sociedades controladas del Anexo IX de la Disposición 45/15 de la Dirección Provincial de Personas Jurídicas.	Importado
+Persona Juridica	SOMAT	Solicitud de Matricula	Solicitud de Matricula	Importado
+Persona Juridica	TASER	Tasa por Servicio	Tasa por Servicio	Importado
+Planillas	ALIST	Listado A	Listado A	Importado
+Planillas	BLIST	Listado B	Listado B	Importado
+Planillas	CLIST	Listado C	Listado C	Importado
+Planillas	PLAMM	Planilla de Multa por Mora	Planilla de Multa por Mora	Template
+Planillas	PLCEM	Planilla de Calificación de Empresas	Planilla de Calificación de Empresas	Importado
+Planillas	PLRMA	Planilla Resumen Mensual de Anestesia	Resumen de los procedimientos de anestesia.	Importado
+Planos, Multimedia	CROQU	Croquis	Croquis	Importado
+Planos, Multimedia	PLAFE	Plano Firma Externa	Plano de Firma externa.	Importado, Firma Externa
+Planos, Multimedia	PLAIM	Plano Importado	Plano Importado	Importado
+Planos, Multimedia	PLAN	Plano	Plano. Tipo de documento que permite embeber archivos de formato dwf.	Libre
+Planos, Multimedia	PLMFC	Plano de Mensura de Firma Conjunta	Plano de Mensura de Firma Conjunta	Libre, Firma Conjunta
+Planos, Multimedia	PPMEN	Proyecto de Plano de Mensura	Proyecto de Plano de Mensura	Libre
+Planos, Multimedia	SCPLA	Solicitud de Corrección de Plano	Solicitud de corrección de plano	Importado
+Planos, Multimedia	VIGEO	Visado Georeferenciado	Documento de apoyo para la trata 'Visado de Planos de Mensura'	Libre
+Pliego	PBCGE	Pliego de Bases y Condiciones Generales	Documento que contiene las condiciones generales en que se efectúa la contratación de un proveedor	Importado
+Pliego	PBCPA	Pliego de Bases y Condiciones Particulares	Pliego de Bases y Condiciones Particulares	Importado
+Pliego	PETPC	Pliego Especif. Técnicas Partic. Complementarias	Pliego Especif. Técnicas Partic. Complementarias	Importado
+Pliego	PLETG	Pliego de Especificaciones Técnicas Generales	Pliego de Especificaciones Técnicas Generales	Importado
+Pliego	PLETP	Pliego de Especificaciones Técnicas Particulares	Pliego de Especificaciones Técnicas Particulares	Importado
+Pliego	PLIEC	Pliego de firma conjunta	Pliego de firma conjunta	Importado, Firma Conjunta
+Pliego	PLIEG	Pliego	Pliego	Importado
+Pliego	PLIEL	Pliego de Especificaciones Legales	Documento que contiene las especificaciones legales	Importado
+Pliego	PLIOC	Pliego de Obras Complementarias	Pliego de Obras Complementarias	Importado
+Pliego	PROPD	Proyecto de Pliego Definitivo	Proyecto del Pliego Definitivo	Importado
+Polizas y Seguros	DEPOC	Depósito Póliza de Caución	Depósito Póliza de Caución.	Template
+Polizas y Seguros	POLAF	Póliza de Anticipo Financiero	Póliza de Anticipo Financiero	Importado
+Polizas y Seguros	POLCC	Póliza de Cumplimiento de Contrato	Póliza de Cumplimiento de Contrato	Importado
+Polizas y Seguros	POLFR	Póliza de Fondo de Reparo	Póliza de Fondo de Reparo	Importado
+Polizas y Seguros	POSEG	Póliza de Seguro	Póliza de Seguro	Importado
+Polizas y Seguros	SEGCA	Póliza de seguro de caución	Póliza de seguro de caución	Importado
+Polizas y Seguros	SEGFE	Póliza de Seguro Firma Externa	Póliza de Seguro Firma Externa	Importado, Firma Externa
+Polizas y Seguros	SEGUR	Poliza de seguro	Poliza de seguro	Importado
+Presentacion Externa	COAPO	Constancia de apoderamiento	Documento en el que se asientan los datos del representante legal o apoderado de una persona física o jurídica.	Libre
+Presentacion Externa	NICTR	Cancelación de Pago	Cancelación de Pago	Libre
+Protocolo	CROFE	Cronograma con Firma Externa	Cronograma con Firma Externa	Importado, Firma Externa
+Protocolo	CRONO	Cronograma	Cronograma	Importado
+Protocolo	PPROT	Proyecto de Protocolo	Proyecto de Protocolo	Libre
+Protocolo	PRADP	Protocolo de Auditoría de prestaciones	Protocolo de Auditoría de prestaciones	Importado
+Protocolo	PROT	Protocolo	Protocolo	Importado
+Proyecto	FPPFE	Formulario de presentación del proyecto	Formulario de presentación del proyecto	Importado, Firma Externa
+Proyecto	PAADJ	Proyecto de Acto de Adjudicación	Proyecto de Acto de Adjudicación.	Importado
+Proyecto	PACDI	Proyecto de Acta de Consejo Directivo IPAP	Proyecto de acto decisorio emanado del Consejo Directivo del I.P.A.P. respecto de las acciones que instrumente el Instituto	Libre
+Proyecto	PCFE	Proyecto de Convenio con Firma Externa	Proyecto de Convenio con Firma Externa	Importado, Firma Externa
+Proyecto	PCONI	Proyecto de Convenio	Documento de firma simple para importar un proyecto de convenio.	Importado
+Proyecto	PCONV	Proyecto de Convenio	Documento de firma simple para generar un proyecto de convenio de redacción libre.	Libre
+Proyecto	PDEIM	Proyecto de Decreto	Proyecto de Decreto	Importado
+Proyecto	PDIFC	Proyecto de Dictamen Firma Conjunta	Proyecto de Dictamen Firma Conjunta	Libre, Firma Conjunta
+Proyecto	PDIFE	Proyecto de Decreto con Firma Externa	Proyecto de Decreto con Firma Externa	Importado, Firma Externa
+Proyecto	PDISP	Proyecto de Disposición	Proyecto de Disposición	Libre
+Proyecto	PRCTO	Proyecto	Proyecto	Importado
+Proyecto	PRDIL	Proyecto Declaración de Interés Legislativo	Proyecto Declaración de Interés Legislativo	Importado
+Proyecto	PRDIM	Proyecto de Disposición	Proyecto de Disposición	Importado
+Proyecto	PRDIP	Proyecto de Declaración de Interés Provincial	Proyecto de Declaración de Interés Provincial	Importado
+Proyecto	PREFC	Proyecto de Resolución de Firma Conjunta	Proyecto de Resolución de Firma Conjunta	Libre, Firma Conjunta
+Proyecto	PRESO	Proyecto de resolución	Proyecto de resolución	Libre
+Proyecto	PROAA	Proyecto de Acta Acuerdo	Proyecto de Acta Acuerdo	Libre
+Proyecto	PROBR	Proyecto de Obra	Proyecto de Obra	Importado
+Proyecto	PRODE	Proyecto de decreto	Proyecto de decreto	Libre
+Proyecto	PRODI	Proyecto de Dictamen	Proyecto de Dictamen	Libre
+Proyecto	PRODN	Proyecto de denuncia	Proyecto de denuncia	Libre
+Proyecto	PRPIN	Proyecto de Pedido de Informe	Proyecto de Pedido de Informe	Importado
+Proyecto	PRRAI	Proyecto de Reglamento Agrupamientos Industriales	Reglamento de Administración y Funcionamiento del Agrupamiento	Importado
+Proyecto	PRRPH	Proyecto de Reglamento de Propiedad Horizontal	Proyecto de reglamento de propiedad horizontal	Libre
+Proyecto	PRTCE	Proyecto Tratamiento y Conducción de Efluentes	Detalle del tratamiento y conducción de efluentes pluviales e industriales a cuerpo receptor	Importado
+Proyecto de Ley	PLIFC	Proyecto de Ley Firma Conjunta	Proyecto de Ley Firma Conjunta	Importado, Firma Conjunta
+Proyecto de Ley	PRLEI	Proyecto de Ley	Proyecto de Ley	Importado
+Proyecto de Ley	PRLEY	Proyecto de Ley	Proyecto de Ley	Libre
+Proyecto de Ley	PRLFC	Proyecto de Ley Firma Conjunta	Proyecto de Ley Firma Conjunta	Libre, Firma Conjunta
+Recursos	PLTRE	Planilla Total de Recursos	Planilla Total de Recursos	Importado
+Recursos	RECAP	Recurso de Apelación	Recurso de Apelación	Libre
+Recursos	RECRE	Recurso de Revocatoria	Recurso de Revocatoria	Importado
+Recursos Humanos	ASIST	Planilla de Asistencia SIAPE	Planilla de asistencia SIAPE	Importado
+Recursos Humanos	FORJU	Formulario Controlado de Jubilacion	Formulario Controlado de Jubilacion	Importado
+Recursos Humanos	FRRVM	Resumen de Rendición de Viaticos y Movilidad	Resumen que contiene la información de viáticos de todos los agentes designados	Importado
+Recursos Humanos	NPSIA	Notas proforma SIAPE	Notas proforma SIAPE	Importado, Token
+Recursos Humanos	PANSI	Captura de Pantalla SIAPE	Captura de pantalla de la carga de datos del agente solicitante en el Sistema SIAPE	Importado
+Recursos Humanos	PLAPE	Planilla de Permisos con o sin Goce de Sueldo	Planilla de permisos con o sin goce de sueldo para la solicitud de licencia	Importado
+Recursos Humanos	PSIAP	Planilla SIAPE	Documento impreso generado en el sistema SIAPE	Importado
+Redetermi. de Precios	CERRP	Certificado de Redeterminación de Precios	Certificado de Redeterminación de Precios	Importado
+Redetermi. de Precios	IFADJ	Informe de Adjudicación	Informe de Adjudicación	Importado
+Redetermi. de Precios	LIRFO	Liquidaciones de Redeterminación con Firma Ológraf	Liquidaciones de redeterminación con firma ológrafa	Importado
+Redetermi. de Precios	PLAPR	Planilla de Análisis de Precios	Documento con análisis de precios tipo	Importado
+Redetermi. de Precios	PLAVA	Planilla de Variación	Planilla de Variación	Importado
+Redetermi. de Precios	PPREP	Planilla de Propuesta de Redet. de Precios	Planilla de Propuesta de Redeterminación de Precios	Importado
+Redetermi. de Precios	TACOS	Tabla de Costos de Origen	Tabla de Costos de Origen	Importado
+Registro Civil	ADOPE	Sentencia de Adopción	Documento de Redip Adopción	Importado
+Registro Civil	CERMI	Certificado Ministerial	Certificado Ministerial	Importado
+Registro Civil	CIFA	Certificado Institución Fertilización Asistida	Certificado Institución Fertilización Asistida	Importado
+Registro Civil	CONEP	DDJJ Nacimiento Fuera de Termino	Declaración Jurada de Nacimiento Fuera de Termino	Importado
+Registro Civil	DICAS	Dictamen Asesoria de Gobierno	Dictamen de AGG para RPP	Importado
+Registro Civil	DICTP	Dictamen Reservado	Dictamen de carácter reservado	Importado, Reservado
+Registro Civil	FINEX	Formulario de Insc. de partida de extraña jurisd.	Formulario de inscripción de partida de extraña jurisdicción	Importado
+Registro Civil	FOR12	Formulario Cambio de Género	Formulario de la Ley 1571/12 Cambio de Género	Importado
+Registro Civil	SENAD	Sentencia de Adopcion	Sentencia de Adopcion para Registro Civil	Importado
+Registro Civil	TRADA	Traducción Legalizada Registro Civil	Traducción Legalizada sentencia de adopción	Importado
+Registro Civil	TRADN	Traducción Legalizada Partida de Nacimiento	Traducción legalizada de Partida de Nacimiento Registro Civil	Importado
+Registro Civil	TSENA	Traducción de Sentencia Legalizada	Traducción de Sentencia Legalizada	Importado
+Registro de las Personas	ACANR	Subtipo Nota de Referencia	Subtipo Nota de Referencia	Importado, Token
+Registro de las Personas	ACDEF	Acta Registro Defunción	Acta Registro Defunción	Importado, Token
+Registro de las Personas	ACNAR	Subtipo Nota de Referencia	Subtipo Nota de Referencia	Importado, Token
+Registro de las Personas	ACNUL	Anulación de Registro	Anulación de Registro	Importado, Token
+Registro de las Personas	ACRAD	Acta Defunción Rectificación Administrativa	Acta Defunción Rectificación Administrativa	Importado, Token
+Registro de las Personas	ACRAM	Acta Matrimonio Rectificación Administrativa	Acta Matrimonio Rectificación Administrativa	Importado, Token
+Registro de las Personas	ACRAN	Acta Nacimiento Rectificación Administrativa	Acta Nacimiento Rectificación Administrativa	Importado, Token
+Registro de las Personas	ACRJM	Acta Matrimonio Rectificación Judicial	Acta Matrimonio Rectificación Judicial	Importado, Token
+Registro de las Personas	ACRJN	Acta Nacimiento Rectificación Judicial	Acta Nacimiento Rectificación Judicial	Importado, Token
+Registro de las Personas	ACRJU	Acta Defunción Rectificación Judicial	Acta Defunción Rectificación Judicial	Importado, Token
+Registro de las Personas	ACTFO	Acta Digitalización	Acta Digitalización	Importado
+Registro de las Personas	ACTNA	Acta Registro Nacimiento	Acta Registro Nacimiento	Importado, Token
+Registro de las Personas	ACTRC	Acta Registro Civil	Acta Registro Civil	Importado
+Registro de las Personas	ACTVD	Acta de Validación de Registro Digital	Acta de Validación de Registro Digital	Importado
+Registro de las Personas	ANRE	Anular Registro	Formulario para Anulación de Registro del Registro Provincial de las Personas.	Template
+Registro de las Personas	DNIRP	DNI ReDiP	DNI para uso exclusivo del modulo ReDiP	Importado
+Registro de las Personas	FCDGE	Solicitud Cambio de Género	Formulario Cambio de Género	Importado
+Registro de las Personas	FRECA	Solicitud Reconocimiento Administrativo	Formulario Reconocimiento Administrativo	Importado
+Registro de las Personas	IMAG	Imagen de Acta Gemelar	Imagen de Acta Gemelar	Importado
+Registro de las Personas	IMARE	Imagen de Acta Libro para Redip	Imagen de Acta procedente de inscripción en Libro, para incorporar a Redip. Digitalización a Demanda.	Importado
+Registro de las Personas	PIDLN	Solicitud Inscripción por Programa	Programa de Identidad de la Niñez	Importado
+Registro de las Personas	RECEX	Formulario Rectificación Administrativa Externa	Formulario Rectificación Administrativa Externa	Importado
+Registro de las Personas	RECIN	Formulario Rectificación Administrativa Interna	Formulario Rectificación Administrativa Interna	Importado
+Registro de las Personas	RECTA	Rectificación Administrativa	Formulario de Rectificación Administrativa del Registro Provincial de las Personas	Template
+Registro de las Personas	RECTJ	Rectificación Judicial	Formulario de Rectificación Judicial del Registro Provincial de las Personas.	Template
+Registro, Legajo	DIRR	Documento de inscripción al registro RAPPSED	Documento de inscripción a RAPPSED	Template
+Registro, Legajo	FELPS	Formulario Extra Ley de Promoción de Software	Formulario de Inscripción Extra Ley de Promoción de Software	Template
+Registro, Legajo	FERUI	Formulario Extra Registro Único de Infractores	Formulario Extra Registro Único de Infractores	Template
+Registro, Legajo	FILPS	Formulario de Insc. Ley de Promoción de Software	Formulario de Inscripción Ley de Promoción de Software	Template
+Registro, Legajo	FINSC	Folio de Inscripción	Folio de Inscripción	Importado
+Registro, Legajo	FMLPS	Form. Inscripcion. Ley Promocion de Software Moto	Formulario de inscripción al Registro Ley de Promoción de Software a través de Moto	Template
+Registro, Legajo	FRHYA	Ins. y Act. en el Registro de Hotelería y Afines	Formulario para la inscripción y actualización de datos correspondientes al Registro de Hotelería y Afines	Template
+Registro, Legajo	FROMC	Form. de Reg. de Org. y Mun. cedentes de Software	Formulario de Registro de Organismos y Municipios cedentes de Softwares	Template
+Registro, Legajo	FROMR	Form. de Reg. de Org. y Mun. recept. de Software	Formulario de Registro de Organismos y Municipios receptores de Softwares	Template
+Registro, Legajo	FROPC	Formulario de datos para Registro OPC	Formulario de datos para Registro OPC	Template
+Registro, Legajo	IFRPE	Informe gráfico RePIPME	Informe gráfico reservado para el Registro Provincial de Información de Personas Menores de Edad Extraviadas	Importado, Reservado
+Registro, Legajo	INREA	Inscripción Registro de Establecimientos Apícolas	Inscripción Registro de Establecimientos Apícolas	Template
+Registro, Legajo	OCIOP	Organismo Consumidor IOP	Organismo Consumidor IOP	Template
+Registro, Legajo	REGLI	Registro Libre	Registro Libre	Libre, Firma Conjunta
+Registro, Legajo	REGUP	Registro Único de Profesionales	Registro Único de Profesionales	Importado
+Registro, Legajo	RELIB	Registro Libre	Registro Libre	Libre
+Registro, Legajo	REPOC	Registro Provincial de Org. de la Comunidad	REPOC (Registro Provincial de Organizaciones de la Comunidad)	Importado
+Registro, Legajo	RIEFE	Registro Importador/exportador Firma Externa	Registro Importador/exportador Firma Externa	Importado, Firma Externa
+Registro, Legajo	RUPA	Registro Único de Personas Acreditadas (RUPA)	Registro Único de Personas Acreditadas (RUPA)	Importado
+Remito	RECAJ	Remito a la caja	Remito a la caja	Template
+Remito	REFCC	Remito Firma Conjunta	Remito Firma Conjunta	Importado - Template, Firma Conjunta
+Remito	REMFC	Remito Firma Conjunta	Remito de Firma Conjunta	Importado - Template, Token, Firma Conjunta
+Remito	REMIT	Remito	Remito	Importado
+Remito	RRDFC	Remito de Recepción Digital con Firma Conjunta	Remito de Recepción Digital con Firma Conjunta	Importado, Token, Firma Conjunta
+Remito	RRDFU	Remito de Recepción Digital	Remito de Recepción Digital	Importado, Token
+Rubricas	AAUSM	Acto aprobatorio del uso del Sistema de Microficha	Acto aprobatorio del uso del Sistema de Microfichas	Libre
+Rubricas	ACEDL	Autorización de Centralización de la Doc. Laboral	Autorización de Centralización de la Documentación Laboral.	Importado
+Rubricas	ASIHM	Autorización del Sistema de Hojas Móviles o simil	Autorización del Sistema de Hojas Móviles o similar.	Importado
+Rubricas	ATIA	Autorización de Trabajo Infantil Artístico	Autorización de Trabajo Infantil Artístico	Importado
+Rubricas	AUSM	Autorización del Sistema de Microfichas COM	Autorización del Sistema de Microfichas COM	Importado
+Rubricas	CARUM	Constancia de aprobación de rúbrica con Microficha	Constancia de aprobación de rúbrica con Microficha	Importado
+Rubricas	CEACL	Certificado de Antecedentes Conflictos Laborales	Certificación acerca de antecedentes de conflictos laborales	Importado
+Rubricas	CECOP	Certificación de Copia	Certificación de Copia	Importado
+Rubricas	CELYD	Certificado de la Ley 10.490 y Decreto 9.820/87	Certificado de la Ley 10.490 y Decreto 9.820/87	Importado
+Rubricas	CLSHM	Cierre de Libro de Sueldo y/o Hojas Móviles	Cierre de Libro de Sueldo y/o Hojas Móviles	Importado
+Rubricas	COHHM	Constancia de Habilitación Hojas Móviles	Constancia de Habilitación Hojas Móviles	Importado
+Rubricas	COLCH	Constancia de Otorgamiento de Libreta de Choferes	Constancia de Otorgamiento de Libreta de Choferes de Auto Transporte Automotor.	Importado
+Rubricas	COLIP	Concil laborales individuales y/o plurindividuales	Conciliaciones laborales individuales y/o plurindividuales	Importado
+Rubricas	CONPM	Const Planillas Móviles (Art 5 Resol 17/98 MTSS)	Constancia de Planillas Móviles Empleador de Choferes de Auto Transporte Automotor (Art.5° Resolución 17/98 MTSS)	Importado
+Rubricas	CORPH	Constancia Rúbrica Planilla Horaria (Ley 11.544)	Constancia Rúbrica de Planilla Horaria (Ley 11.544)	Importado
+Rubricas	CREL	Certificado del registro de Empresas de Limpieza	Certificado del registro de Empresas de Limpieza	Importado
+Rubricas	CRMCO	Constancia de Rúbrica de Microfichas COM	Constancia de Rúbrica de Microfichas COM	Importado
+Rubricas	CRPPF	Const Rúbrica Planilla Horaria Person Femenino	Constancia de Rubrica de Planilla Horaria (Ley 11.544) Personal Femenino (DTO 16115/33)	Importado
+Rubricas	EXPPP	Examen preocupac., postocupacionales y periódicos	Exámenes preocupacioneales, postocupacionales y periódicos	Importado
+Rubricas	LOEEC	Libro Órdenes Estat Encargados Casa de Renta y PH	Libro de Órdenes del Estatuto de Encargados de Casa de Renta y Propiedad Horizontal, por folio útil	Importado
+Rubricas	LRPHB	Libro Registro Pers. Horas Suplem - Act Bancaria	Libro de Registro de Personal de Horas Suplementarias – Actividad Bancaria	Importado
+Rubricas	LSDAL	Libro Sueldo Digital art 52 Ley 20744 o equiparado	Libro Sueldo Digital articulo 52 Ley Nacional N°20.744 o equiparado	Importado
+Rubricas	LTECP	Libreta Trabajo Estatuto Encargados casa y prop.	Libreta de Trabajo Estatuto de Encargados de casa de renta y propiedad horizontal	Importado
+Rubricas	LTSD	Libreta de Trabajadores del Servicio Domestico	Libreta de Trabajadores del Servicio Domestico	Importado
+Rubricas	OBLRU	Oblea de Rúbrica	Oblea de Rúbrica	Importado
+Rubricas	OLCAA	Otorgamiento Libreta Chofer Autotransporte Automot	Otorgamiento de Libreta de Choferes de Autotransporte Automotor	Importado
+Rubricas	OLTD	Otorgamiento de Libreta Trabajadores Domésticos	Constancia de Otorgamiento de Libreta Trabajadores Servicio Domestico.	Importado
+Rubricas	PLAHL	Planilla Horaria prevista en la Ley 11.544	Planilla Horaria prevista en la Ley 11.544	Importado
+Rubricas	PRARB	Procedimiento Arbitral	Procedimiento Arbitral	Importado
+Rubricas	RDRDL	Rúbrica Deleg. regional distinta domicilio legal	Rúbrica de otra Delegación regional distinta a la correspondiente por el domicilio legal o fiscal	Importado
+Rubricas	RHMEC	Rúbrica Hojas Móviles Empleador Choferes Autotrans	Rúbrica de Hojas Móviles Empleador de Choferes de Autotransporte Automotor (Art 5° Resolución 17/98 MTSS)	Importado
+Rubricas	RHMF	Rubrica de Hojas Móviles o similar por folio útil	Rubrica de Hojas Móviles o similar por folio útil	Importado
+Rubricas	RHMTD	Rúbrica Hojas Móviles de Trabajadores a Domicilio	Rúbrica de Hojas Móviles de Trabajadores a Domicilio	Importado
+Rubricas	RHMVC	Rúbrica de Hojas Móviles de Viajantes de Comercio	Rúbrica de Hojas Móviles de Viajantes de Comercio	Importado
+Rubricas	RHRCC	Rubrica Hojas de Ruta de Choferes de Camiones -KM-	Rubrica de Hojas de Ruta de Choferes de Camiones –Kilometraje-	Importado
+Rubricas	RLCS	Rubrica del Libro de Contaminantes	Rubrica del Libro de Contaminantes	Importado
+Rubricas	RLEEP	Rúbrica de Libro especial Estatuto de Peluqueros	Rúbrica de Libro especial Estatuto de Peluqueros (Artículo 6° Ley N°23.947)	Importado
+Rubricas	RLSJL	Rúbrica Libro Especial Suel y Jorn y/o Libro Copia	Rúbrica de Libro Especial de Sueldos y Jornales y/o Libro Copiativo, por folio útil	Importado
+Rubricas	RLVC	Rúbrica del Libro de Viajantes de Comercio	Rúbrica del Libro de Viajantes de Comercio (Ley Nacional 14.546), por folio útil	Importado
+Rubricas	RMCPK	Rúbrica Microfichas COM Planillas Control Kmetraje	Rúbrica de Microfichas COM de Planillas de Control de Kilometraje	Importado
+Rubricas	RMCSJ	Rúbrica Microfichas COM reg. de Sueldos y Jornales	Rubrica de Microfichas COM para el registro de Sueldos y Jornales	Importado
+Rubricas	RMCVC	Rúbrica Microfichas COM Reemp. Viajante Comercio	Rúbrica de Microfichas COM en Reemplazo del libro de Viajante de Comercio	Importado
+Rubricas	RRUP	Rúbrica del Registro Único de Personal	Rúbrica del Registro Único de Personal, por folio útil	Importado
+Rubricas	RTDFA	Rúbrica de Trabajadores a Domicilio	Rúbrica de Trabajadores a Domicilio, por folio útil A	Importado
+Rubricas	RTDFB	Rúbrica de Trabajadores a Domicilio	Rúbrica de Trabajadores a Domicilio, por folio útil B	Importado
+Rubricas	RTDPT	Repr. de texto en doc púb solicitados por terceros	Reproducciones de texto contenidos en documentos públicos solicitados por terceros con interés legítimo por foja	Importado
+Rubricas	RUBRI	Rúbrica	Rúbrica	Libre
+Rubricas	RULAT	Rubrica del Libro de Accidentes de Trabajo	Rubrica del Libro de Accidentes de Trabajo	Importado
+Rubricas	RULIB	Rúbrica de Libro	Rúbrica de Libro	Importado
+Rubricas	SAADE	Subanexo A – Actualización de datos de Empresas	Subanexo A – Actualización de datos de Empresas	Importado
+Rubricas	SBFME	Subanexo B – Formulario de Mod. datos de Empresas	Subanexo B – Formulario de Modificación de datos de Empresas	Importado
+Rubricas	SIEOS	Solic. Info por escrito, oficios judi, o similares	Solicitud de Informes por escrito, Oficios Judiciales, o similares	Importado
+Rubricas	SJMD	Servicio de Junta Médica por Discrepancias	Servicio de Junta Médica por Discrepancias	Importado
+Sin Familia	AAPCA	Auto Apertura Prueba Cargo	Auto Apertura Prueba Cargo	Libre
+Sin Familia	AAPRD	Auto Apertura Prueba Descargo	Auto Apertura Prueba Descargo	Libre
+Sin Familia	ACINU	Acta Inutilizacion	Acta Inutilizacion	Importado
+Sin Familia	ACTNR	Nota de Referencia	Nota de Referencia	Importado
+Sin Familia	ACYES	Acta constitutiva y estatuto social	Acta constitutiva y estatuto social	Importado
+Sin Familia	ADJD	Acta Declaración Jurada de Domicilio	Acta Declaración Jurada de Domicilio	Importado, Token
+Sin Familia	ADJDE	Acta Declaración Jurada de Domicilio	Acta Declaración Jurada de Domicilio	Importado
+Sin Familia	AEBSE	Acta Ns. de Extravío de bs. muebles o semovientes	Acta Noticias de Extravío de bienes muebles o semovientes	Importado
+Sin Familia	AEDPE	Acta Ns. de Extravío de doc. de org. Público	Acta Noticias de Extravío de documentos emitidos por Organismo Público	Importado
+Sin Familia	AIRAP	Aceptación condiciones de Inscripción (RAPPSI)	Aceptación condiciones de Inscripción (RAPPSI)	Importado
+Sin Familia	ANEBS	Acta Ns. de Extravío de bs. muebles o semovientes	Acta Noticias de Extravío de bienes muebles o semovientes	Importado, Token
+Sin Familia	ANEDP	Acta Ns. de Extravío de doc. de org. Público	Acta Noticias de Extravío de documentación emitidos por organismo Público	Importado, Token
+Sin Familia	ARREI	Arancel Resolución 249/93 INAC	Arancel Resolución 249/93 INAC	Importado
+Sin Familia	ASCM	Acta Cert. de Supervivencia con cert. Médico	Acta Certificado de Supervivencia con certificado médico	Importado, Token
+Sin Familia	ASSM	Acta Cert. de Supervivencia sin cert. Médico	Acta Certificado de Supervivencia sin certificado médico	Importado, Token
+Sin Familia	ASSMD	Acta Cert. de Supervivencia Dig. sin Cert. Médico	Acta Cert. de Supervivencia Dig. sin Cert. Médico	Importado, Token
+Sin Familia	ASSME	Acta Cert. de Supervivencia sin cert. Médico	Acta Certificado de Supervivencia sin certificado médico	Importado
+Sin Familia	AUREL	Autorización representantes legales	Autorización representantes legales	Importado
+Sin Familia	BDPA	Boleta de Pago	Boleta de Pago	Importado
+Sin Familia	BIOFL	Bill of Lading	Bill of Lading	Importado
+Sin Familia	C55CG	C55 - Corrección Global	C55 - Corrección Global	Importado
+Sin Familia	CAHAB	Carnet Habilitante	Carnet Habilitante	Importado
+Sin Familia	CAPAM	Certificado de Aptitud Ambiental	Certificado de Aptitud Ambiental	Importado
+Sin Familia	CARAP	Copia del libro de asociados (RAPPSI)	Copia del libro de asociados (RAPPSI)	Importado
+Sin Familia	CARDH	Carnet/Documento Habilitante	Carnet/Documento Habilitante	Importado
+Sin Familia	CARFE	Copia de apoderamiento RAPPSI con Firma Externa	Copia de apoderamiento RAPPSI con Firma Externa	Importado, Firma Externa
+Sin Familia	CARIN	Carta de Invitación	Carta de Invitación	Libre
+Sin Familia	CARNT	Carnet	Carnet	Importado
+Sin Familia	CARP	Carta de pobreza	Carta de pobreza	Importado
+Sin Familia	CDD	Constatación de domicilio	Constatación de domicilio	Importado
+Sin Familia	CDEFU	Certificado de Defunción	Certificado médico de defunción	Importado
+Sin Familia	CEDUL	Cédula	Cédula	Libre
+Sin Familia	CEMAT	Partida de Matrimonio con Inscripcion Marginal de	Partida de Matrimonio con Inscripcion Marginal de Divorcio	Importado
+Sin Familia	CMATR	Acta Matrimonio	Acta Matrimonio	Importado
+Sin Familia	COMEX	Comex	Comex	Importado
+Sin Familia	CONIA	Consentimiento informado/Asentimiento	Consentimiento informado/Asentimiento	Importado
+Sin Familia	CONMU	Conciliación manual	Conciliación manual	Importado
+Sin Familia	CONVM	Convención matrimonial	Convención matrimonial	Importado
+Sin Familia	COPCE	Copia Certificada	Copia Certificada	Importado
+Sin Familia	CPRAP	Copia de apoderamiento RAPPSI	Copia de apoderamiento RAPPSI	Importado
+Sin Familia	DBENE	Declaración de beneplácito	Declaración de beneplácito	Libre, Firma Conjunta
+Sin Familia	DC31	DOC31	DOC31	Importado
+Sin Familia	DDJJT	Declaración Jurada del tramitante	Declaración Jurada del tramitante	Importado
+Sin Familia	DECFO	Decreto con Firma Ológrafa	Documento a utilizar para la importación de un Decreto firmado en otro soporte y/o por fuera de la plataforma GDEBA	Importado
+Sin Familia	DEFH3	Formulario Datos Defunción H30	Formulario de Solicitud de Partidas de Defunciones (Con búsqueda) v1.5	Template
+Sin Familia	DEFH6	Formulario Datos Defunción H60	Formulario Datos Defunción H60	Template
+Sin Familia	DEFM6	Formulario Datos Defunción M60	Formulario Datos Defunción M60	Template
+Sin Familia	DEFSD	Formulario Datos Defunción Sin año	Formulario Datos Defunción Sin año	Template
+Sin Familia	DIDPF	Documento Inicio de Perjuicio Fiscal	Documento Inicio de Perjuicio Fiscal	Libre
+Sin Familia	DIMP	Doc.Interv.M.P.	Doc.Interv.M.P.	Importado
+Sin Familia	DISFO	Disposición con Firma Ológrafa	Disposición con Firma Ológrafa a Importar	Importado
+Sin Familia	DISJU	Dispensa judicial	Dispensa judicial	Importado
+Sin Familia	DOC30	DOC30	DOC30	Importado
+Sin Familia	DOCAR	Documento acreditativo de representación	Documento acreditativo de representación	Importado
+Sin Familia	DOCLE	Documento de redacción libre	Documento de redacción libre con embebido	Libre
+Sin Familia	DOCPP	Documentación propiedad	Documentación que demuestre propiedad, posesión o usufructo	Importado
+Sin Familia	DOCS	Documento de identidad del solicitante	Documento de identidad del solicitante	Importado
+Sin Familia	DOCTR	Documento de identidad del tramitante	Documento de identidad del tramitante	Importado
+Sin Familia	EIMAM	Evaluación de Impacto Ambiental	Evaluación de Impacto Ambiental	Importado
+Sin Familia	EIMDE	Escrito Imputado Descargo	Escrito Imputado Descargo	Libre
+Sin Familia	ELEVA	Elevación	Elevación	Libre
+Sin Familia	EPDE	Expedición de Partidas Defunción	Formulario de Solicitud de Partidas de Defunciones (unificado) v1	Template
+Sin Familia	EPMA	Expedición de Partidas Matrimonio	Formulario de Solicitud de Partidas de Matrimonios (unificado) v1	Template
+Sin Familia	EPNA	Expedición de Partidas Nacimiento	Formulario de Solicitud de Partidas de Nacimiento (unificado) v1	Template
+Sin Familia	EPUC	Expedición de Partidas Unión Convivencial	Formulario de Solicitud de Partidas de Uniones Convivenciales (unificado) v1	Template
+Sin Familia	ESTOR	Estructura Orgánica	Estructura Orgánica	Importado
+Sin Familia	EXPA	Expedición de Partidas	Expedición de Partidas	Template
+Sin Familia	EXRPP	Expedición de Part del Reg. Prov. de las Personas	Expedición de Partidas del Registro Provincial de las Personas	Importado
+Sin Familia	F404	Formulario 404	Formulario de IIBB que indica que no registra deuda	Importado
+Sin Familia	FACPR	Factura Proforma	Factura Proforma	Importado
+Sin Familia	FDDEF	Formulario Datos Defunción	Formulario Datos Defunción	Template
+Sin Familia	FDDP	Formulario Datos Partidas	Formulario Datos Partidas	Template
+Sin Familia	FDEC	Formulario Decenal	Formulario Decenal	Importado
+Sin Familia	FDMAT	Formulario Datos Matrimonio	Formulario Datos Matrimonio	Template
+Sin Familia	FDNAC	Formulario Datos Nacimiento	Formulario Datos Nacimiento	Template
+Sin Familia	FDUCV	Formulario Datos Unión Convivencial	Formulario Datos Unión Convivencial	Template
+Sin Familia	FIRAP	Formulario de Inscripción (RAPPSI)	Formulario de Inscripcion (RAPPSI)	Importado
+Sin Familia	FO583	Formulario 583	Formulario 583	Importado
+Sin Familia	FODDJ	Formulario DDJJ	Formulario DDJJ	Importado
+Sin Familia	FORMJ	Formulario J	Formulario J	Importado
+Sin Familia	FORSM	Formulario de Solicitud de Matrimonio	Formulario de Solicitud de Matrimonio	Importado
+Sin Familia	FOSUC	Form. Solicitud Unión Convivencial	Form. Solicitud Unión Convivencial	Importado
+Sin Familia	FREAL	Folio Real	Folio Real	Importado
+Sin Familia	IFMON	Informe de Monitoreo	Informe de Monitoreo	Importado
+Sin Familia	INFEV	Informe de Evaluación	Informe de Evaluación	Importado
+Sin Familia	INFOR	Informe de Avance	Informe de Avance	Importado
+Sin Familia	INSL	Instrumento legal	Instrumento legal	Importado
+Sin Familia	INSR	Instrumento de Reconocimiento	Instrumento de Reconocimiento	Importado
+Sin Familia	IVT	Informe de Valor de Tasación	Informe que determina el valor de un bien en función de la finalidad de la tasación.	Libre, Firma Conjunta
+Sin Familia	IVTI	Informe de Valor de Tasación	Informe que determina el valor de un bien en función de la finalidad de la tasación.	Importado, Firma Conjunta
+Sin Familia	JUSTI	Justificación	Justificación	Libre
+Sin Familia	LARAP	Copia Libro de Asociados RAPPSI	Fotocopia certificada del Libro de Asociados donde figuren los mismos	Importado
+Sin Familia	MATH3	Formulario Datos Matrimonio H30	Formulario de Solicitud de Partidas de Matrimonios (Con búsqueda) v1.5	Template
+Sin Familia	MATH6	Formulario Datos Matrimonio H60	Formulario Datos Matrimonio H60	Template
+Sin Familia	MATM6	Formulario Datos Matrimonio M60	Formulario Datos Matrimonio M60	Template
+Sin Familia	MATSD	Formulario Datos Matrimonio Sin año	Formulario Datos Matrimonio Sin año	Template
+Sin Familia	MOPRO	Modelo Orden de Provisión	Modelo Orden de Provisión	Template
+Sin Familia	MOTO	Documento MO.T.O	Documento Sistema MO.T.O	Libre
+Sin Familia	NACH3	Formulario Datos Nacimiento H30	Formulario de Solicitud de Partidas de Nacimiento (Con búsqueda) v1.5	Template
+Sin Familia	NACH6	Formulario Datos Nacimiento H60	Formulario Datos Nacimiento H60	Template
+Sin Familia	NACM6	Formulario Datos Nacimiento M60	Formulario Datos Nacimiento M60	Template
+Sin Familia	NACSD	Formulario Datos Nacimiento Sin año	Formulario Datos Nacimiento Sin año	Template
+Sin Familia	NARAP	Nómina de Asociados (RAPPSI)	Nómina de Asociados (RAPPSI)	Importado
+Sin Familia	NDAGG	Nota Asesoria	Nota Asesoria	Libre
+Sin Familia	NOPEI	Nómina de Personal	Nómina de Personal de tipo Importado	Importado
+Sin Familia	NOPER	Nómina de Personal	Nómina de Personal	Libre
+Sin Familia	NORMU	Nota de Organismos Multilaterales	Nota de Organismos Multilaterales	Importado
+Sin Familia	ORSE	Ordenes de servicio	Ordenes de servicio	Importado
+Sin Familia	PADE	Partida de Defunción	Partida de Defunción	Importado
+Sin Familia	PADET	Partida de Defunción Timbrada	Partida de Defunción Timbrada	Importado
+Sin Familia	PAMA	Partida de Matrimonio	Partida de Matrimonio	Importado
+Sin Familia	PAMAT	Partida de Matrimonio Timbrada	Partida de Matrimonio Timbrada	Importado
+Sin Familia	PANA	Partida de Nacimiento	Partida de Nacimiento	Importado
+Sin Familia	PANAT	Partida de Nacimiento Timbrada	Partida de Nacimiento Timbrada	Importado
+Sin Familia	PARMM	Partida de matrimonio marginada	Partida de matrimonio marginada	Importado
+Sin Familia	PARN	Partida de nacimiento	Partida de nacimiento	Importado
+Sin Familia	PAUC	Partida Unión Convivencial	Partida Unión Convivencial	Importado
+Sin Familia	PAUCT	Partida Unión Convivencial Timbrada	Partida Unión Convivencial Timbrada	Importado
+Sin Familia	PCAPE	Plan de Capacitación de Personal	Plan de Capacitación de Personal	Importado
+Sin Familia	PCIFE	Presentación Ciudadana con Firma Externa	Presentación Ciudadana con Firma Externa	Importado, Firma Externa
+Sin Familia	PCIUD	Presentación ciudadana	Presentación ciudadana	Importado
+Sin Familia	PCSBI	Separación de Bienes - Instrumento Privado	Separación de Bienes - Instrumento Privado	Importado
+Sin Familia	PDCOO	Pedido de Cooperación	Pedido de Cooperación	Importado
+Sin Familia	PDCY	Partida Defunción Cónyugue	Partida Defunción Conyugue.	Importado
+Sin Familia	PDEFU	Partida Defunción Padre	Partida Defunción Padre	Importado
+Sin Familia	PERVU	Permiso de Vuelco	Permiso de Vuelco	Importado
+Sin Familia	PLACU	Planilla CUCAIBA	Documento Planilla CUCAIBA	Importado
+Sin Familia	PLCON	Plan de Contingencia	Plan de Contingencia	Importado
+Sin Familia	PLMON	Plan de Monitoreo	Plan de Monitoreo	Importado
+Sin Familia	PMEJM	Partida matrimonio Extraña Jurisdicción Marginada	Partida de matrimonio Extraña Jurisdicción Marginada	Importado
+Sin Familia	PRAP	Porcentaje de participación RAPPSI	Porcentaje de participación comprometido por cada empresa	Importado
+Sin Familia	PROEC	Propuesta Económica	Propuesta Económica	Importado
+Sin Familia	PROTE	Propuesta Técnica	Propuesta Técnica	Importado
+Sin Familia	PRVIA	Proyecto de viabilidad	Proyecto de viabilidad	Importado
+Sin Familia	RCRDP	Recurso contra Resolución que determina Perjuicio	Recurso contra Resolución que determina Perjuicio Fiscal	Libre
+Sin Familia	REGIE	Registro importador/exportador	Registro importador/exportador Zonas Francas	Importado
+Sin Familia	REGSE	Reglamento de Servicios	Reglamento de Servicios	Importado
+Sin Familia	REGSV	Régimen de separación de bienes	Régimen de separación de bienes	Importado
+Sin Familia	REOPO	Registro de Oposición	Documento Registro de Oposición.	Importado
+Sin Familia	RMEDI	Receta Médica	Receta médica original, con sello del Hospital público y servicio correspondiente, detalle técnico del elemento solicitado, con firma y sello originales del profesional del servicio correspondiente (Validez seis meses)	Importado
+Sin Familia	RORES	CV_Registro de Operadores de Residuos Especiales	CV_Registro de Operadores de Residuos Especiales	Template
+Sin Familia	SCCOO	Solicitud de certificado - Cooperativas	Formulario para solicitar la emisión de un certificado sobre una Cooperativa vigente en el ámbito de la Provincia de Buenos Aires	Template
+Sin Familia	SFCA	Sometimiento al Fuero Contecioso Administrativo	Nota informando que ante la existencia de conflicto en el acto administrativo se procederá a Sometimiento al Fuero Contecioso Administrativo	Importado
+Sin Familia	SGSIG	Solicitud de Gastos SIGAF	Solicitud de Gastos SIGAF	Importado
+Sin Familia	SIMED	Solicitud de intervención - MED	Solicitud de intervención - MED	Template
+Sin Familia	SODDA	Solicitud de datos	Solicitud de datos	Importado
+Sin Familia	SOLCC	Solicitud de Compra/Contratación	Solicitud de Compra/Contratación	Libre
+Sin Familia	SPBAC	Solicitud de Gastos PBAC	Solicitud de Gastos PBAC	Importado
+Sin Familia	TERNA	Terna	Terna	Importado
+Sin Familia	TRANS	Tránsito	Tránsito	Importado
+Sin Familia	UCVH3	Formulario Datos Unión Convivencial H30	Formulario de Solicitud de Partidas de Uniones Convivenciales (Con búsqueda) v1.5	Template
+Sin Familia	UCVSD	Formulario Datos Unión Convivencial Sin año	Formulario Datos Unión Convivencial Sin año	Template
+Sin Familia	ZFI5	Zfi5	Zfi5	Importado
+Sindicatura	PLADG	Planilla de Desafiliación Gremial	Planilla de Desafiliación Gremial	Template
+Subsidios	SSUB	Solicitud de Subsidio	Solicitud de Subsidio	Importado
+Sumarios	ORSAN	Orden de Sanción	Orden de Sanción	Libre
+Sumarios	ORSUM	Orden de Sumario	Orden de Sumario	Libre
+Sumarios	PCSUM	Prueba de Cargo	Prueba de cargo - Sumarios administrativos	Libre
+Sumarios	PDSFE	Prueba de Descargo con Firma Externa	Prueba de descargo - Sumarios. Documento que permite importar el descargo del agente sumariado, con Firma Externa	Importado, Firma Externa
+Sumarios	PDSUM	Prueba de Descargo	Prueba de descargo - Sumarios. Documento que permite importar el descargo del agente sumariado.	Importado
+Titulos Ejecutivos	TEJCO	Título Ejecutivo	Título Ejecutivo Firma Conjunta	Importado, Firma Conjunta
+Titulos Ejecutivos	TEJEC	Título Ejecutivo	Título Ejecutivo	Libre
+Titulos Ejecutivos	TIEJE	Título Ejecutivo	Título Ejecutivo	Importado
+Titulos Ejecutivos	TITEJ	Título Ejecutivo	Título Ejecutivo	Template, Firma Conjunta
+Toma de vista	SOLTV	Solicitud de Toma de Vista	Solicitud de Toma de Vista	Importado
+Toma de vista	TOPOS	Toma de Posesión	Toma de Posesión	Importado
+Trabajo, Empleo	ACTIN	Acta de Incompatibilidad	Acta de incompatibilidad	Importado
+Trabajo, Empleo	PLATI	Planilla Tipo	Planilla Tipo	Importado
+Vistas	PREV	Previo	Requerimiento previo a la emisión de vista.	Libre, Token
+Vistas	VIADA	Visado de documentación técnica ADA	Documentación para visado de planos y documentación específica de la Autoridad del Agua.	Importado
+Vistas	VSITA	Vista	Vista	Importado, Token
+Vistas	VSTA	Vista	Vista	Libre, Token

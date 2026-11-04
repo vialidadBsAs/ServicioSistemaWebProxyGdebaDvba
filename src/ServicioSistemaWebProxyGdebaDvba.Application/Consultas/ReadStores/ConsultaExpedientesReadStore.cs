@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Models;
@@ -198,9 +199,10 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         if (filtro.TiposDocumento.Count > 0)
         {
             // El texto tipeado matchea el codigo o el nombre del catalogo (la celda muestra "codigo · nombre"); el nombre se resuelve localmente porque no es navegable desde el documento.
+            // La comparacion ignora mayusculas y acentos ("medicion" encuentra "Acta de Medición"), como lo haria la base.
             IEnumerable<TipoDocumentoGdeba> tiposCatalogo = await _tipoDocumentoRepository.Query().SelectAsync(cancellationToken);
             string[] codigosPorCatalogo = tiposCatalogo
-                .Where(tipo => filtro.TiposDocumento.Any(valor => tipo.Codigo.Contains(valor, StringComparison.OrdinalIgnoreCase) || tipo.Nombre.Contains(valor, StringComparison.OrdinalIgnoreCase)))
+                .Where(tipo => filtro.TiposDocumento.Any(valor => ConsultaExpedientesReadStore.ContieneSinAcentos(tipo.Codigo, valor) || ConsultaExpedientesReadStore.ContieneSinAcentos(tipo.Nombre, valor)))
                 .Select(tipo => tipo.Codigo)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
@@ -458,6 +460,11 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         }
 
         return Expression.Lambda<Func<ExpedienteDocumento, bool>>(cuerpo ?? Expression.Constant(false), parametro);
+    }
+
+    private static bool ContieneSinAcentos(string texto, string valor)
+    {
+        return CultureInfo.InvariantCulture.CompareInfo.IndexOf(texto, valor, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
     }
 
     private static Expression<Func<T, bool>> ContieneAlguno<T>(IReadOnlyCollection<string> valores, Expression<Func<T, string?>> selector)

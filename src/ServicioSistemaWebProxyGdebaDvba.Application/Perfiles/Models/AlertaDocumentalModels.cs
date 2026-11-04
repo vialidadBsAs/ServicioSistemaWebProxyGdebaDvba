@@ -46,7 +46,7 @@ public sealed record ExpedienteVinculadoDto(Guid ExpedienteId, string NumeroExpe
 // Lectura liviana para el badge y el aviso en pantalla: total de pendientes y las detectadas despues de la lectura anterior.
 public sealed record PendientesAlertasDocumentalesDto(int Total, DateTimeOffset Consultado, IReadOnlyCollection<CoincidenciaAlertaDocumentalDto> Nuevas);
 
-// Opciones del selector de tipo documental, en dos niveles: el acronimo entero (CodigoEspecifico nulo: "todas las RS") y, debajo, cada
-// tipo especifico observado en los documentos conocidos (ACMED, DICTA, RESO...), con el nombre del catalogo cuando lo tiene. Lo
-// observado sale de los documentos; el historial de pases informa el tipo especifico de cada uno.
+// Opciones del selector de tipo documental, en dos niveles: la sigla entera (CodigoEspecifico nulo: "todas las RS") y, debajo, cada
+// tipo especifico (ACMED, DICTA, RESO...) con el nombre del catalogo cuando lo tiene y la cantidad de documentos observados (0 si solo
+// esta en el catalogo con sigla confirmada por GDEBA).
 public sealed record TipoDocumentoAlertaDto(string Acronimo, string? CodigoEspecifico, string? Nombre, int CantidadDocumentos);
