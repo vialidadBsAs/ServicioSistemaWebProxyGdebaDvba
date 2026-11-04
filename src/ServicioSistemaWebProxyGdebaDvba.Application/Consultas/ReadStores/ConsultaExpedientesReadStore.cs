@@ -234,6 +234,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                     x.DocumentoId,
                     x.Documento!.FechaCreacion,
                     x.Documento!.NumeroActuacionCompleto,
+                    x.Documento!.TipoDocumentoCodigo,
                     Referencia = ordenaPorReferencia ? x.Documento!.Referencia : null
                 })
                 .Distinct();
@@ -252,6 +253,7 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             {
                 "numeroActuacionCompleto" => filtro.OrdenDescendente ? clavesDeOrden.OrderByDescending(x => x.NumeroActuacionCompleto) : clavesDeOrden.OrderBy(x => x.NumeroActuacionCompleto),
                 "referencia" => (filtro.OrdenDescendente ? clavesDeOrden.OrderByDescending(x => x.Referencia) : clavesDeOrden.OrderBy(x => x.Referencia)).ThenByDescending(x => x.NumeroActuacionCompleto),
+                "codigoTipoDocumento" => (filtro.OrdenDescendente ? clavesDeOrden.OrderByDescending(x => x.TipoDocumentoCodigo) : clavesDeOrden.OrderBy(x => x.TipoDocumentoCodigo)).ThenByDescending(x => x.FechaCreacion).ThenByDescending(x => x.NumeroActuacionCompleto),
                 _ => (filtro.OrdenDescendente ? clavesDeOrden.OrderByDescending(x => x.FechaCreacion) : clavesDeOrden.OrderBy(x => x.FechaCreacion)).ThenByDescending(x => x.NumeroActuacionCompleto)
             };
             documentosIdsPagina = await clavesOrdenadas
