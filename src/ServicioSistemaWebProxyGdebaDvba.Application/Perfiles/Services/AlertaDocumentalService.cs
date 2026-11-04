@@ -73,6 +73,7 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
     {
         ArgumentNullException.ThrowIfNull(request);
         TrataHabilitadaVialidad? trata = await this.ValidarTrataAsync(request.TrataId, cancellationToken);
+        await this.ConfirmarTipoEspecificoAsync(request.TipoDocumentoCodigo, request.TipoEspecificoCodigo, cancellationToken);
         PerfilUsuario perfil = await this.CargarOCrearPerfilConAlertasAsync(usuarioInstitucional, cancellationToken);
         AlertaDocumental alerta = perfil.CrearAlertaDocumental(
             request.TipoDocumentoCodigo, request.TipoEspecificoCodigo, trata?.Id, request.UsuarioGenerador, request.Nombre, DateTimeOffset.Now);
@@ -89,6 +90,7 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
     {
         ArgumentNullException.ThrowIfNull(request);
         TrataHabilitadaVialidad? trata = await this.ValidarTrataAsync(request.TrataId, cancellationToken);
+        await this.ConfirmarTipoEspecificoAsync(request.TipoDocumentoCodigo, request.TipoEspecificoCodigo, cancellationToken);
         PerfilUsuario perfil = await this.CargarPerfilConAlertasAsync(usuarioInstitucional, cancellationToken)
             ?? throw new KeyNotFoundException("No existe la alerta que se intenta modificar.");
         AlertaDocumental alerta = perfil.ActualizarAlertaDocumental(
@@ -193,44 +195,112 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
 
     public async Task<IReadOnlyCollection<TipoDocumentoAlertaDto>> ListarTiposDocumentoAsync(CancellationToken cancellationToken)
     {
-        // Lo observado en los documentos conocidos, por acronimo y tipo especifico. El detalle del expediente deja como tipo el mismo
-        // acronimo del numero (ACTA); el historial lo reemplaza por el especifico (ACMED). Un documento cuyo tipo sigue siendo el acronimo
-        // suma a la sigla entera pero no define un tipo especifico.
+        // Dos fuentes. Lo observado en los documentos conocidos, por sigla y tipo especifico: el detalle del expediente deja como tipo la
+        // misma sigla del numero (ACTA); el historial la reemplaza por el especifico (ACMED); un documento cuyo tipo sigue siendo la sigla
+        // suma a la sigla entera pero no define un tipo especifico. Y el catalogo con sigla confirmada por GDEBA, para poder elegir un tipo
+        // que todavia no circulo (cuelga de su sigla con 0 documentos). Un tipo del catalogo sin sigla no se ofrece: la sigla se completa
+        // con la operacion administrativa de completado, no adivinando.
         var observados = await _documentoRepository.Queryable()
             .Where(x => x.ActuacionTipoCodigo != "")
             .GroupBy(x => new { x.ActuacionTipoCodigo, x.TipoDocumentoCodigo })
             .Select(grupo => new { Acronimo = grupo.Key.ActuacionTipoCodigo, Especifico = grupo.Key.TipoDocumentoCodigo, Cantidad = grupo.Count() })
             .ToListAsync(cancellationToken);
-        List<(string Acronimo, string? Especifico, int Cantidad)> normalizados = observados
+        List<(string Sigla, string? Especifico, int Cantidad)> normalizados = observados
             .Select(x =>
             {
-                string acronimo = x.Acronimo.Trim().ToUpperInvariant();
+                string sigla = x.Acronimo.Trim().ToUpperInvariant();
                 string? especifico = string.IsNullOrWhiteSpace(x.Especifico) ? null : x.Especifico.Trim().ToUpperInvariant();
-                return (acronimo, especifico == acronimo ? null : especifico, x.Cantidad);
+                return (sigla, especifico == sigla ? null : especifico, x.Cantidad);
             })
             .ToList();
+        List<TipoDocumentoGdeba> catalogo = await _tipoDocumentoRepository.Queryable().ToListAsync(cancellationToken);
 
-        IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(normalizados.Select(x => x.Acronimo), cancellationToken);
-        IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(normalizados.Select(x => x.Especifico), cancellationToken);
+        HashSet<string> siglasObservadas = new(normalizados.Select(x => x.Sigla), StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> nombresCatalogo = new(StringComparer.OrdinalIgnoreCase);
+        foreach (TipoDocumentoGdeba tipo in catalogo)
+        {
+            nombresCatalogo[tipo.Codigo] = tipo.Nombre;
+        }
+
+        // Especificos bajo cada sigla: los observados con su cantidad y los del catalogo con sigla confirmada, con 0 si no circularon.
+        Dictionary<string, Dictionary<string, int>> especificosPorSigla = new(StringComparer.OrdinalIgnoreCase);
+        foreach ((string sigla, string? especifico, int cantidad) in normalizados.Where(x => x.Especifico is not null))
+        {
+            Dictionary<string, int> especificos = especificosPorSigla.TryGetValue(sigla, out Dictionary<string, int>? existentes)
+                ? existentes
+                : especificosPorSigla[sigla] = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            especificos[especifico!] = especificos.GetValueOrDefault(especifico!) + cantidad;
+        }
+
+        foreach (TipoDocumentoGdeba tipo in catalogo.Where(x => x.Activo && !string.IsNullOrWhiteSpace(x.CodigoTipoDocumentoGdeba)))
+        {
+            string sigla = tipo.CodigoTipoDocumentoGdeba!.Trim().ToUpperInvariant();
+            if (string.Equals(sigla, tipo.Codigo, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Dictionary<string, int> especificos = especificosPorSigla.TryGetValue(sigla, out Dictionary<string, int>? existentes)
+                ? existentes
+                : especificosPorSigla[sigla] = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            especificos.TryAdd(tipo.Codigo, 0);
+        }
+
+        HashSet<string> siglas = new(siglasObservadas.Concat(especificosPorSigla.Keys), StringComparer.OrdinalIgnoreCase);
+        IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(siglas, cancellationToken);
+        Dictionary<string, int> cantidadPorSigla = normalizados
+            .GroupBy(x => x.Sigla, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(grupo => grupo.Key, grupo => grupo.Sum(x => x.Cantidad), StringComparer.OrdinalIgnoreCase);
 
         List<TipoDocumentoAlertaDto> opciones = new();
-        IOrderedEnumerable<IGrouping<string, (string Acronimo, string? Especifico, int Cantidad)>> porAcronimo = normalizados
-            .GroupBy(x => x.Acronimo)
-            .OrderByDescending(grupo => grupo.Sum(x => x.Cantidad))
-            .ThenBy(grupo => grupo.Key);
-        foreach (IGrouping<string, (string Acronimo, string? Especifico, int Cantidad)> grupo in porAcronimo)
+        foreach (string sigla in siglas.OrderByDescending(x => cantidadPorSigla.GetValueOrDefault(x)).ThenBy(x => x, StringComparer.OrdinalIgnoreCase))
         {
-            opciones.Add(new TipoDocumentoAlertaDto(grupo.Key, null, nombresTipos.GetValueOrDefault(grupo.Key), grupo.Sum(x => x.Cantidad)));
-            opciones.AddRange(grupo
-                .Where(x => x.Especifico is not null)
-                .GroupBy(x => x.Especifico!)
-                .Select(especifico => new TipoDocumentoAlertaDto(
-                    grupo.Key, especifico.Key, nombresEspecificos.GetValueOrDefault(especifico.Key), especifico.Sum(x => x.Cantidad)))
-                .OrderByDescending(x => x.CantidadDocumentos)
-                .ThenBy(x => x.CodigoEspecifico));
+            opciones.Add(new TipoDocumentoAlertaDto(sigla, null, nombresTipos.GetValueOrDefault(sigla), cantidadPorSigla.GetValueOrDefault(sigla)));
+            if (especificosPorSigla.TryGetValue(sigla, out Dictionary<string, int>? especificos))
+            {
+                opciones.AddRange(especificos
+                    .OrderByDescending(x => x.Value)
+                    .ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(x => new TipoDocumentoAlertaDto(sigla, x.Key, nombresCatalogo.GetValueOrDefault(x.Key), x.Value)));
+            }
         }
 
         return opciones;
+    }
+
+    // El detector compara sigla y tipo especifico, asi que el especifico de la alerta tiene que pertenecer a la sigla elegida. Se valida
+    // contra el catalogo local (completado con GDEBA por la operacion administrativa); es una red de seguridad para pedidos que no vienen
+    // del selector. Un codigo que el catalogo no tiene (observado en documentos pero nunca consultado) se acepta como hasta ahora.
+    private async Task ConfirmarTipoEspecificoAsync(string tipoDocumentoCodigo, string? tipoEspecificoCodigo, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(tipoEspecificoCodigo) || string.IsNullOrWhiteSpace(tipoDocumentoCodigo))
+        {
+            return;
+        }
+
+        string sigla = tipoDocumentoCodigo.Trim().ToUpperInvariant();
+        string codigoEspecifico = tipoEspecificoCodigo.Trim().ToUpperInvariant();
+        if (string.Equals(sigla, codigoEspecifico, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        TipoDocumentoGdeba? tipo = await _tipoDocumentoRepository.Queryable()
+            .FirstOrDefaultAsync(x => x.Codigo == codigoEspecifico, cancellationToken);
+        if (tipo is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(tipo.CodigoTipoDocumentoGdeba))
+        {
+            throw new InvalidOperationException($"El tipo {codigoEspecifico} ({tipo.Nombre}) no tiene sigla confirmada en el catálogo; hay que completar el catálogo de tipos documentales.");
+        }
+
+        if (!string.Equals(tipo.CodigoTipoDocumentoGdeba.Trim(), sigla, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"El tipo {codigoEspecifico} ({tipo.Nombre}) pertenece a la sigla {tipo.CodigoTipoDocumentoGdeba}, no a {sigla}.");
+        }
     }
 
     private IQuery<CoincidenciaAlertaDocumental> ConsultarCoincidenciasConDatos()

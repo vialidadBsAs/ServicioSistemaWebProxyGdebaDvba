@@ -27,6 +27,7 @@ public sealed class DocumentoDetailEnrichmentService
     private readonly IGdebaTipoDocumentoGateway _gdebaTipoDocumentoGateway;
     private readonly ITrackableRepository<DocumentoGdeba> _documentoRepository;
     private readonly ITrackableRepository<TipoDocumentoGdeba> _tipoDocumentoRepository;
+    private readonly ICatalogoTiposDocumentoGdebaService _catalogoTiposDocumento;
     private readonly IRepository<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> _configuracionEnriquecimientoTemaRepository;
     private readonly IConsultaCuotasGdeba _consultaCuotasGdeba;
     private readonly IUnitOfWork _unitOfWork;
@@ -40,6 +41,7 @@ public sealed class DocumentoDetailEnrichmentService
         IGdebaTipoDocumentoGateway gdebaTipoDocumentoGateway,
         ITrackableRepository<DocumentoGdeba> documentoRepository,
         ITrackableRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
+        ICatalogoTiposDocumentoGdebaService catalogoTiposDocumento,
         IRepository<ConfiguracionEnriquecimientoMetadataDocumentoTemaExpediente> configuracionEnriquecimientoTemaRepository,
         IConsultaCuotasGdeba consultaCuotasGdeba,
         IUnitOfWork unitOfWork,
@@ -52,6 +54,7 @@ public sealed class DocumentoDetailEnrichmentService
         _gdebaTipoDocumentoGateway = gdebaTipoDocumentoGateway;
         _documentoRepository = documentoRepository;
         _tipoDocumentoRepository = tipoDocumentoRepository;
+        _catalogoTiposDocumento = catalogoTiposDocumento;
         _configuracionEnriquecimientoTemaRepository = configuracionEnriquecimientoTemaRepository;
         _consultaCuotasGdeba = consultaCuotasGdeba;
         _unitOfWork = unitOfWork;
@@ -305,67 +308,41 @@ public sealed class DocumentoDetailEnrichmentService
             return tipoEnMemoria;
         }
 
-        var tipoDocumento = (await _tipoDocumentoRepository
+        TipoDocumentoGdeba? tipoDocumento = (await _tipoDocumentoRepository
             .Query()
             .Where(x => x.Codigo == codigoNormalizado)
             .Take(1)
             .SelectAsync(cancellationToken))
             .SingleOrDefault();
-        if (tipoDocumento is not null)
+        if (tipoDocumento is not null && !string.IsNullOrWhiteSpace(tipoDocumento.CodigoTipoDocumentoGdeba))
         {
             catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = tipoDocumento;
             return tipoDocumento;
         }
 
-        var consultasDisponibles = await this.ResolverConsultasTipoDocumentoDisponiblesAsync(catalogoTiposDocumento, cancellationToken);
+        // El tipo no existe o nacio de la semilla GEDO sin sigla: en ambos casos GDEBA es la fuente que completa el catalogo.
+        int consultasDisponibles = await this.ResolverConsultasTipoDocumentoDisponiblesAsync(catalogoTiposDocumento, cancellationToken);
         if (consultasDisponibles <= 0)
         {
-            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = null;
+            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = tipoDocumento;
             _logger.LogInformation(
                 "No se consulta el tipo documental {CodigoTipoDocumento} porque se alcanzo la cuota diaria de consultarTipoDocumento.",
                 codigoNormalizado);
-            return null;
+            return tipoDocumento;
         }
 
         catalogoTiposDocumento.ConsultasDisponibles--;
-        var detalleTipoDocumento = await _gdebaTipoDocumentoGateway.ConsultarTipoDocumentoAsync(
+        GdebaTipoDocumentoDto? detalleTipoDocumento = await _gdebaTipoDocumentoGateway.ConsultarTipoDocumentoAsync(
             codigoNormalizado, contextoInvocacion, cancellationToken);
         if (detalleTipoDocumento is null)
         {
-            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = null;
-            return null;
+            catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = tipoDocumento;
+            return tipoDocumento;
         }
 
-        var codigoCatalogo = string.IsNullOrWhiteSpace(detalleTipoDocumento.Acronimo)
-            ? codigoNormalizado
-            : detalleTipoDocumento.Acronimo.Trim().ToUpperInvariant();
-        var nombre = string.IsNullOrWhiteSpace(detalleTipoDocumento.Nombre)
-            ? detalleTipoDocumento.Descripcion ?? codigoCatalogo
-            : detalleTipoDocumento.Nombre;
-        tipoDocumento = new TipoDocumentoGdeba(codigoCatalogo, nombre);
-        tipoDocumento.ActualizarMetadata(
-            nombre,
-            detalleTipoDocumento.CodigoTipoDocumentoGdeba,
-            detalleTipoDocumento.Descripcion,
-            detalleTipoDocumento.Familia,
-            detalleTipoDocumento.TipoProduccion,
-            detalleTipoDocumento.Estado,
-            detalleTipoDocumento.EsAutomatica,
-            detalleTipoDocumento.EsComunicable,
-            detalleTipoDocumento.EsConfidencial,
-            detalleTipoDocumento.EsEmbebido,
-            detalleTipoDocumento.EsEspecial,
-            detalleTipoDocumento.EsFirmaConjunta,
-            detalleTipoDocumento.EsFirmaExterna,
-            detalleTipoDocumento.EsManual,
-            detalleTipoDocumento.EsNotificable,
-            detalleTipoDocumento.TieneTemplate,
-            detalleTipoDocumento.TieneToken,
-            esResolucion: false,
-            activo: !string.Equals(detalleTipoDocumento.Estado, "BAJA", StringComparison.OrdinalIgnoreCase));
-        _tipoDocumentoRepository.Insert(tipoDocumento);
+        tipoDocumento = _catalogoTiposDocumento.IncorporarRespuestaGdeba(tipoDocumento, codigoNormalizado, detalleTipoDocumento);
         catalogoTiposDocumento.TiposPorCodigo[codigoNormalizado] = tipoDocumento;
-        catalogoTiposDocumento.TiposPorCodigo[codigoCatalogo] = tipoDocumento;
+        catalogoTiposDocumento.TiposPorCodigo[tipoDocumento.Codigo] = tipoDocumento;
         return tipoDocumento;
     }
 

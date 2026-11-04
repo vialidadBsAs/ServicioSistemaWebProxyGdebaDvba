@@ -135,6 +135,15 @@ public sealed class TipoDocumentoGdeba : DomainEntity
         Activo = activo;
     }
 
+    /// <summary>
+    /// GDEBA no reconoce este tipo documental (la consulta no devolvio datos): deja de ofrecerse, pero la fila se conserva porque
+    /// documentos ya conocidos pueden referenciarla.
+    /// </summary>
+    public void Desactivar()
+    {
+        Activo = false;
+    }
+
     private static string? Normalizar(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();

@@ -35,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<IConsultaExpedientesService, ConsultaExpedientesService>();
         services.AddScoped<IConsultaExpedientesReadStore, ConsultaExpedientesReadStore>();
         services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
+        services.AddScoped<ICatalogoTiposDocumentoGdebaService, CatalogoTiposDocumentoGdebaService>();
+        services.AddScoped<ICompletadoCatalogoTiposDocumentoService, CompletadoCatalogoTiposDocumentoService>();
         services.AddScoped<IDocumentoPdfDownloadService, DocumentoPdfDownloadService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();
@@ -66,6 +68,8 @@ public static class DependencyInjection
         services.AddScoped<IConsultaExpedientesService, ConsultaExpedientesService>();
         services.AddScoped<IConsultaExpedientesReadStore, ConsultaExpedientesReadStore>();
         services.AddScoped<IDocumentoDetailEnrichmentService, DocumentoDetailEnrichmentService>();
+        services.AddScoped<ICatalogoTiposDocumentoGdebaService, CatalogoTiposDocumentoGdebaService>();
+        services.AddScoped<ICompletadoCatalogoTiposDocumentoService, CompletadoCatalogoTiposDocumentoService>();
         services.AddScoped<IDocumentoPdfDownloadService, DocumentoPdfDownloadService>();
         services.AddScoped<IEstadisticasReadStore, EstadisticasReadStore>();
         services.AddScoped<IEstadisticasService, EstadisticasService>();

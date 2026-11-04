@@ -51,6 +51,10 @@ public sealed class AlertasDocumentalesController : ControllerBase
         {
             return NotFound(new { mensaje = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { mensaje = ex.Message });
+        }
     }
 
     [HttpPut("{alertaId:guid}")]
@@ -72,6 +76,10 @@ public sealed class AlertasDocumentalesController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { mensaje = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { mensaje = ex.Message });
         }
     }
 
