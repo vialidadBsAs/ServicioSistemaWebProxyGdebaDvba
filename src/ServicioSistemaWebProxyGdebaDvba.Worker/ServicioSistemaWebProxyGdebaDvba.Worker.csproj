@@ -23,6 +23,8 @@
   <ItemGroup>
     <!-- La configuracion de desarrollo no viaja a produccion. -->
     <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+    <!-- Secretos de produccion: archivo local ignorado por git; si existe, se publica junto con el Worker (docs/12 §7). -->
+    <Content Update="appsettings.Secrets.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('appsettings.Secrets.json')" />
   </ItemGroup>
 
 </Project>

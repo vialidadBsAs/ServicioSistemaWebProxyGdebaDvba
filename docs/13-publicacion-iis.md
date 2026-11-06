@@ -1,15 +1,14 @@
-2026-10-13 17:50:55.291 -03:00 [INF] Microsoft.Hosting.Lifetime: Application started. Press Ctrl+C to shut down.
-2026-10-13 17:50:55.324 -03:00 [INF] Microsoft.Hosting.Lifetime: Hosting environment: Production
-2026-10-13 17:50:55.325 -03:00 [INF] Microsoft.Hosting.Lifetime: Content root path: C:\inetpub\wwwroot\apps\expedientes\ServicioSistemaWebProxyGdebaDvba
-2026-10-13 17:50:55.381 -03:00 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware: Failed to determine the https port for redirect.
-# Publicacion en IIS (SI-INTRAVIAL)
+# Publicacion en IIS
 
-Fecha: 2026-10-13
-Estado: instalado en SI-INTRAVIAL el 13/10/2026 (ver seccion 8). Pendiente la
-habilitacion de la IP del servidor en el gateway IOP de GDEBA.
+Fecha: 2026-10-13 (actualizado 2026-11-06)
+Estado: instalado en SI-INTRAVIAL el 13/10/2026 (ver seccion 8). Desde el
+6/11/2026 se instala ademas en el servidor de intranet
+(`intranet.vialidad.gba.gov.ar`, 10.25.96.60, Windows Server 2012 R2 / IIS 8.5,
+el mismo que hospeda DVBA-Auth; ver seccion 9). Pendiente la habilitacion de la
+IP del servidor en el gateway IOP de GDEBA.
 
-Las secciones 1 a 7 son la guia para instalar o volver a desplegar. La seccion
-8 es el registro de lo que se hizo en la instalacion inicial.
+Las secciones 1 a 7 son la guia para instalar o volver a desplegar. Las
+secciones 8 y 9 son el registro de cada instalacion.
 
 ## 1. Topologia
 
@@ -47,30 +46,28 @@ Todo corre en el servidor IIS `SI-INTRAVIAL`, por HTTP, mismo host:
   `ProxyGdebaLogin=LoginProd`, GDEBA `PROD` con `GatewayMode=Soap` y la seccion
   `Serilog` del log en archivo.
 - `appsettings.Development.json` no se publica (`CopyToPublishDirectory=Never`).
-- Secretos por variables de entorno (criterio de `docs/12` §7). En el servidor
-  no se usan User Secrets: solo se leen en `Development`.
+- Secretos en `appsettings.Secrets.json` de cada proyecto (criterio de
+  `docs/12` §7): archivo ignorado por git que, si existe en la maquina que
+  publica, viaja con la publicacion y se carga al final de la configuracion.
+  En el servidor no se usan User Secrets ni variables de entorno; no hay nada
+  que configurar fuera de la carpeta publicada.
 
-| Variable | Api | Worker |
-|----------|-----|--------|
-| `SqlLogins__LoginProd` (`User Id=...;Password=...`) | si | si |
-| `ConnectionStrings__MiLLave` | si | no |
-| `Gdeba__Environments__PROD__Jwt__Username` / `__Password` | si | si |
-| `Gdeba__Environments__PROD__Soap__Services__ConsultaDocumento__UsuarioConsulta` | si | si |
+| Clave | Api | Worker |
+|-------|-----|--------|
+| `SqlLogins:LoginProd` (`User Id=...;Password=...`) | si | si |
+| `ConnectionStrings:MiLLave` | si | no |
+| `Gdeba:Environments:PROD:Jwt:Username` / `:Password` | si | si |
+| `Gdeba:Environments:PROD:Soap:Services:ConsultaDocumento:UsuarioConsulta` | si | si |
 
-  - Api: variables de la aplicacion IIS en
-    `C:\Windows\System32\inetsrv\config\applicationHost.config`
-    (`scripts/ConfigurarApiIis.ps1`). No van en el `web.config` publicado porque
-    este se reemplaza en cada despliegue. Se ven en el Administrador de IIS,
-    aplicacion -> Editor de configuracion -> `system.webServer/aspNetCore` ->
-    `environmentVariables`.
-  - Worker: variables del servicio, valor `Environment` de su clave de registro
-    (`scripts/InstalarWorkerServicio.ps1`). Esa clave es legible por usuarios
-    autenticados del servidor; un vault, DPAPI o el cifrado de la seccion de IIS
-    quedan como mejora.
-  - Son los mismos valores de desarrollo: los scripts leen `MiLLave` de
-    `appsettings.Development.json` (`-ArchivoClave`, se copia tal cual) y el
-    resto del `secrets.json` de User Secrets (`-ArchivoSecrets`). No se tipea nada.
-    Las copias de esos archivos se borran del servidor al terminar.
+  - Son los mismos valores de desarrollo (`MiLLave` de
+    `appsettings.Development.json` y el resto de User Secrets). Se arma una vez
+    en la maquina que publica y se conserva; no hay que copiar nada aparte.
+  - Hasta el 6/11/2026 se cargaban como variables de entorno (IIS
+    `applicationHost.config` via `ConfigurarApiIis.ps1`, registro del servicio
+    via `InstalarWorkerServicio.ps1`). Se abandono porque exigia PowerShell en
+    el servidor y el modulo `IISAdministration`, que no existe en Windows Server
+    2012 R2. Las variables que quedaron en SI-INTRAVIAL son inofensivas: el
+    archivo las pisa con los mismos valores.
 
 ## 3. Preparacion del servidor (una vez)
 
@@ -95,8 +92,10 @@ fallan con "No se encuentra ningun proveedor con el nombre 'WebAdministration'")
    (es la unica aplicacion IIS; el front es contenido estatico) y
    `C:\Servicios\ProxyGdebaDvbaWorker` para el Worker. Al actualizar el front se
    reemplazan solo sus archivos, sin vaciar la carpeta (borraria la Api).
-6. Correr `scripts/ConfigurarApiIis.ps1 -ArchivoClave <appsettings.Development.json> -ArchivoSecrets <secrets.json>`.
-   Carga las variables de la Api y crea `logs` con escritura para el app pool.
+6. Carpeta `logs` de la Api con escritura para el app pool (Serilog la usa):
+   `icacls "<carpeta de la Api>\logs" /grant "IIS AppPool\ServicioProxyGdeba:(OI)(CI)M"`
+   (crearla antes si no existe). Sin escritorio remoto, los pasos 4 a 6 se
+   hacen por PowerShell remoto; ver seccion 9.
 7. Login SQL de produccion en `SI-DB-01` con `db_datareader`, `db_datawriter`
    y `EXECUTE`, sin DDL (`docs/12` §7). Las migraciones se corren aparte, con
    un login con `db_ddladmin`.
@@ -125,14 +124,15 @@ Front (`ConsultaExpedientes`): `ng build` (configuracion `production`, con
 `baseHref /apps/Expedientes/`). Se copia el contenido de
 `dist/consulta-expedientes/browser`, que incluye el `web.config`.
 
-## 5. Despliegue en SI-INTRAVIAL
+## 5. Despliegue en el servidor
 
 1. **Api**: publicar con `IISProfile`. Alternativa sin Web Deploy: dejar un
    `app_offline.htm` en la carpeta, copiar `publish\Api` y quitarlo.
 2. **Worker**: primera vez, copiar `publish\Worker` a
    `C:\Servicios\ProxyGdebaDvbaWorker` y correr
-   `scripts/InstalarWorkerServicio.ps1 -RutaInstalacion C:\Servicios\ProxyGdebaDvbaWorker -ArchivoSecrets <secrets.json>`
-   y `Start-Service ProxyGdebaDvbaWorker`. Despliegues siguientes:
+   `scripts/InstalarWorkerServicio.ps1 -RutaInstalacion C:\Servicios\ProxyGdebaDvbaWorker`
+   y `Start-Service ProxyGdebaDvbaWorker` (el script avisa si falta
+   `appsettings.Secrets.json` en la carpeta). Despliegues siguientes:
    `Stop-Service ProxyGdebaDvbaWorker`, copiar `publish\Worker`,
    `Start-Service ProxyGdebaDvbaWorker`. Cuenta virtual
    `NT SERVICE\ProxyGdebaDvbaWorker`, inicio automatico retrasado, reinicio ante
@@ -155,8 +155,9 @@ Si la politica de ejecucion bloquea los scripts:
     `appsettings.Production.json` (basta reciclar el pool o reiniciar el
     servicio). Se excluyen el SQL de EF, el detalle HTTP de cada llamada, el
     envelope SOAP y el aviso de EF sobre `Skip/Take` sin `OrderBy`.
-  - La identidad de cada proceso necesita escritura en su carpeta `logs`; los
-    scripts de instalacion la otorgan. En una instalacion existente:
+  - La identidad de cada proceso necesita escritura en su carpeta `logs`; la
+    del Worker la otorga su script de instalacion, la de la Api se otorga a
+    mano (seccion 3, paso 6). En una instalacion existente:
     `icacls "<carpeta de la Api>\logs" /grant "IIS_IUSRS:(OI)(CI)M"` (o
     `IIS AppPool\<pool>`) y
     `icacls "C:\Servicios\ProxyGdebaDvbaWorker\logs" /grant "NT SERVICE\ProxyGdebaDvbaWorker:(OI)(CI)M"`.
@@ -242,3 +243,39 @@ es normal con autenticacion de paso a traves y no indica un problema.
 | 403 consumia cuota y la corrida abortaba con stack trace | El 403 contaba como "el servidor respondio" | Rama `feature/worker-errores-gdeba` (ADR-012) |
 | Advertencias de DataProtection en cada arranque de la Api | Pool sin perfil de usuario | Cargar perfil de usuario = True |
 | Log del Worker lleno de lineas HTTP y avisos de EF | Niveles por defecto | Overrides de `Serilog` en `appsettings.Production.json` |
+
+## 9. Registro de la instalacion en intranet (6/11/2026, en curso)
+
+Servidor `intranet.vialidad.gba.gov.ar` (10.25.96.60), Windows Server 2012 R2
+/ IIS 8.5, el mismo que hospeda DVBA-Auth. Sin escritorio remoto: se administra
+por PowerShell remoto desde la maquina de desarrollo.
+
+### 9.1 Acceso
+
+- Agregar el servidor a los hosts de confianza una sola vez (la lista ya tenia
+  a `SI-DB-01` y `SI-INTRAVIAL`):
+  `Set-Item WSMan:\localhost\Client\TrustedHosts -Value intranet.vialidad.gba.gov.ar -Concatenate -Force`.
+- Sesion: `Enter-PSSession -ComputerName intranet.vialidad.gba.gov.ar -Credential (Get-Credential)`
+  con el usuario administrador del dominio (`VIALIDAD\...`).
+- Archivos: recurso `\\intranet.vialidad.gba.gov.ar\C$`. Los archivos de
+  instalacion van a `C:\desarrollo-instaladores\...`, nunca bajo
+  `C:\inetpub\wwwroot` (todo lo que esta ahi se sirve por HTTP).
+- Publicacion de la Api: perfil **`Intranet`** (Web Deploy, copia de
+  `IISProfile` con host `intranet.vialidad.gba.gov.ar`, aplicacion
+  `apps/expedientes/...` y usuario `VIALIDAD\administrador`). Requiere Web
+  Deploy con Remote Agent Service en el servidor, como en SI-INTRAVIAL.
+
+### 9.2 Lo hecho el 6/11
+
+| Paso | Detalle | Verificacion |
+|------|---------|--------------|
+| Front | `C:\inetpub\wwwroot\apps\expedientes` (`/apps/expedientes`; primero quedo en `/apps/front/Expedientes` y las rutas relativas de la Api daban 404) | `Get-WebApplication` no lo lista: es contenido estatico |
+| Api | Publicada en la subcarpeta `ServicioSistemaWebProxyGdebaDvba`, pero sin convertir en aplicacion IIS: toda llamada daba 500 sin cuerpo. Creada con `New-WebAppPool ServicioProxyGdeba` (`managedRuntimeVersion=''`, `loadUserProfile=$true`) y `New-WebApplication -Site 'Default Web Site' -Name 'apps/expedientes/ServicioSistemaWebProxyGdebaDvba' -PhysicalPath ... -ApplicationPool ServicioProxyGdeba` | `Get-WebApplication` la lista con su pool |
+| Secretos | `ConfigurarApiIis.ps1` fallo: no existe `IISAdministration` en 2012 R2. Se reemplazo el mecanismo por `appsettings.Secrets.json` (seccion 2) | Pendiente: republicar la Api con el archivo y probar `api/gdeba/estado` |
+| Hosting Bundle / URL Rewrite | Verificar `Get-WebGlobalModule` (`AspNetCoreModuleV2`, `RewriteModule`) | Pendiente de confirmar |
+| `logs` de la Api | `icacls` para `IIS AppPool\ServicioProxyGdeba` (seccion 3, paso 6) | Pendiente |
+| Worker | No instalado todavia en este servidor | - |
+
+Queda en el servidor `C:\desarrollo-instaladores\desarrollo-soft\expedientesviales\script`
+con copias de `secrets.json` y `appsettings.Development.json`: borrarlas al
+terminar la instalacion.

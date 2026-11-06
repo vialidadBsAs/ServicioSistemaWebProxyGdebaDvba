@@ -13,6 +13,9 @@ if (WindowsServiceHelpers.IsWindowsService())
 }
 
 var builder = Host.CreateApplicationBuilder(args);
+// Secretos de produccion (credencial SQL, credenciales GDEBA): archivo ignorado por git que viaja con la publicacion.
+// Se carga al final para pisar cualquier otra fuente; si no existe, el servicio arranca sin esos valores (docs/12 §7).
+builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: false);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

@@ -124,9 +124,26 @@ nombre de usuario, no una credencial de base, y sigue en `appsettings`.
 
 - Login **acotado** para la aplicacion: `db_datareader` + `db_datawriter` +
   `EXECUTE`, sin DDL. Migraciones con un login separado con `db_ddladmin`.
-- Credencial por variable de entorno de la cuenta de servicio
-  (`SqlLogins__LoginProd`) y `ProxyGdebaLogin=LoginProd`. Misma clave, otra
-  fuente, mismo codigo. Un vault o DPAPI son mejoras posibles sobre esto.
+- Credencial en `appsettings.Secrets.json` y `ProxyGdebaLogin=LoginProd`.
+  Misma clave, otra fuente, mismo codigo. Un vault o DPAPI son mejoras posibles
+  sobre esto.
+- `appsettings.Secrets.json` (desde el 6/11/2026; reemplaza a las variables de
+  entorno en IIS y en el registro del servicio, que exigian scripts y modulos
+  de PowerShell distintos segun la version del servidor):
+  - Un archivo por proyecto, junto a `appsettings.json` de la Api y del Worker.
+    Ignorado por git (`.gitignore`), vive solo en la maquina que publica.
+  - Si existe, el `csproj` lo copia al publicar; `Program.cs` lo carga al final
+    con `optional: true`, asi pisa cualquier otra fuente y, si falta, la
+    aplicacion arranca sin credenciales (el Worker avisa con una advertencia al
+    instalarse).
+  - Contenido: `ConnectionStrings:MiLLave` (solo Api), `SqlLogins:LoginProd` y
+    `Gdeba:Environments:PROD:{Jwt:Username, Jwt:Password,
+    Soap:Services:ConsultaDocumento:UsuarioConsulta}`. Son los mismos valores
+    de User Secrets y de `appsettings.Development.json`; se arma una vez y se
+    conserva.
+  - En IIS no se sirve por HTTP: todas las rutas de la aplicacion van al modulo
+    ASP.NET Core. Es texto plano en el servidor, igual que lo eran las
+    variables en `applicationHost.config`.
 
 ## 8. Montaje de la base en otro servidor (referencia de motor)
 

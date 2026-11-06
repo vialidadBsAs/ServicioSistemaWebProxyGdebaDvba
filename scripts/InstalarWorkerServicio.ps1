@@ -1,23 +1,19 @@
 <#
 .SYNOPSIS
-    Instala (o reconfigura) el Worker como servicio de Windows en SI-INTRAVIAL.
+    Instala (o reconfigura) el Worker como servicio de Windows en el servidor.
 
 .DESCRIPTION
     Se ejecuta como administrador sobre la carpeta ya copiada desde
-    publish\Worker. Crea el origen del visor de eventos, el servicio con cuenta
-    virtual (NT SERVICE\<nombre>), inicio automatico retrasado, reinicio ante
-    fallas y las variables de entorno con los secretos de produccion.
-    Si el servicio ya existe solo actualiza ruta y variables.
+    publish\Worker. Crea el origen del visor de eventos, la carpeta de logs y el
+    servicio con cuenta virtual (NT SERVICE\<nombre>), inicio automatico
+    retrasado y reinicio ante fallas. Si el servicio ya existe solo actualiza la
+    ruta del ejecutable. Los secretos de produccion viajan en
+    appsettings.Secrets.json dentro de la carpeta publicada (docs/12 §7).
     Ver docs/13-publicacion-iis.md.
-
-.PARAMETER ArchivoSecrets
-    Copia del secrets.json de User Secrets del Worker o de la Api (tienen los
-    mismos valores): credencial SQL y credenciales GDEBA.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $RutaInstalacion,
-    [Parameter(Mandatory)] [string] $ArchivoSecrets,
     [string] $NombreServicio = 'ProxyGdebaDvbaWorker'
 )
 
@@ -49,16 +45,8 @@ else {
     sc.exe failure $NombreServicio reset= 86400 actions= restart/60000/restart/60000/restart/300000 | Out-Null
 }
 
-$secrets = Get-Content -LiteralPath $ArchivoSecrets -Raw -Encoding UTF8 | ConvertFrom-Json
-
-# Variables de entorno propias del servicio (valor multi-string 'Environment' de su clave de registro).
-$variables = @(
-    "SqlLogins__LoginProd=$($secrets.'SqlLogins:LoginDev')"
-    "Gdeba__Environments__PROD__Jwt__Username=$($secrets.'Gdeba:Environments:PROD:Jwt:Username')"
-    "Gdeba__Environments__PROD__Jwt__Password=$($secrets.'Gdeba:Environments:PROD:Jwt:Password')"
-    "Gdeba__Environments__PROD__Soap__Services__ConsultaDocumento__UsuarioConsulta=$($secrets.'Gdeba:Environments:PROD:Soap:Services:ConsultaDocumento:UsuarioConsulta')"
-)
-$claveRegistro = "HKLM:\SYSTEM\CurrentControlSet\Services\$NombreServicio"
-Set-ItemProperty -LiteralPath $claveRegistro -Name 'Environment' -Type MultiString -Value $variables
+if (-not (Test-Path -LiteralPath (Join-Path $RutaInstalacion 'appsettings.Secrets.json'))) {
+    Write-Warning "No se encontro appsettings.Secrets.json en '$RutaInstalacion': el servicio arrancara sin credencial SQL ni credenciales GDEBA."
+}
 
 Write-Host "Servicio '$NombreServicio' configurado sobre '$ejecutable'. Iniciar con: Start-Service $NombreServicio"

@@ -48,3 +48,5 @@ publish/
 
 # Copias de User Secrets (credenciales): nunca al repositorio
 secrets.json
+# Secretos de produccion que viajan con la publicacion (docs/12 §7): nunca al repositorio
+appsettings.Secrets.json
