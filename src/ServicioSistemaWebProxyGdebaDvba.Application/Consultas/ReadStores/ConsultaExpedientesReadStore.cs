@@ -82,12 +82,21 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         // Virtualizacion: si vienen skip/take se usan tal cual (startIndex/chunkSize); si no, se pagina por Pagina/TamanioPagina.
         int saltear = filtro.Skip ?? (filtro.Pagina - 1) * filtro.TamanioPagina;
         int tomar = filtro.Take ?? filtro.TamanioPagina;
-        var expedientes = await queryOrdenada.ThenByDescending(x => x.GdebaNumeroCompleto)
+        // Paginacion por claves: se ordena y se toma la pagina proyectando solo el Id, que el motor resuelve dentro de los indices,
+        // y recien despues se cargan las entidades completas de esa pagina. Antes se leia la fila entera de cada expediente del tema
+        // para ordenar y descartar (plan del 6/11/2026: Key Lookup sobre Expedientes, 62 % del costo).
+        Guid[] idsPagina = await queryOrdenada.ThenByDescending(x => x.GdebaNumeroCompleto)
             .Skip(saltear)
             .Take(tomar)
+            .Select(x => x.Id)
             .ToArrayAsync(cancellationToken);
+        Expediente[] expedientesPagina = idsPagina.Length == 0
+            ? Array.Empty<Expediente>()
+            : await _expedienteRepository.Queryable().Where(x => idsPagina.Contains(x.Id)).ToArrayAsync(cancellationToken);
+        Dictionary<Guid, Expediente> expedientesPorId = expedientesPagina.ToDictionary(x => x.Id);
+        Expediente[] expedientes = idsPagina.Select(id => expedientesPorId[id]).ToArray();
 
-        var expedientesIds = expedientes.Select(x => x.Id).ToArray();
+        Guid[] expedientesIds = idsPagina;
         var historiales = await _historialCacheControlRepository.Query()
             .Where(x => expedientesIds.Contains(x.ExpedienteId))
             .SelectAsync(cancellationToken);

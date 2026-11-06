@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
@@ -88,6 +89,27 @@ public sealed class GdebaExceptionMiddleware
             await context.Response.WriteAsJsonAsync(
                 problem,
                 cancellationToken: context.RequestAborted);
+        }
+        catch (Exception ex) when (!context.RequestAborted.IsCancellationRequested && !context.Response.HasStarted)
+        {
+            // Cualquier otra falla (base de datos, bug): sin esto llegaba al front como 500 con cuerpo vacio y solo quedaba en el log de IIS.
+            // Se registra con la traza y se responde un ProblemDetails que distingue al menos el timeout de SQL Server.
+            _logger.LogError(ex, "Error no previsto al atender {Metodo} {Ruta}.", context.Request.Method, context.Request.Path);
+
+            bool esTimeoutSql = ex is SqlException { Number: -2 };
+            ProblemDetails problem = new()
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = esTimeoutSql ? "La consulta tardó demasiado" : "Error interno",
+                Detail = esTimeoutSql
+                    ? "La base de datos no respondió a tiempo. Volvé a intentar; si se repite, avisá al administrador."
+                    : "Se produjo un error inesperado al procesar la solicitud. El detalle quedó registrado en el servidor.",
+                Instance = context.Request.Path
+            };
+            problem.Extensions["codigo"] = esTimeoutSql ? "SQL_TIMEOUT" : "ERROR_INTERNO";
+
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(problem, cancellationToken: context.RequestAborted);
         }
     }
 }
