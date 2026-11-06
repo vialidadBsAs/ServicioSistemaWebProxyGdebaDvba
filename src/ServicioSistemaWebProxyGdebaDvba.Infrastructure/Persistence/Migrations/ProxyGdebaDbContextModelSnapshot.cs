@@ -661,6 +661,8 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TrataId");
 
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TrataId"), new[] { "EstadoActual", "GdebaNumeroCompleto" });
+
                     b.HasIndex("GdebaAnio", "GdebaReparticion");
 
                     b.HasIndex("GdebaTipo", "GdebaAnio", "GdebaNumero", "GdebaSistema", "GdebaReparticion")
@@ -1035,6 +1037,8 @@ namespace ServicioSistemaWebProxyGdebaDvba.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ExpedienteId", "EsUltimoConocido");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ExpedienteId", "EsUltimoConocido"), new[] { "FechaOperacion" });
 
                     b.HasIndex("ExpedienteId", "Orden");
 

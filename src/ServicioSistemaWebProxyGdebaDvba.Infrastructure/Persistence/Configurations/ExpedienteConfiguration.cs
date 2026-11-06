@@ -60,7 +60,9 @@ public sealed class ExpedienteConfiguration : IEntityTypeConfiguration<Expedient
 
         builder.HasIndex(x => new { x.GdebaAnio, x.GdebaReparticion });
 
-        builder.HasIndex(x => x.TrataId);
+        // La consulta por tratas filtra por estado y desempata por numero: con ambas columnas incluidas, el filtro y la paginacion
+        // por claves se resuelven dentro del indice, sin leer la fila de cada expediente del tema (plan medido el 6/11/2026: Key Lookup 62 %).
+        builder.HasIndex(x => x.TrataId).IncludeProperties(x => new { x.EstadoActual, x.GdebaNumeroCompleto });
 
         builder.HasOne(x => x.Trata)
             .WithMany(x => x.Expedientes)
