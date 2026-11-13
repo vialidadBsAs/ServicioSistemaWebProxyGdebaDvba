@@ -34,11 +34,14 @@ public sealed record ConsultaDocumentosPorTrataResult(
     IReadOnlyCollection<ConsultaTipoDocumentoResumenDto> TiposDocumento,
     IReadOnlyCollection<ConsultaDocumentoPorTrataDto> Items);
 
+// NombreTipoDocumento: nombre del catalogo cuando el codigo de actuacion lo resuelve sin ambiguedad (es un tipo del catalogo o la sigla
+// agrupa un unico tipo); null cuando agrupa varios tipos especificos o no figura en el catalogo.
 public sealed record ConsultaTipoDocumentoResumenDto(
     string CodigoTipoDocumento,
     int CantidadDocumentos,
     int CantidadExpedientes,
-    int CantidadDocumentosConMetadata);
+    int CantidadDocumentosConMetadata,
+    string? NombreTipoDocumento = null);
 
 public sealed record ConsultaDocumentoPorTrataDto(
     IReadOnlyCollection<ConsultaDocumentoExpedienteDto> Expedientes,
