@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 
@@ -17,11 +18,13 @@ internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
 
     private readonly HttpClient _httpClient;
     private readonly IOptions<GdebaOptions> _options;
+    private readonly ILogger<GdebaJwtTokenProvider> _logger;
 
-    public GdebaJwtTokenProvider(HttpClient httpClient, IOptions<GdebaOptions> options)
+    public GdebaJwtTokenProvider(HttpClient httpClient, IOptions<GdebaOptions> options, ILogger<GdebaJwtTokenProvider> logger)
     {
         _httpClient = httpClient;
         _options = options;
+        _logger = logger;
     }
 
     public async Task<string> ObtenerTokenAsync(CancellationToken cancellationToken)
@@ -125,16 +128,42 @@ internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basicCredentials);
         request.Content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
 
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        // Toda falla en este paso es de origen "credenciales IOP": el pedido a GDEBA no llego a enviarse. Incluye la falta de respuesta
+        // del servicio de tokens; la cancelacion pedida por quien llama se deja pasar.
+        HttpResponseMessage response;
+        try
+        {
+            response = await _httpClient.SendAsync(request, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            _logger.LogWarning(ex, "El servicio de tokens de IOP no respondio.");
+            throw new GdebaNoAccesibleException("el servicio de tokens de IOP no respondio", OrigenGdebaNoAccesible.CredencialesIop, ex);
+        }
+
+        using HttpResponseMessage respuestaDescartable = response;
+        string content = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException(
-                $"No se pudo obtener token JWT de GDEBA. StatusCode={(int)response.StatusCode}. Respuesta: {content}");
+            // Sin token el pedido nunca llega a GDEBA: es "GDEBA no accesible", igual que el enlace caido, cualquiera sea el estado que
+            // devuelva el servicio de tokens (503, 401 por certificado, etc.). La respuesta cruda queda solo en el log.
+            int estadoHttp = (int)response.StatusCode;
+            _logger.LogWarning("El servicio de tokens de IOP respondio HTTP {EstadoHttp}. Respuesta: {Respuesta}", estadoHttp, GdebaJwtTokenProvider.RecortarParaLog(content));
+            throw new GdebaNoAccesibleException($"el servicio de tokens de IOP respondio HTTP {estadoHttp}", OrigenGdebaNoAccesible.CredencialesIop);
         }
 
-        return ExtraerToken(content);
+        // Una respuesta exitosa sin token utilizable deja al proxy igual de imposibilitado de llegar a GDEBA. No se registra el contenido:
+        // podria traer un token con una forma no prevista.
+        try
+        {
+            return GdebaJwtTokenProvider.ExtraerToken(content);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or JsonException)
+        {
+            _logger.LogWarning("El servicio de tokens de IOP respondio HTTP {EstadoHttp} sin un token utilizable: {Motivo}", (int)response.StatusCode, ex.Message);
+            throw new GdebaNoAccesibleException("el servicio de tokens de IOP no devolvio un token utilizable", OrigenGdebaNoAccesible.CredencialesIop, ex);
+        }
     }
 
     private GdebaEnvironmentOptions ResolveEnvironmentOptions()
@@ -150,6 +179,13 @@ internal sealed class GdebaJwtTokenProvider : IGdebaJwtTokenProvider
                 "Configuracion de GDEBA incompleta",
                 "El proxy no tiene configurado el ambiente GDEBA necesario para completar la operacion.",
                 $"No existe configuracion GDEBA para el ambiente activo '{environmentName}'.");
+    }
+
+    private static string RecortarParaLog(string contenido)
+    {
+        const int largoMaximo = 500;
+        string texto = contenido.ReplaceLineEndings(" ").Trim();
+        return texto.Length <= largoMaximo ? texto : texto[..largoMaximo] + "...";
     }
 
     private static string ExtraerToken(string content)

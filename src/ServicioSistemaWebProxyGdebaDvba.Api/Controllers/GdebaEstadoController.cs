@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Controllers;
@@ -18,5 +20,10 @@ public sealed class GdebaEstadoController : ControllerBase
 
     // Lectura liviana del estado en memoria (no llama a GDEBA): la consume el front al iniciar para el cartel global.
     [HttpGet]
-    public IActionResult Get() => this.Ok(new { accesible = _sensorConexion.Accesible });
+    public IActionResult Get()
+    {
+        OrigenGdebaNoAccesible? origenFalla = _sensorConexion.OrigenFalla;
+        string? motivo = origenFalla is OrigenGdebaNoAccesible origen ? SensorConexionGdebaHeaderMiddleware.CodigoDeOrigen(origen) : null;
+        return this.Ok(new { accesible = origenFalla is null, motivo });
+    }
 }

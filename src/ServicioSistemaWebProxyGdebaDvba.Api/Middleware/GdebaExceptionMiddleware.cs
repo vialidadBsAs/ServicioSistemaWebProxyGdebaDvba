@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
+using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
 
@@ -17,7 +18,7 @@ public sealed class GdebaExceptionMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, ISensorConexionGdeba sensorConexion)
     {
         try
         {
@@ -26,18 +27,23 @@ public sealed class GdebaExceptionMiddleware
         catch (Exception ex) when (!context.RequestAborted.IsCancellationRequested && GdebaNoAccesibleException.EsNoAccesible(ex))
         {
             // GDEBA no accesible (rechazo del gateway 401/403 o sin respuesta) en una operacion sin copia local desde la cual responder:
-            // es el mismo estado que muestra el cartel de "sin conexion", no un error devuelto por GDEBA.
+            // es el mismo estado que muestra el cartel de "sin conexion", no un error devuelto por GDEBA. El motivo tecnico (estado HTTP,
+            // servicio de tokens, red) queda en el log y en una extension para diagnostico: al usuario se le dice que pasa y que hacer.
             string motivo = GdebaNoAccesibleException.DescribirMotivo(ex);
+            // Toda operacion que termina aca deja marcado el sensor, con su origen: la respuesta ya sale con el aviso global de "sin conexion",
+            // sin depender de que el servicio que fallo lo haya marcado (p. ej. un timeout en el enriquecimiento previo a la descarga del PDF).
+            sensorConexion.RegistrarFalloConexion(GdebaNoAccesibleException.DeterminarOrigen(ex));
             _logger.LogWarning(ex, "GDEBA no accesible al atender {Ruta}: {Motivo}.", context.Request.Path, motivo);
 
             ProblemDetails problem = new()
             {
                 Status = StatusCodes.Status503ServiceUnavailable,
                 Title = "Sin conexión con GDEBA",
-                Detail = $"GDEBA no es accesible en este momento ({motivo}) y esta operación no tiene una copia local desde la cual responder.",
+                Detail = "GDEBA no está respondiendo en este momento. Volvé a intentar en unos minutos.",
                 Instance = context.Request.Path
             };
             problem.Extensions["codigo"] = "GDEBA_NO_ACCESIBLE";
+            problem.Extensions["motivoTecnico"] = motivo;
 
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
             await context.Response.WriteAsJsonAsync(problem, cancellationToken: context.RequestAborted);

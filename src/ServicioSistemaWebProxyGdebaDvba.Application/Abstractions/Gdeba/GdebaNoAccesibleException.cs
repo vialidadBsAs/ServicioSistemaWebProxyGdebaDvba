@@ -9,9 +9,18 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 public sealed class GdebaNoAccesibleException : Exception
 {
     public GdebaNoAccesibleException(string message, Exception? innerException = null)
-        : base(message, innerException)
+        : this(message, OrigenGdebaNoAccesible.ServicioGdeba, innerException)
     {
     }
+
+    public GdebaNoAccesibleException(string message, OrigenGdebaNoAccesible origen, Exception? innerException = null)
+        : base(message, innerException)
+    {
+        this.Origen = origen;
+    }
+
+    /// <summary>Paso en el que se corto el acceso.</summary>
+    public OrigenGdebaNoAccesible Origen { get; }
 
     /// <summary>
     /// Solo lo inequivoco: rechazo de acceso del gateway (HTTP 401/403) o ausencia de respuesta (falla de red o timeout de transporte).
@@ -28,6 +37,20 @@ public sealed class GdebaNoAccesibleException : Exception
             GdebaOperationException { StatusCode: 401 or 403 } => true,
             { InnerException: Exception causa } => GdebaNoAccesibleException.EsNoAccesible(causa),
             _ => false
+        };
+    }
+
+    /// <summary>
+    /// Paso en el que se corto el acceso: el servicio de tokens de IOP cuando asi lo informo el proveedor de tokens; en cualquier otro
+    /// caso (rechazo del gateway o falta de respuesta al pedido), el servicio GDEBA.
+    /// </summary>
+    public static OrigenGdebaNoAccesible DeterminarOrigen(Exception exception)
+    {
+        return exception switch
+        {
+            GdebaNoAccesibleException noAccesible => noAccesible.Origen,
+            { InnerException: Exception causa } => GdebaNoAccesibleException.DeterminarOrigen(causa),
+            _ => OrigenGdebaNoAccesible.ServicioGdeba
         };
     }
 

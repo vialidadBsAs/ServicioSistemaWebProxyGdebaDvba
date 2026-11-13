@@ -163,7 +163,7 @@ public sealed class ExpedienteService : IExpedienteService
                 catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
                 {
                     // Enlace caido / sin internet: GDEBA no respondio. Se marca el circuito y, si hay copia local, se responde como respaldo; sin copia no hay nada que mostrar.
-                    _sensorConexion.RegistrarFalloConexion();
+                    _sensorConexion.RegistrarFalloConexion(GdebaNoAccesibleException.DeterminarOrigen(ex));
                     await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionDetalle, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                     if (expediente is null)
                     {
@@ -323,7 +323,7 @@ public sealed class ExpedienteService : IExpedienteService
                 catch (Exception ex) when (ExpedienteService.EsFalloDeConexion(ex))
                 {
                     // Enlace caido / sin internet: se marca el circuito y, si hay copia local, se responde con los movimientos locales; sin copia no hay nada que mostrar.
-                    _sensorConexion.RegistrarFalloConexion();
+                    _sensorConexion.RegistrarFalloConexion(GdebaNoAccesibleException.DeterminarOrigen(ex));
                     await this.RegistrarFalloGdebaAsync(operacionSolicitada, OperacionHistorial, numeroGdebaCompleto.Valor, ex.Message, resolvedAt, cancellationToken);
                     if (expediente is null)
                     {

@@ -22,6 +22,7 @@ public sealed class SensorConexionGdeba : ISensorConexionGdeba
     private readonly long _intervaloSondaMs;
 
     private volatile bool _accesible = true;
+    private volatile int _origenFalla = (int)OrigenGdebaNoAccesible.ServicioGdeba;
     private int _sondaEnCurso;
     private long _ultimaSondaTicks = long.MinValue;
 
@@ -36,7 +37,13 @@ public sealed class SensorConexionGdeba : ISensorConexionGdeba
 
     public void RegistrarExito() => _accesible = true;
 
-    public void RegistrarFalloConexion() => _accesible = false;
+    public OrigenGdebaNoAccesible? OrigenFalla => _accesible ? null : (OrigenGdebaNoAccesible)_origenFalla;
+
+    public void RegistrarFalloConexion(OrigenGdebaNoAccesible origen)
+    {
+        _origenFalla = (int)origen;
+        _accesible = false;
+    }
 
     public void SondearSiCorresponde(string numeroGdebaCompleto)
     {
@@ -83,7 +90,7 @@ public sealed class SensorConexionGdeba : ISensorConexionGdeba
         catch (Exception ex) when (GdebaNoAccesibleException.EsNoAccesible(ex))
         {
             // Sigue caido o el gateway sigue rechazando el acceso: la proxima actividad volvera a intentar pasado el freno.
-            this.RegistrarFalloConexion();
+            this.RegistrarFalloConexion(GdebaNoAccesibleException.DeterminarOrigen(ex));
         }
         catch (Exception ex)
         {

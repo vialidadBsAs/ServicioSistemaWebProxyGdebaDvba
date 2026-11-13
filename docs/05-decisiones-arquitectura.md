@@ -251,6 +251,9 @@ Decision:
 "GDEBA no accesible" se limita a lo inequivoco: rechazo de acceso del gateway
 IOP (HTTP 401/403) o ausencia de respuesta (falla de red o timeout de
 transporte), definido en un unico lugar (`GdebaNoAccesibleException.EsNoAccesible`).
+Desde el 13/11/2026 incluye tambien la imposibilidad de obtener el token de
+acceso: si el servicio de tokens de IOP no lo entrega (ese dia respondio 503 y
+401), el pedido nunca llega a GDEBA y se trata igual que el enlace caido.
 Esas invocaciones no consumen cuota. Ante esa condicion cada corrida de worker
 se corta en la primera llamada y queda `Fallida` con el motivo; no hay
 reintentos ni pausas fuera de la agenda configurada: la proxima corrida

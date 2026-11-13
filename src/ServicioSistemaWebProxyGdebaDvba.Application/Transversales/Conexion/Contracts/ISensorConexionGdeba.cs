@@ -1,3 +1,5 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
+
 namespace ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 
 /// <summary>
@@ -14,8 +16,11 @@ public interface ISensorConexionGdeba
     /// <summary>Un intento real a GDEBA respondio: se marca accesible.</summary>
     void RegistrarExito();
 
-    /// <summary>Un intento real a GDEBA fallo por transporte (enlace caido / timeout): se marca caido.</summary>
-    void RegistrarFalloConexion();
+    /// <summary>Paso en el que se corto el acceso mientras no es accesible; null cuando lo es.</summary>
+    OrigenGdebaNoAccesible? OrigenFalla { get; }
+
+    /// <summary>Un intento real no llego a GDEBA (sin token de IOP, rechazo del gateway o sin respuesta): se marca caido con su origen.</summary>
+    void RegistrarFalloConexion(OrigenGdebaNoAccesible origen);
 
     /// <summary>
     /// Estando caido, dispara en segundo plano una unica sonda de reconexion para el expediente indicado,
