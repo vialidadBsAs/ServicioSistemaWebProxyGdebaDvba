@@ -12,13 +12,19 @@ public interface IAlertaDocumentalService
 
     Task EliminarAlertaAsync(string usuarioInstitucional, Guid alertaId, CancellationToken cancellationToken);
 
-    Task<IReadOnlyCollection<CoincidenciaAlertaDocumentalDto>> ListarCoincidenciasAsync(string usuarioInstitucional, CancellationToken cancellationToken);
+    Task<NovedadesAlertasDocumentalesDto> ListarNovedadesAsync(string usuarioInstitucional, CancellationToken cancellationToken);
+
+    Task<HistoricoAlertasDocumentalesDto> ConsultarHistoricoAsync(string usuarioInstitucional, ConsultaHistoricoAlertasRequest request, CancellationToken cancellationToken);
 
     Task<PendientesAlertasDocumentalesDto> ConsultarPendientesAsync(string usuarioInstitucional, DateTimeOffset? detectadasDespuesDe, CancellationToken cancellationToken);
 
     Task MarcarVistasAsync(string usuarioInstitucional, CancellationToken cancellationToken);
 
     Task<bool> MarcarVistaAsync(string usuarioInstitucional, Guid coincidenciaId, CancellationToken cancellationToken);
+
+    Task<ResumenHistoricoAlertasDto> ResumirHistoricoAsync(string usuarioInstitucional, CancellationToken cancellationToken);
+
+    Task<int> MarcarHistoricoRevisadoAsync(string usuarioInstitucional, IReadOnlyCollection<Guid>? coincidenciaIds, CancellationToken cancellationToken);
 
     Task<IReadOnlyCollection<TipoDocumentoAlertaDto>> ListarTiposDocumentoAsync(CancellationToken cancellationToken);
 }

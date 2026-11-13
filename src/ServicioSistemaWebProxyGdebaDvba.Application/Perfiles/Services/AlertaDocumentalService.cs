@@ -1,4 +1,9 @@
+using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.Models;
+using ServicioSistemaWebProxyGdebaDvba.Application.Consultas.ReadStores;
 using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Contracts;
 using ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Models;
 using ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
@@ -11,7 +16,11 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Perfiles.Services;
 public sealed class AlertaDocumentalService : IAlertaDocumentalService
 {
     private const int CantidadMaximaNuevasInformadas = 20;
+    private const int DiasNovedadesSinRevisarPorDefecto = 5;
+    private const int TamanioPaginaMaximoHistorico = 200;
 
+    // Cuantos dias anteriores a hoy sigue en la pestana "Alertas" una coincidencia no revisada antes de pasar al historico con su marca.
+    private readonly int _diasNovedadesSinRevisar;
     private readonly ITrackableRepository<PerfilUsuario> _perfilRepository;
     private readonly ITrackableRepository<AlertaDocumental> _alertaRepository;
     private readonly IRepository<CoincidenciaAlertaDocumental> _coincidenciaRepository;
@@ -29,8 +38,12 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         IRepository<DocumentoGdeba> documentoRepository,
         IRepository<TipoDocumentoGdeba> tipoDocumentoRepository,
         IRepository<TrataHabilitadaVialidad> trataRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IConfiguration configuration)
     {
+        _diasNovedadesSinRevisar = int.TryParse(configuration["AlertasDocumentales:DiasNovedadesSinRevisar"], NumberStyles.Integer, CultureInfo.InvariantCulture, out int diasConfigurados) && diasConfigurados >= 0
+            ? diasConfigurados
+            : AlertaDocumentalService.DiasNovedadesSinRevisarPorDefecto;
         _perfilRepository = perfilRepository;
         _alertaRepository = alertaRepository;
         _coincidenciaRepository = coincidenciaRepository;
@@ -54,9 +67,11 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
             return Array.Empty<AlertaDocumentalDto>();
         }
 
+        // El contador de cada alerta sigue al badge del menu: solo lo no revisado que todavia esta en la pestana "Alertas".
+        DateTimeOffset limiteSinRevisar = this.CalcularVentanaNovedades().LimiteSinRevisar;
         Guid[] alertaIds = alertasUsuario.Select(x => x.Id).ToArray();
         Dictionary<Guid, int> pendientesPorAlerta = await _coincidenciaRepository.Queryable()
-            .Where(x => alertaIds.Contains(x.AlertaDocumentalId) && x.FechaVista == null)
+            .Where(x => alertaIds.Contains(x.AlertaDocumentalId) && x.FechaVista == null && x.FechaDeteccion >= limiteSinRevisar)
             .GroupBy(x => x.AlertaDocumentalId)
             .Select(grupo => new { AlertaId = grupo.Key, Cantidad = grupo.Count() })
             .ToDictionaryAsync(x => x.AlertaId, x => x.Cantidad, cancellationToken);
@@ -112,28 +127,91 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         await this.ConfirmarPerfilAsync(perfil, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<CoincidenciaAlertaDocumentalDto>> ListarCoincidenciasAsync(string usuarioInstitucional, CancellationToken cancellationToken)
+    public async Task<NovedadesAlertasDocumentalesDto> ListarNovedadesAsync(string usuarioInstitucional, CancellationToken cancellationToken)
     {
         string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        (DateTimeOffset inicioDeHoy, DateTimeOffset limiteSinRevisar) = this.CalcularVentanaNovedades();
         IEnumerable<CoincidenciaAlertaDocumental> coincidencias = await this.ConsultarCoincidenciasConDatos()
-            .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario)
+            .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario &&
+                (x.FechaDeteccion >= inicioDeHoy || (x.FechaVista == null && x.FechaDeteccion >= limiteSinRevisar)))
             .SelectAsync(cancellationToken);
-        return await this.MapearCoincidenciasAsync(coincidencias.OrderByDescending(x => x.FechaDeteccion).ToArray(), cancellationToken);
+        int sinRevisarEnHistorico = await _coincidenciaRepository.Query()
+            .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario && x.FechaVista == null && x.FechaDeteccion < limiteSinRevisar)
+            .CountAsync(cancellationToken);
+        IReadOnlyCollection<CoincidenciaAlertaDocumentalDto> novedades = await this.MapearCoincidenciasAsync(coincidencias.OrderByDescending(x => x.FechaDeteccion).ToArray(), cancellationToken);
+        return new NovedadesAlertasDocumentalesDto(_diasNovedadesSinRevisar, novedades, sinRevisarEnHistorico);
+    }
+
+    // Historico agrupado por alerta: una fila por alerta con sus cantidades; el detalle de cada una se pide con ConsultarHistoricoAsync
+    // y AlertaId al desplegar la fila (mismo esquema que los expedientes caratulados por trata en estadisticas).
+    public async Task<ResumenHistoricoAlertasDto> ResumirHistoricoAsync(string usuarioInstitucional, CancellationToken cancellationToken)
+    {
+        string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        List<ResumenPorAlerta> cantidades = await this.ConsultarHistoricoDelUsuario(usuario)
+            .GroupBy(x => x.AlertaDocumentalId)
+            .Select(grupo => new ResumenPorAlerta(grupo.Key, grupo.Count(), grupo.Count(x => x.FechaVista == null), grupo.Max(x => x.FechaDeteccion)))
+            .ToListAsync(cancellationToken);
+        if (cantidades.Count == 0)
+        {
+            return new ResumenHistoricoAlertasDto(0, Array.Empty<ResumenHistoricoAlertaDto>());
+        }
+
+        Dictionary<Guid, AlertaDescrita> alertasPorId = (await this.DescribirAlertasDelUsuarioAsync(usuario, cancellationToken)).ToDictionary(x => x.Alerta.Id);
+        ResumenHistoricoAlertaDto[] alertas = cantidades
+            .Where(x => alertasPorId.ContainsKey(x.AlertaId))
+            .Select(x => new ResumenHistoricoAlertaDto(x.AlertaId, alertasPorId[x.AlertaId].Descripcion, alertasPorId[x.AlertaId].Alerta.TipoDocumentoCodigo, x.Total, x.SinRevisar, x.UltimaDeteccion))
+            .OrderByDescending(x => x.UltimaDeteccion)
+            .ToArray();
+        return new ResumenHistoricoAlertasDto(alertas.Sum(x => x.SinRevisar), alertas);
+    }
+
+    public async Task<HistoricoAlertasDocumentalesDto> ConsultarHistoricoAsync(string usuarioInstitucional, ConsultaHistoricoAlertasRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        IQueryable<CoincidenciaAlertaDocumental> historico = this.ConsultarHistoricoDelUsuario(usuario);
+        int sinRevisar = await historico.Where(x => x.FechaVista == null).CountAsync(cancellationToken);
+
+        IQueryable<CoincidenciaAlertaDocumental> filtrado = await this.AplicarFiltrosHistoricoAsync(historico, usuario, request, cancellationToken);
+        int totalRegistros = await filtrado.CountAsync(cancellationToken);
+        int tamanioPagina = Math.Clamp(request.TamanioPagina, 1, AlertaDocumentalService.TamanioPaginaMaximoHistorico);
+        int pagina = Math.Max(request.Pagina, 1);
+        // Paginacion por claves: se ordena y se toma la pagina proyectando solo el Id, y recien despues se cargan las coincidencias
+        // completas de esa pagina con sus datos (mismo criterio que la consulta de expedientes por tratas).
+        Guid[] idsPagina = await AlertaDocumentalService.OrdenarHistorico(filtrado, request.CampoOrden, request.DireccionOrden)
+            .Skip((pagina - 1) * tamanioPagina)
+            .Take(tamanioPagina)
+            .Select(x => x.Id)
+            .ToArrayAsync(cancellationToken);
+        if (idsPagina.Length == 0)
+        {
+            return new HistoricoAlertasDocumentalesDto(totalRegistros, sinRevisar, pagina, tamanioPagina, Array.Empty<CoincidenciaAlertaDocumentalDto>());
+        }
+
+        Dictionary<Guid, CoincidenciaAlertaDocumental> coincidenciasPorId = (await this.ConsultarCoincidenciasConDatos()
+            .Where(x => idsPagina.Contains(x.Id))
+            .SelectAsync(cancellationToken))
+            .ToDictionary(x => x.Id);
+        CoincidenciaAlertaDocumental[] coincidenciasPagina = idsPagina.Select(id => coincidenciasPorId[id]).ToArray();
+        return new HistoricoAlertasDocumentalesDto(totalRegistros, sinRevisar, pagina, tamanioPagina, await this.MapearCoincidenciasAsync(coincidenciasPagina, cancellationToken));
     }
 
     public async Task<PendientesAlertasDocumentalesDto> ConsultarPendientesAsync(string usuarioInstitucional, DateTimeOffset? detectadasDespuesDe, CancellationToken cancellationToken)
     {
         string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
         DateTimeOffset consultado = DateTimeOffset.Now;
+        // El badge del menu cuenta solo lo no revisado que esta en la pestana "Alertas"; lo que paso al historico sin revisar tiene
+        // su propio contador alla, para que el badge no quede encendido para siempre.
+        DateTimeOffset limiteSinRevisar = this.CalcularVentanaNovedades().LimiteSinRevisar;
         int total = await _coincidenciaRepository.Query()
-            .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario && x.FechaVista == null)
+            .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario && x.FechaVista == null && x.FechaDeteccion >= limiteSinRevisar)
             .CountAsync(cancellationToken);
 
         IReadOnlyCollection<CoincidenciaAlertaDocumentalDto> nuevas = Array.Empty<CoincidenciaAlertaDocumentalDto>();
         if (total > 0 && detectadasDespuesDe is not null)
         {
             // Las detectadas despues de la lectura anterior alimentan el aviso en pantalla; el total alimenta el badge.
-            DateTimeOffset desde = detectadasDespuesDe.Value;
+            DateTimeOffset desde = detectadasDespuesDe.Value > limiteSinRevisar ? detectadasDespuesDe.Value : limiteSinRevisar;
             IEnumerable<CoincidenciaAlertaDocumental> coincidencias = await this.ConsultarCoincidenciasConDatos()
                 .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario && x.FechaVista == null && x.FechaDeteccion > desde)
                 .SelectAsync(cancellationToken);
@@ -144,53 +222,204 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
         return new PendientesAlertasDocumentalesDto(total, consultado, nuevas);
     }
 
+    // "Marcar todas como vistas" de la pestana "Alertas": solo lo no revisado que esta ahi; lo del historico se marca desde el historico.
     public async Task MarcarVistasAsync(string usuarioInstitucional, CancellationToken cancellationToken)
     {
         string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        DateTimeOffset limiteSinRevisar = this.CalcularVentanaNovedades().LimiteSinRevisar;
         IEnumerable<AlertaDocumental> alertas = await _alertaRepository.Query()
             .Include(nameof(AlertaDocumental.Coincidencias))
             .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario)
             .SelectAsync(cancellationToken);
+        await this.ConfirmarCoincidenciasVistasAsync(alertas, alerta => alerta.MarcarCoincidenciasVistas(DateTimeOffset.Now, limiteSinRevisar, null), cancellationToken);
+    }
 
-        DateTimeOffset fecha = DateTimeOffset.Now;
-        bool hayCambios = false;
+    public async Task<bool> MarcarVistaAsync(string usuarioInstitucional, Guid coincidenciaId, CancellationToken cancellationToken)
+    {
+        string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        AlertaDocumental[] alertas = (await _alertaRepository.Query()
+            .Include(nameof(AlertaDocumental.Coincidencias))
+            .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario && x.Coincidencias.Any(c => c.Id == coincidenciaId))
+            .SelectAsync(cancellationToken))
+            .ToArray();
+        if (alertas.Length == 0)
+        {
+            return false;
+        }
+
+        Guid[] coincidenciaIds = new[] { coincidenciaId };
+        await this.ConfirmarCoincidenciasVistasAsync(alertas, alerta => alerta.MarcarCoincidenciasVistas(coincidenciaIds, DateTimeOffset.Now), cancellationToken);
+        return true;
+    }
+
+    // "Marcar como revisadas" del historico, como en el correo: las filas elegidas; sin filas, todo lo no revisado del historico.
+    public async Task<int> MarcarHistoricoRevisadoAsync(string usuarioInstitucional, IReadOnlyCollection<Guid>? coincidenciaIds, CancellationToken cancellationToken)
+    {
+        string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
+        Guid[] elegidas = coincidenciaIds?.Where(x => x != Guid.Empty).Distinct().ToArray() ?? Array.Empty<Guid>();
+        if (elegidas.Length > 0)
+        {
+            IEnumerable<AlertaDocumental> alertasDeLasElegidas = await _alertaRepository.Query()
+                .Include(nameof(AlertaDocumental.Coincidencias))
+                .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario && x.Coincidencias.Any(c => elegidas.Contains(c.Id)))
+                .SelectAsync(cancellationToken);
+            return await this.ConfirmarCoincidenciasVistasAsync(alertasDeLasElegidas, alerta => alerta.MarcarCoincidenciasVistas(elegidas, DateTimeOffset.Now), cancellationToken);
+        }
+
+        DateTimeOffset limiteSinRevisar = this.CalcularVentanaNovedades().LimiteSinRevisar;
+        IEnumerable<AlertaDocumental> alertas = await _alertaRepository.Query()
+            .Include(nameof(AlertaDocumental.Coincidencias))
+            .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario)
+            .SelectAsync(cancellationToken);
+        return await this.ConfirmarCoincidenciasVistasAsync(alertas, alerta => alerta.MarcarCoincidenciasVistas(DateTimeOffset.Now, null, limiteSinRevisar), cancellationToken);
+    }
+
+    // El historico es el complemento exacto de las novedades: lo detectado antes de hoy que ya se reviso, o que quedo sin revisar mas
+    // alla de la ventana. Queryable() (EF crudo) y no Query() (wrapper URF): el ThenBy del wrapper no llega al SQL, el paginado
+    // necesita un orden total y el resumen por alerta agrupa en el servidor.
+    private IQueryable<CoincidenciaAlertaDocumental> ConsultarHistoricoDelUsuario(string usuario)
+    {
+        (DateTimeOffset inicioDeHoy, DateTimeOffset limiteSinRevisar) = this.CalcularVentanaNovedades();
+        return _coincidenciaRepository.Queryable()
+            .Where(x => x.AlertaDocumental.PerfilUsuario.UsuarioInstitucional == usuario)
+            .Where(x => x.FechaDeteccion < inicioDeHoy && (x.FechaVista != null || x.FechaDeteccion < limiteSinRevisar));
+    }
+
+    // Las alertas del usuario con su descripcion de pantalla (nombre propio, o tipo, trata y generador), que no es una columna.
+    private async Task<AlertaDescrita[]> DescribirAlertasDelUsuarioAsync(string usuario, CancellationToken cancellationToken)
+    {
+        AlertaDocumental[] alertasUsuario = (await _alertaRepository.Query()
+            .Include(nameof(AlertaDocumental.Trata))
+            .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario)
+            .SelectAsync(cancellationToken))
+            .ToArray();
+        IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(alertasUsuario.Select(x => x.TipoEspecificoCodigo), cancellationToken);
+        return alertasUsuario
+            .Select(alerta => new AlertaDescrita(alerta, AlertaDocumentalService.DescribirAlerta(alerta, AlertaDocumentalService.BuscarNombre(nombresEspecificos, alerta.TipoEspecificoCodigo), alerta.Trata?.CodigoTrata)))
+            .ToArray();
+    }
+
+    private sealed record AlertaDescrita(AlertaDocumental Alerta, string Descripcion);
+
+    private sealed record ResumenPorAlerta(Guid AlertaId, int Total, int SinRevisar, DateTimeOffset UltimaDeteccion);
+
+    // Le pide a cada alerta que marque sus coincidencias y confirma una sola vez. Devuelve cuantas coincidencias quedaron marcadas.
+    private async Task<int> ConfirmarCoincidenciasVistasAsync(IEnumerable<AlertaDocumental> alertas, Func<AlertaDocumental, int> marcar, CancellationToken cancellationToken)
+    {
+        int marcadas = 0;
         foreach (AlertaDocumental alerta in alertas)
         {
-            bool teniaPendientes = alerta.Coincidencias.Any(x => x.EstaPendiente);
-            IReadOnlyCollection<CoincidenciaAlertaDocumental> podadas = alerta.MarcarCoincidenciasVistas(fecha);
-            if (!teniaPendientes && podadas.Count == 0)
+            int marcadasEnAlerta = marcar(alerta);
+            if (marcadasEnAlerta == 0)
             {
                 continue;
             }
 
             _alertaRepository.Update(alerta);
             _alertaRepository.ApplyChanges(alerta);
-            hayCambios = true;
+            marcadas += marcadasEnAlerta;
         }
 
-        if (hayCambios)
+        if (marcadas > 0)
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
+        return marcadas;
     }
 
-    public async Task<bool> MarcarVistaAsync(string usuarioInstitucional, Guid coincidenciaId, CancellationToken cancellationToken)
+    // Ventana de novedades de la pestana "Alertas": todo lo detectado desde el inicio de hoy (visto o no) y lo no revisado detectado
+    // desde LimiteSinRevisar (hoy menos los dias configurados). El corte es por dia calendario del servidor, asi un dia entra o sale entero.
+    private (DateTimeOffset InicioDeHoy, DateTimeOffset LimiteSinRevisar) CalcularVentanaNovedades()
     {
-        string usuario = AlertaDocumentalService.NormalizarUsuario(usuarioInstitucional);
-        AlertaDocumental? alerta = (await _alertaRepository.Query()
-            .Include(nameof(AlertaDocumental.Coincidencias))
-            .Where(x => x.PerfilUsuario.UsuarioInstitucional == usuario && x.Coincidencias.Any(c => c.Id == coincidenciaId))
-            .SelectAsync(cancellationToken))
-            .FirstOrDefault();
-        if (alerta is null || alerta.MarcarCoincidenciaVista(coincidenciaId, DateTimeOffset.Now) is null)
+        DateTimeOffset ahora = DateTimeOffset.Now;
+        DateTimeOffset inicioDeHoy = new(ahora.Date, ahora.Offset);
+        return (inicioDeHoy, inicioDeHoy.AddDays(-_diasNovedadesSinRevisar));
+    }
+
+    private async Task<IQueryable<CoincidenciaAlertaDocumental>> AplicarFiltrosHistoricoAsync(IQueryable<CoincidenciaAlertaDocumental> query, string usuario, ConsultaHistoricoAlertasRequest request, CancellationToken cancellationToken)
+    {
+        if (request.AlertaId is Guid alertaId) query = query.Where(x => x.AlertaDocumentalId == alertaId);
+
+        string[] alertas = AlertaDocumentalService.LimpiarValoresFiltro(request.Alertas);
+        if (alertas.Length > 0)
         {
-            return false;
+            // La descripcion de la alerta se arma al mapear (nombre propio, o tipo, trata y generador): no es una columna. El texto
+            // tipeado se resuelve contra las alertas del usuario, que son pocas, y al SQL viaja solo la lista de alertas que coinciden.
+            Guid[] alertaIds = await this.BuscarAlertasPorDescripcionAsync(usuario, alertas, cancellationToken);
+            query = query.Where(x => alertaIds.Contains(x.AlertaDocumentalId));
         }
 
-        _alertaRepository.Update(alerta);
-        _alertaRepository.ApplyChanges(alerta);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return true;
+        string[] numerosDocumento = AlertaDocumentalService.LimpiarValoresFiltro(request.NumerosDocumento);
+        if (numerosDocumento.Length > 0) query = query.Where(ExpresionesFiltroGrilla.ContieneAlguno<CoincidenciaAlertaDocumental>(numerosDocumento, x => x.ExpedienteDocumento.Documento.NumeroActuacionCompleto));
+
+        string[] referencias = AlertaDocumentalService.LimpiarValoresFiltro(request.Referencias);
+        if (referencias.Length > 0) query = query.Where(ExpresionesFiltroGrilla.ContieneAlguno<CoincidenciaAlertaDocumental>(referencias, x => x.ExpedienteDocumento.Documento.Referencia));
+
+        // Expediente, trata y generador se buscan en todos los vinculos del documento: la fila muestra el expediente de origen y,
+        // debajo, los demas donde esta vinculado, y cualquiera de ellos tiene que encontrar la fila.
+        string[] numerosExpediente = AlertaDocumentalService.LimpiarValoresFiltro(request.NumerosExpediente);
+        if (numerosExpediente.Length > 0)
+        {
+            query = query.Where(ExpresionesFiltroGrilla.AlgunoCumple<CoincidenciaAlertaDocumental>(numerosExpediente,
+                valor => x => x.ExpedienteDocumento.Documento.Expedientes.Any(vinculo => vinculo.Expediente.GdebaNumeroCompleto.Contains(valor))));
+        }
+
+        string[] codigosTrata = AlertaDocumentalService.LimpiarValoresFiltro(request.CodigosTrata);
+        if (codigosTrata.Length > 0)
+        {
+            query = query.Where(ExpresionesFiltroGrilla.AlgunoCumple<CoincidenciaAlertaDocumental>(codigosTrata,
+                valor => x => x.ExpedienteDocumento.Documento.Expedientes.Any(vinculo => vinculo.Expediente.Trata != null && vinculo.Expediente.Trata.CodigoTrata.Contains(valor))));
+        }
+
+        string[] generadores = AlertaDocumentalService.LimpiarValoresFiltro(request.Generadores);
+        if (generadores.Length > 0)
+        {
+            query = query.Where(ExpresionesFiltroGrilla.AlgunoCumple<CoincidenciaAlertaDocumental>(generadores,
+                valor => x => x.ExpedienteDocumento.Documento.Expedientes.Any(vinculo => vinculo.UsuarioGenerador != null && vinculo.UsuarioGenerador.Contains(valor))));
+        }
+
+        if (request.FiltroFechaDocumento is FiltroFecha filtroFechaDocumento) query = query.Where(ExpresionesFiltroGrilla.CumpleFiltroFecha<CoincidenciaAlertaDocumental>(filtroFechaDocumento, x => x.ExpedienteDocumento.Documento.FechaCreacion));
+        if (request.FiltroFechaDeteccion is FiltroFecha filtroFechaDeteccion) query = query.Where(ExpresionesFiltroGrilla.CumpleFiltroFecha<CoincidenciaAlertaDocumental>(filtroFechaDeteccion, x => (DateTimeOffset?)x.FechaDeteccion));
+        if (request.SoloSinRevisar is bool soloSinRevisar) query = soloSinRevisar ? query.Where(x => x.FechaVista == null) : query.Where(x => x.FechaVista != null);
+        return query;
+    }
+
+    private async Task<Guid[]> BuscarAlertasPorDescripcionAsync(string usuario, IReadOnlyCollection<string> textos, CancellationToken cancellationToken)
+    {
+        return (await this.DescribirAlertasDelUsuarioAsync(usuario, cancellationToken))
+            .Where(x => textos.Any(texto => CultureInfo.InvariantCulture.CompareInfo.IndexOf(x.Descripcion, texto, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0))
+            .Select(x => x.Alerta.Id)
+            .ToArray();
+    }
+
+    // El desempate final (deteccion mas reciente primero, luego Id) da un orden total: sin el, dos paginas podrian repetir o saltear filas.
+    private static IQueryable<CoincidenciaAlertaDocumental> OrdenarHistorico(IQueryable<CoincidenciaAlertaDocumental> query, string? campoOrden, string? direccionOrden)
+    {
+        bool descendente = !string.Equals(direccionOrden, "asc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<CoincidenciaAlertaDocumental> ordenada = campoOrden switch
+        {
+            // La descripcion no es una columna: se ordena por lo que la compone, que deja juntas las coincidencias de una misma alerta.
+            "descripcionAlerta" => AlertaDocumentalService.Ordenar(query, x => x.AlertaDocumental.Nombre ?? x.AlertaDocumental.TipoEspecificoCodigo ?? x.AlertaDocumental.TipoDocumentoCodigo, descendente),
+            "numeroDocumento" => AlertaDocumentalService.Ordenar(query, x => x.ExpedienteDocumento.Documento.NumeroActuacionCompleto, descendente),
+            "referencia" => AlertaDocumentalService.Ordenar(query, x => x.ExpedienteDocumento.Documento.Referencia, descendente),
+            "fechaDocumento" => AlertaDocumentalService.Ordenar(query, x => x.ExpedienteDocumento.Documento.FechaCreacion, descendente),
+            // Descendente = las no revisadas primero.
+            "pendiente" => AlertaDocumentalService.Ordenar(query, x => x.FechaVista == null, descendente),
+            "fechaDeteccion" => AlertaDocumentalService.Ordenar(query, x => x.FechaDeteccion, descendente),
+            _ => AlertaDocumentalService.Ordenar(query, x => x.FechaDeteccion, descendente: true)
+        };
+        return ordenada.ThenByDescending(x => x.FechaDeteccion).ThenBy(x => x.Id);
+    }
+
+    private static IOrderedQueryable<CoincidenciaAlertaDocumental> Ordenar<TClave>(IQueryable<CoincidenciaAlertaDocumental> query, Expression<Func<CoincidenciaAlertaDocumental, TClave>> clave, bool descendente)
+    {
+        return descendente ? query.OrderByDescending(clave) : query.OrderBy(clave);
+    }
+
+    private static string[] LimpiarValoresFiltro(IReadOnlyCollection<string>? valores)
+    {
+        return valores?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<string>();
     }
 
     public async Task<IReadOnlyCollection<TipoDocumentoAlertaDto>> ListarTiposDocumentoAsync(CancellationToken cancellationToken)
@@ -369,6 +598,7 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
             nombreTipoDocumento,
             documento.Referencia,
             documento.FechaCreacion ?? vinculo.FechaVinculacion,
+            vinculo.FechaVinculacion,
             vinculo.UsuarioGenerador,
             expediente.Id,
             expediente.GdebaNumeroCompleto,
@@ -384,7 +614,8 @@ public sealed class AlertaDocumentalService : IAlertaDocumentalService
     {
         IReadOnlyDictionary<string, string> nombresTipos = await this.CargarNombresTiposAsync(new[] { alerta.TipoDocumentoCodigo }, cancellationToken);
         IReadOnlyDictionary<string, string> nombresEspecificos = await this.CargarNombresEspecificosAsync(new[] { alerta.TipoEspecificoCodigo }, cancellationToken);
-        int pendientes = await _coincidenciaRepository.Query().Where(x => x.AlertaDocumentalId == alerta.Id && x.FechaVista == null).CountAsync(cancellationToken);
+        DateTimeOffset limiteSinRevisar = this.CalcularVentanaNovedades().LimiteSinRevisar;
+        int pendientes = await _coincidenciaRepository.Query().Where(x => x.AlertaDocumentalId == alerta.Id && x.FechaVista == null && x.FechaDeteccion >= limiteSinRevisar).CountAsync(cancellationToken);
         return AlertaDocumentalService.MapearAlerta(alerta, nombresTipos, nombresEspecificos, pendientes, trata);
     }
 

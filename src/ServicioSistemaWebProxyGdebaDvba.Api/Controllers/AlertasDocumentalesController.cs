@@ -95,15 +95,52 @@ public sealed class AlertasDocumentalesController : ControllerBase
         return NoContent();
     }
 
+    // Pestana "Alertas": lo detectado hoy (visto o no) mas lo no revisado de los ultimos dias configurados.
     [HttpGet("coincidencias")]
-    public async Task<ActionResult<IReadOnlyCollection<CoincidenciaAlertaDocumentalDto>>> ListarCoincidencias(CancellationToken cancellationToken)
+    public async Task<ActionResult<NovedadesAlertasDocumentalesDto>> ListarNovedades(CancellationToken cancellationToken)
     {
         if (this.UsuarioActual is not string usuario)
         {
-            return Unauthorized();
+            return this.Unauthorized();
         }
 
-        return Ok(await _alertaService.ListarCoincidenciasAsync(usuario, cancellationToken));
+        return this.Ok(await _alertaService.ListarNovedadesAsync(usuario, cancellationToken));
+    }
+
+    // Historico agrupado por alerta: una fila por alerta con sus cantidades; el detalle se pide a "historico" con AlertaId.
+    [HttpGet("historico/resumen")]
+    public async Task<ActionResult<ResumenHistoricoAlertasDto>> ResumirHistorico(CancellationToken cancellationToken)
+    {
+        if (this.UsuarioActual is not string usuario)
+        {
+            return this.Unauthorized();
+        }
+
+        return this.Ok(await _alertaService.ResumirHistoricoAsync(usuario, cancellationToken));
+    }
+
+    // Pestana "Historico de alertas": todo lo anterior, paginado, con orden y filtros de columna resueltos en el servidor.
+    [HttpPost("historico")]
+    public async Task<ActionResult<HistoricoAlertasDocumentalesDto>> ConsultarHistorico([FromBody] ConsultaHistoricoAlertasRequest request, CancellationToken cancellationToken)
+    {
+        if (this.UsuarioActual is not string usuario)
+        {
+            return this.Unauthorized();
+        }
+
+        return this.Ok(await _alertaService.ConsultarHistoricoAsync(usuario, request, cancellationToken));
+    }
+
+    // "Marcar como revisadas" del historico: las filas elegidas; sin filas, todas las no revisadas.
+    [HttpPost("historico/revisadas")]
+    public async Task<ActionResult<int>> MarcarHistoricoRevisado([FromBody] MarcarHistoricoRevisadoRequest request, CancellationToken cancellationToken)
+    {
+        if (this.UsuarioActual is not string usuario)
+        {
+            return this.Unauthorized();
+        }
+
+        return this.Ok(await _alertaService.MarcarHistoricoRevisadoAsync(usuario, request.CoincidenciaIds, cancellationToken));
     }
 
     // Lectura liviana para el badge y el aviso: total pendiente y las detectadas despues de la lectura anterior del front.
@@ -130,7 +167,7 @@ public sealed class AlertasDocumentalesController : ControllerBase
         return await _alertaService.MarcarVistaAsync(usuario, coincidenciaId, cancellationToken) ? NoContent() : NotFound();
     }
 
-    // "Marcar todas como vistas": marca las pendientes y conserva las ultimas vistas por alerta.
+    // "Marcar todas como vistas" de la pestana "Alertas": marca lo no revisado que esta ahi; nada se borra.
     [HttpPost("vistas")]
     public async Task<IActionResult> MarcarVistas(CancellationToken cancellationToken)
     {

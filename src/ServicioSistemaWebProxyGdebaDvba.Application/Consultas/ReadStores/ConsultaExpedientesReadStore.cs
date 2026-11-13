@@ -42,8 +42,8 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         // Queryable() (EF crudo) en vez de Query() (wrapper URF) para que el ThenBy del multi-sort traduzca a SQL. No hay filtros globales, trae las mismas filas.
         IQueryable<Expediente> query = _expedienteRepository.Queryable().Where(x => x.TrataId.HasValue);
         if (trataIdsConsulta.Length > 0) query = query.Where(x => trataIdsConsulta.Contains(x.TrataId!.Value));
-        if (filtro.CodigosTrata.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.CodigosTrata, x => x.Trata!.CodigoTrata));
-        if (filtro.EstadosActuales.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.EstadosActuales, x => x.EstadoActual));
+        if (filtro.CodigosTrata.Count > 0) query = query.Where(ExpresionesFiltroGrilla.ContieneAlguno<Expediente>(filtro.CodigosTrata, x => x.Trata!.CodigoTrata));
+        if (filtro.EstadosActuales.Count > 0) query = query.Where(ExpresionesFiltroGrilla.ContieneAlguno<Expediente>(filtro.EstadosActuales, x => x.EstadoActual));
         if (filtro.EstadosDetalle.Count > 0)
         {
             // El texto tipeado se resuelve localmente contra los tres estados posibles: la SQL recibe solo los booleanos.
@@ -56,11 +56,11 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 (buscaDisponible && x.HistorialCacheControl != null && x.HistorialCacheControl.EstaCompleto && x.HistorialCacheControl.FechaVencimiento != null && x.HistorialCacheControl.FechaVencimiento > filtro.FechaConsulta));
         }
 
-        if (filtro.NumerosExpediente.Count > 0) query = query.Where(ConsultaExpedientesReadStore.ContieneAlguno<Expediente>(filtro.NumerosExpediente, x => x.GdebaNumeroCompleto));
+        if (filtro.NumerosExpediente.Count > 0) query = query.Where(ExpresionesFiltroGrilla.ContieneAlguno<Expediente>(filtro.NumerosExpediente, x => x.GdebaNumeroCompleto));
 
         if (filtro.FiltroFechaUltimoMovimiento is FiltroFecha filtroFechaMovimiento)
         {
-            query = query.Where(ConsultaExpedientesReadStore.CumpleFiltroFecha<Expediente>(filtroFechaMovimiento, x => x.HistorialCacheControl!.UltimoMovimientoDetectado!.FechaOperacion));
+            query = query.Where(ExpresionesFiltroGrilla.CumpleFiltroFecha<Expediente>(filtroFechaMovimiento, x => x.HistorialCacheControl!.UltimoMovimientoDetectado!.FechaOperacion));
         }
 
         if (!string.IsNullOrWhiteSpace(filtro.Caratula))
@@ -217,14 +217,14 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 .ToArray();
             vinculosFiltrados = codigosPorCatalogo.Length > 0
                 ? vinculosFiltrados.Where(x => x.Documento!.TipoDocumentoCodigo != null && codigosPorCatalogo.Contains(x.Documento!.TipoDocumentoCodigo))
-                : vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.TiposDocumento, x => x.Documento!.TipoDocumentoCodigo));
+                : vinculosFiltrados.Where(ExpresionesFiltroGrilla.ContieneAlguno<ExpedienteDocumento>(filtro.TiposDocumento, x => x.Documento!.TipoDocumentoCodigo));
         }
 
-        if (filtro.FiltroFechaCreacion is FiltroFecha filtroFechaCreacion) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.CumpleFiltroFecha<ExpedienteDocumento>(filtroFechaCreacion, x => x.Documento!.FechaCreacion));
-        if (filtro.NumerosExpediente.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosExpediente, x => x.Expediente!.GdebaNumeroCompleto));
-        if (filtro.CodigosTrata.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.CodigosTrata, x => x.Expediente!.Trata!.CodigoTrata));
-        if (filtro.NumerosActuacion.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosActuacion, x => x.Documento!.NumeroActuacionCompleto));
-        if (filtro.Referencias.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ConsultaExpedientesReadStore.ContieneAlguno<ExpedienteDocumento>(filtro.Referencias, x => x.Documento!.Referencia));
+        if (filtro.FiltroFechaCreacion is FiltroFecha filtroFechaCreacion) vinculosFiltrados = vinculosFiltrados.Where(ExpresionesFiltroGrilla.CumpleFiltroFecha<ExpedienteDocumento>(filtroFechaCreacion, x => x.Documento!.FechaCreacion));
+        if (filtro.NumerosExpediente.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ExpresionesFiltroGrilla.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosExpediente, x => x.Expediente!.GdebaNumeroCompleto));
+        if (filtro.CodigosTrata.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ExpresionesFiltroGrilla.ContieneAlguno<ExpedienteDocumento>(filtro.CodigosTrata, x => x.Expediente!.Trata!.CodigoTrata));
+        if (filtro.NumerosActuacion.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ExpresionesFiltroGrilla.ContieneAlguno<ExpedienteDocumento>(filtro.NumerosActuacion, x => x.Documento!.NumeroActuacionCompleto));
+        if (filtro.Referencias.Count > 0) vinculosFiltrados = vinculosFiltrados.Where(ExpresionesFiltroGrilla.ContieneAlguno<ExpedienteDocumento>(filtro.Referencias, x => x.Documento!.Referencia));
 
         int totalRegistros;
         int totalExpedientesFiltrados;
@@ -453,8 +453,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
         }
     }
 
-    private static readonly MethodInfo MetodoContains = typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!;
-
     // Filtros de texto de las grillas: cada valor tipeado se busca por "contiene", y varios valores se unen con O (LIKE encadenados, compatible con SQL Server 2008).
     // Filtro por tratas con la lista escrita como constantes en el SQL ([TrataId] = '...' OR ...), no como parametro JSON de OPENJSON.
     // Con OPENJSON el optimizador estima una cantidad fija de tratas y elegia loops anidados sobre los 270k documentos; con la lista
@@ -476,55 +474,6 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
     private static bool ContieneSinAcentos(string texto, string valor)
     {
         return CultureInfo.InvariantCulture.CompareInfo.IndexOf(texto, valor, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
-    }
-
-    private static Expression<Func<T, bool>> ContieneAlguno<T>(IReadOnlyCollection<string> valores, Expression<Func<T, string?>> selector)
-    {
-        ParameterExpression parametro = selector.Parameters[0];
-        Expression? cuerpo = null;
-        foreach (string valor in valores)
-        {
-            MethodCallExpression contiene = Expression.Call(selector.Body, ConsultaExpedientesReadStore.MetodoContains, Expression.Constant(valor));
-            cuerpo = cuerpo is null ? contiene : Expression.OrElse(cuerpo, contiene);
-        }
-
-        return Expression.Lambda<Func<T, bool>>(cuerpo!, parametro);
-    }
-
-    // Filtro de fecha de una columna (arbol Y/O de rangos, como lo arma la grilla) traducido a una unica expresion con el mismo
-    // mecanismo que ContieneAlguno: EF lo manda como un solo WHERE, p. ej. "mes pasado O este mes" = (f >= d1 AND f < h1) OR (f >= d2 AND f < h2).
-    private static Expression<Func<T, bool>> CumpleFiltroFecha<T>(FiltroFecha filtro, Expression<Func<T, DateTimeOffset?>> selector)
-    {
-        Expression? cuerpo = ConsultaExpedientesReadStore.ConstruirFiltroFecha(filtro, selector.Body);
-        return Expression.Lambda<Func<T, bool>>(cuerpo ?? Expression.Constant(true), selector.Parameters[0]);
-    }
-
-    private static Expression? ConstruirFiltroFecha(FiltroFecha filtro, Expression fecha)
-    {
-        bool esO = string.Equals(filtro.Operador, "or", StringComparison.OrdinalIgnoreCase);
-        IEnumerable<Expression?> terminos = (filtro.Rangos ?? Array.Empty<RangoFecha>()).Select(rango => ConsultaExpedientesReadStore.ConstruirRangoFecha(rango, fecha))
-            .Concat((filtro.Subfiltros ?? Array.Empty<FiltroFecha>()).Select(subfiltro => ConsultaExpedientesReadStore.ConstruirFiltroFecha(subfiltro, fecha)));
-        Expression? cuerpo = null;
-        foreach (Expression? termino in terminos)
-        {
-            if (termino is null) continue;
-            cuerpo = cuerpo is null ? termino : esO ? Expression.OrElse(cuerpo, termino) : Expression.AndAlso(cuerpo, termino);
-        }
-
-        return cuerpo;
-    }
-
-    private static Expression? ConstruirRangoFecha(RangoFecha rango, Expression fecha)
-    {
-        Expression? condicion = null;
-        if (rango.Desde is DateTimeOffset desde) condicion = Expression.GreaterThanOrEqual(fecha, Expression.Constant(desde, fecha.Type));
-        if (rango.Hasta is DateTimeOffset hasta)
-        {
-            Expression menor = Expression.LessThan(fecha, Expression.Constant(hasta, fecha.Type));
-            condicion = condicion is null ? menor : Expression.AndAlso(condicion, menor);
-        }
-
-        return condicion;
     }
 
     private async Task<Guid[]> ExpandirTrataIdsPorCodigoAsync(IReadOnlyCollection<Guid> trataIds, CancellationToken cancellationToken)

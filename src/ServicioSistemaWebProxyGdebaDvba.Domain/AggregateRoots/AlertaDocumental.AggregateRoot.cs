@@ -2,12 +2,10 @@ using TrackableEntities.Common.Core;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Domain.Entities;
 
-// La alerta es el aggregate de sus coincidencias: el detector le pide registrar, la pantalla le pide marcar vistas y podar.
+// La alerta es el aggregate de sus coincidencias: el detector le pide registrar, la pantalla le pide marcar vistas.
 // El alta, la edicion y la baja de la alerta siguen pasando por PerfilUsuario, que es su dueno.
 public sealed partial class AlertaDocumental
 {
-    public const int CantidadMaximaCoincidenciasVistas = 10;
-
     public void ActualizarCriterios(string tipoDocumentoCodigo, string? tipoEspecificoCodigo, Guid? trataId, string? usuarioGenerador, string? nombre)
     {
         TipoDocumentoCodigo = string.IsNullOrWhiteSpace(tipoDocumentoCodigo)
@@ -75,49 +73,35 @@ public sealed partial class AlertaDocumental
         return coincidencia;
     }
 
-    // Marca vistas todas las pendientes y deja solo las ultimas N vistas; las pendientes nunca se podan. Devuelve las eliminadas
-    // para que el servicio pueda registrarlas si hace falta.
-    public IReadOnlyCollection<CoincidenciaAlertaDocumental> MarcarCoincidenciasVistas(DateTimeOffset fecha)
+    // Marca vistas las pendientes detectadas dentro del rango [detectadasDesde, detectadasAntesDe); un extremo nulo no acota. La pantalla
+    // de alertas marca asi las novedades (desde el limite de la ventana) y el historico (antes de ese limite) por separado. Las vistas se
+    // conservan todas: el historico las muestra. Devuelve cuantas marco.
+    public int MarcarCoincidenciasVistas(DateTimeOffset fecha, DateTimeOffset? detectadasDesde, DateTimeOffset? detectadasAntesDe)
     {
-        foreach (CoincidenciaAlertaDocumental coincidencia in _coincidencias.Where(x => x.EstaPendiente))
+        CoincidenciaAlertaDocumental[] pendientes = _coincidencias
+            .Where(x => x.EstaPendiente)
+            .Where(x => detectadasDesde is null || x.FechaDeteccion >= detectadasDesde)
+            .Where(x => detectadasAntesDe is null || x.FechaDeteccion < detectadasAntesDe)
+            .ToArray();
+        foreach (CoincidenciaAlertaDocumental coincidencia in pendientes)
         {
             coincidencia.MarcarVista(fecha);
         }
 
-        return this.PodarVistas();
+        return pendientes.Length;
     }
 
-    // Marca vista una sola coincidencia (la que la persona abrio) y poda; las demas pendientes siguen pendientes.
-    public IReadOnlyCollection<CoincidenciaAlertaDocumental>? MarcarCoincidenciaVista(Guid coincidenciaId, DateTimeOffset fecha)
+    // Marca vistas las coincidencias elegidas (la que la persona abrio, o las filas seleccionadas en el historico); las demas pendientes
+    // siguen pendientes. Devuelve cuantas marco; las que no pertenecen a esta alerta o ya estaban vistas no cuentan.
+    public int MarcarCoincidenciasVistas(IReadOnlyCollection<Guid> coincidenciaIds, DateTimeOffset fecha)
     {
-        CoincidenciaAlertaDocumental? coincidencia = _coincidencias.FirstOrDefault(x => x.Id == coincidenciaId);
-        if (coincidencia is null)
+        ArgumentNullException.ThrowIfNull(coincidenciaIds);
+        CoincidenciaAlertaDocumental[] elegidas = _coincidencias.Where(x => x.EstaPendiente && coincidenciaIds.Contains(x.Id)).ToArray();
+        foreach (CoincidenciaAlertaDocumental coincidencia in elegidas)
         {
-            return null;
+            coincidencia.MarcarVista(fecha);
         }
 
-        coincidencia.MarcarVista(fecha);
-        return this.PodarVistas();
-    }
-
-    private IReadOnlyCollection<CoincidenciaAlertaDocumental> PodarVistas()
-    {
-        CoincidenciaAlertaDocumental[] excedentes = _coincidencias
-            .Where(x => !x.EstaPendiente)
-            .OrderByDescending(x => x.FechaDeteccion)
-            .Skip(CantidadMaximaCoincidenciasVistas)
-            .ToArray();
-        foreach (CoincidenciaAlertaDocumental excedente in excedentes)
-        {
-            excedente.TrackingState = TrackingState.Deleted;
-            _coincidencias.Remove(excedente);
-        }
-
-        if (excedentes.Length > 0)
-        {
-            MarcarComoModificada();
-        }
-
-        return excedentes;
+        return elegidas.Length;
     }
 }
