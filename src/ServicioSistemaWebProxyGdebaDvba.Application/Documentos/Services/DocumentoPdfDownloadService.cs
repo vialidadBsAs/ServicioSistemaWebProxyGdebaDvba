@@ -108,7 +108,7 @@ public sealed class DocumentoPdfDownloadService : IDocumentoPdfDownloadService
         {
             // Rechazo del gateway (401/403) o sin respuesta: GDEBA no vio el pedido. Se marca el circuito, como hace el detalle del expediente, y el
             // middleware lo responde como "sin conexion"; el PDF no tiene copia local desde la cual responder.
-            _sensorConexion.RegistrarFalloConexion();
+            _sensorConexion.RegistrarFalloConexion(GdebaNoAccesibleException.DeterminarOrigen(ex));
             await this.RegistrarAuditoriaAsync(documento.NumeroActuacionCompleto, origenInvocacion, exitoso: false, "Sin conexion con GDEBA: no se pudo descargar el PDF.", cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw;

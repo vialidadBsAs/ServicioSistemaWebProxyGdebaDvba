@@ -1,3 +1,4 @@
+using ServicioSistemaWebProxyGdebaDvba.Application.Abstractions.Gdeba;
 using ServicioSistemaWebProxyGdebaDvba.Application.Transversales.Conexion.Contracts;
 
 namespace ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
@@ -9,6 +10,9 @@ namespace ServicioSistemaWebProxyGdebaDvba.Api.Middleware;
 public sealed class SensorConexionGdebaHeaderMiddleware
 {
     public const string HeaderName = "X-Gdeba-Accesible";
+
+    // Solo viaja mientras GDEBA no es accesible: en que paso se corto el acceso, para que el aviso de "sin conexion" lo diga.
+    public const string HeaderMotivo = "X-Gdeba-Motivo";
 
     private readonly RequestDelegate _next;
 
@@ -22,10 +26,22 @@ public sealed class SensorConexionGdebaHeaderMiddleware
         // Se resuelve al momento de enviar la respuesta: la propia consulta puede haber cambiado el estado.
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers[HeaderName] = sensorConexion.Accesible ? "true" : "false";
+            OrigenGdebaNoAccesible? origenFalla = sensorConexion.OrigenFalla;
+            context.Response.Headers[HeaderName] = origenFalla is null ? "true" : "false";
+            if (origenFalla is OrigenGdebaNoAccesible origen)
+            {
+                context.Response.Headers[HeaderMotivo] = SensorConexionGdebaHeaderMiddleware.CodigoDeOrigen(origen);
+            }
+
             return Task.CompletedTask;
         });
 
         await _next(context);
+    }
+
+    // Codigo estable que lee el front; tambien lo informa api/gdeba/estado.
+    public static string CodigoDeOrigen(OrigenGdebaNoAccesible origen)
+    {
+        return origen == OrigenGdebaNoAccesible.CredencialesIop ? "credenciales-iop" : "servicio-gdeba";
     }
 }

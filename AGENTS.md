@@ -232,7 +232,9 @@ La ubicacion transversal no elimina la separacion de responsabilidades:
 - Una invocacion consume cuota solamente si GDEBA proceso el pedido: hubo
   respuesta y no fue un rechazo de acceso del gateway (HTTP 401/403).
 - "GDEBA no accesible" se define solo en `GdebaNoAccesibleException.EsNoAccesible`:
-  401/403 del gateway o ausencia de respuesta. Un error devuelto por GDEBA
+  401/403 del gateway, ausencia de respuesta o imposibilidad de obtener el token
+  de acceso (el servicio de tokens de IOP no lo entrega, con cualquier estado
+  HTTP: sin token el pedido nunca llega a GDEBA). Un error devuelto por GDEBA
   (500, 404, SOAP Fault), aunque tarde ~30 s, es falla de ese pedido y nunca
   corta ni pausa una corrida. No se agrega timeout propio (`docs/11`).
 - La medicion HTTP/SOAP pertenece a Infrastructure.
