@@ -10,6 +10,12 @@ namespace ServicioSistemaWebProxyGdebaDvba.Application.Consultas.ReadStores;
 
 public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
 {
+    // Valor con que el catalogo de GDEBA marca los tipos que no pertenecen a ninguna familia: no sirve como descripcion.
+    private const string FamiliaSinDefinir = "Sin Familia";
+
+    // Palabras que no pueden cerrar el nombre comun de varios tipos ("Certificado de" => "Certificado").
+    private static readonly HashSet<string> _conectoresDeNombre = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "", "de", "del", "la", "el", "los", "las", "y", "e", "o", "en", "por", "para", "con", "a" };
+
     private readonly IRepository<Expediente> _expedienteRepository;
     private readonly IRepository<ExpedienteDocumento> _expedienteDocumentoRepository;
     private readonly IRepository<HistorialDocumentoGdeba> _historialDocumentoRepository;
@@ -175,8 +181,9 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
                 .Select(grupo => new { CodigoTipoDocumento = grupo.Key, CantidadExpedientes = grupo.Count() })
                 .ToArrayAsync(cancellationToken))
                 .ToDictionary(x => x.CodigoTipoDocumento ?? string.Empty, x => x.CantidadExpedientes);
+            IReadOnlyDictionary<string, string> descripcionesDeCodigos = await this.DescribirCodigosActuacionAsync(vinculosTema, documentosPorTipo.Select(x => x.CodigoTipoDocumento), cancellationToken);
             resumenTipos = documentosPorTipo
-                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, expedientesPorTipo.GetValueOrDefault(x.CodigoTipoDocumento ?? string.Empty), x.CantidadDocumentosConMetadata))
+                .Select(x => new ConsultaTipoDocumentoResumenDto(x.CodigoTipoDocumento, x.CantidadDocumentos, expedientesPorTipo.GetValueOrDefault(x.CodigoTipoDocumento ?? string.Empty), x.CantidadDocumentosConMetadata, x.CodigoTipoDocumento is not null ? descripcionesDeCodigos.GetValueOrDefault(x.CodigoTipoDocumento.Trim()) : null))
                 .OrderByDescending(x => x.CantidadDocumentos)
                 .ThenBy(x => x.CodigoTipoDocumento)
                 .ToArray();
@@ -514,6 +521,135 @@ public sealed class ConsultaExpedientesReadStore : IConsultaExpedientesReadStore
             expediente.FechaCaratulacion,
             ultimoPase?.ReparticionDestino,
             ultimoPase?.FechaOperacion);
+    }
+
+    // Descripcion de cada codigo de actuacion (la sigla con que se numeran los documentos) para la lista de tipos. GDEBA no informa un nombre
+    // para la sigla: la devuelve solo como codigo de cada tipo especifico (consultarTipoDocumento: codigoTipoDocumentoGDEBA). Se deduce de
+    // los tipos que realmente llevan esa sigla, de lo mas preciso a lo mas general:
+    // 1. la sigla es ademas un codigo del catalogo (ACTA, IF, PV): su nombre;
+    // 2. el nombre de los tipos de la sigla, pesado por cantidad de documentos: el mismo nombre o el comienzo comun de la mayoria
+    //    (NO: casi todo "Nota" => "Nota"; RS: "Resolucion", "Resolucion firma conjunta" => "Resolucion");
+    // 3. la familia de la mayoria (DOCFI: "Docum. Financiera");
+    // 4. nada de lo anterior: sin descripcion.
+    // Los tipos de una sigla salen de dos fuentes: los documentos de la consulta (cada documento trae su sigla en el numero y, una vez
+    // leido su historial, su tipo especifico) y el catalogo con sigla confirmada por GDEBA, que por si solo cubre pocas siglas.
+    private async Task<IReadOnlyDictionary<string, string>> DescribirCodigosActuacionAsync(IQueryable<ExpedienteDocumento> vinculosTema, IEnumerable<string?> codigosActuacion, CancellationToken cancellationToken)
+    {
+        string[] codigos = codigosActuacion
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Dictionary<string, string> descripciones = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (codigos.Length == 0) return descripciones;
+
+        // Pares sigla / tipo especifico observados, con su cantidad (cuenta vinculos: solo se usa como peso).
+        var observados = await vinculosTema
+            .Where(x => x.Documento!.TipoDocumentoCodigo != null && x.Documento!.TipoDocumentoCodigo != "" && x.Documento!.TipoDocumentoCodigo != x.Documento!.ActuacionTipoCodigo)
+            .GroupBy(x => new { x.Documento!.ActuacionTipoCodigo, x.Documento!.TipoDocumentoCodigo })
+            .Select(grupo => new { Sigla = grupo.Key.ActuacionTipoCodigo, Tipo = grupo.Key.TipoDocumentoCodigo, Cantidad = grupo.Count() })
+            .ToArrayAsync(cancellationToken);
+        string[] codigosObservados = observados.Select(x => x.Tipo!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+        TipoDocumentoGdeba[] tipos = (await _tipoDocumentoRepository.Query()
+            .Where(x => codigos.Contains(x.Codigo) || codigosObservados.Contains(x.Codigo) || (x.CodigoTipoDocumentoGdeba != null && codigos.Contains(x.CodigoTipoDocumentoGdeba)))
+            .SelectAsync(cancellationToken)).ToArray();
+        Dictionary<string, TipoDocumentoGdeba> tiposPorCodigo = new Dictionary<string, TipoDocumentoGdeba>(StringComparer.OrdinalIgnoreCase);
+        foreach (TipoDocumentoGdeba tipo in tipos)
+        {
+            tiposPorCodigo[tipo.Codigo] = tipo;
+        }
+
+        foreach (string codigo in codigos)
+        {
+            if (tiposPorCodigo.TryGetValue(codigo, out TipoDocumentoGdeba? tipoHomonimo) && !string.IsNullOrWhiteSpace(tipoHomonimo.Nombre))
+            {
+                descripciones[codigo] = tipoHomonimo.Nombre.Trim();
+                continue;
+            }
+
+            // Tipos de la sigla con su peso: los observados pesan por sus documentos; los confirmados por catalogo que no circularon, 1.
+            Dictionary<string, int> pesoPorTipo = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var observado in observados.Where(x => string.Equals(x.Sigla.Trim(), codigo, StringComparison.OrdinalIgnoreCase)))
+            {
+                string codigoTipo = observado.Tipo!.Trim();
+                pesoPorTipo[codigoTipo] = pesoPorTipo.GetValueOrDefault(codigoTipo) + observado.Cantidad;
+            }
+
+            foreach (TipoDocumentoGdeba confirmado in tipos.Where(x => string.Equals(x.CodigoTipoDocumentoGdeba, codigo, StringComparison.OrdinalIgnoreCase)))
+            {
+                pesoPorTipo.TryAdd(confirmado.Codigo, 1);
+            }
+
+            (TipoDocumentoGdeba Tipo, int Peso)[] tiposDeLaSigla = pesoPorTipo
+                .Where(x => tiposPorCodigo.ContainsKey(x.Key))
+                .Select(x => (tiposPorCodigo[x.Key], x.Value))
+                .ToArray();
+            string? descripcion = ConsultaExpedientesReadStore.ObtenerNombreComun(tiposDeLaSigla.Select(x => ((string?)x.Tipo.Nombre, x.Peso)))
+                ?? ConsultaExpedientesReadStore.ObtenerFamiliaMayoritaria(tiposDeLaSigla.Select(x => (x.Tipo.Familia, x.Peso)));
+            if (descripcion is not null)
+            {
+                descripciones[codigo] = descripcion;
+            }
+        }
+
+        return descripciones;
+    }
+
+    // Nombre que identifica a un conjunto de tipos: el comienzo comun de los nombres que, por peso, son mayoria ("Nota" frente a unos pocos
+    // "Memo"; "Orden de Pago" y "Orden de Pago Firma Conjunta" => "Orden de Pago"). Se descartan los conectores que queden colgando al
+    // final y los comienzos demasiado cortos. Sin mayoria no hay nombre comun.
+    private static string? ObtenerNombreComun(IEnumerable<(string? Nombre, int Peso)> nombres)
+    {
+        (string[] Palabras, int Peso)[] candidatos = nombres
+            .Where(x => !string.IsNullOrWhiteSpace(x.Nombre))
+            .Select(x => (x.Nombre!.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries), x.Peso))
+            .ToArray();
+        if (candidatos.Length == 0) return null;
+
+        int pesoTotal = candidatos.Sum(x => x.Peso);
+        IGrouping<string, (string[] Palabras, int Peso)> grupoMayoritario = candidatos
+            .GroupBy(x => x.Palabras[0], StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(x => x.Sum(y => y.Peso))
+            .First();
+        if (grupoMayoritario.Sum(x => x.Peso) * 2 <= pesoTotal) return null;
+
+        string[][] palabrasPorNombre = grupoMayoritario.Select(x => x.Palabras).ToArray();
+        int cantidadComun = palabrasPorNombre.Min(x => x.Length);
+        for (int indice = 0; indice < cantidadComun; indice++)
+        {
+            string palabra = palabrasPorNombre[0][indice];
+            if (palabrasPorNombre.Any(x => !string.Equals(x[indice], palabra, StringComparison.OrdinalIgnoreCase)))
+            {
+                cantidadComun = indice;
+                break;
+            }
+        }
+
+        List<string> comunes = palabrasPorNombre[0].Take(cantidadComun).ToList();
+        while (comunes.Count > 0 && ConsultaExpedientesReadStore._conectoresDeNombre.Contains(comunes[^1].Trim(',', '.', '-', '(')))
+        {
+            comunes.RemoveAt(comunes.Count - 1);
+        }
+
+        string nombreComun = string.Join(' ', comunes).Trim(',', '.', '-', '(', ' ');
+        return nombreComun.Length >= 4 ? nombreComun : null;
+    }
+
+    // Familia a la que pertenece, por peso, mas de la mitad de los tipos. "Sin Familia" no cuenta como descripcion.
+    private static string? ObtenerFamiliaMayoritaria(IEnumerable<(string? Familia, int Peso)> familias)
+    {
+        (string? Familia, int Peso)[] candidatos = familias.ToArray();
+        if (candidatos.Length == 0) return null;
+
+        int pesoTotal = candidatos.Sum(x => x.Peso);
+        var mayoritaria = candidatos
+            .Where(x => !string.IsNullOrWhiteSpace(x.Familia) && !string.Equals(x.Familia!.Trim(), ConsultaExpedientesReadStore.FamiliaSinDefinir, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(x => x.Familia!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(grupo => new { Familia = grupo.Key, Peso = grupo.Sum(x => x.Peso) })
+            .OrderByDescending(x => x.Peso)
+            .FirstOrDefault();
+        return mayoritaria is not null && mayoritaria.Peso * 2 > pesoTotal ? mayoritaria.Familia : null;
     }
 
     private async Task<IReadOnlyDictionary<string, TipoDocumentoGdeba>> CargarTiposPorCodigoAsync(IEnumerable<string?> codigosTipoDocumento, CancellationToken cancellationToken)
